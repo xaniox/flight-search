@@ -1,0 +1,643 @@
+iata,name,municipality,iso_country,type,continent,latitude_deg,longitude_deg
+AAC,El Arish International Airport,El Arish,EG,large_airport,AS,31.055324,33.827964
+AAE,Annaba Rabah Bitat Airport,Annaba,DZ,large_airport,AF,36.826781,7.81334
+AAL,Aalborg Airport,Aalborg,DK,large_airport,EU,57.094763,9.84993
+AAR,Aarhus Airport,Aarhus,DK,large_airport,EU,56.303331,10.618286
+ABS,Abu Simbel Airport,Abu Simbel,EG,medium_airport,AF,22.375924,31.611734
+ABZ,Aberdeen International Airport,Aberdeen,GB,large_airport,EU,57.2019,-2.19778
+ACH,Sankt Gallen Altenrhein Airport,St. Gallen,CH,medium_airport,EU,47.485001,9.56077
+ACI,Alderney Airport,Saint Anne,GG,medium_airport,EU,49.706104,-2.21472
+AER,Sochi International Airport,Sochi,RU,large_airport,EU,43.449902,39.9566
+AES,Ålesund Airport,Ålesund,NO,large_airport,EU,62.560443,6.110845
+AEY,Akureyri International Airport,Akureyri,IS,large_airport,EU,65.656573,-18.072018
+AGA,Al Massira Airport,Agadir (Temsia),MA,large_airport,AF,30.322478,-9.412003
+AGE,Wangerooge Airport,Wangerooge,DE,small_airport,EU,53.782544,7.919584
+AGH,Ängelholm-Helsingborg Airport,Ängelholm,SE,medium_airport,EU,56.29610061645508,12.847100257873535
+AGP,Málaga-Costa del Sol Airport,Málaga,ES,large_airport,EU,36.678234,-4.500208
+AHO,Alghero-Fertilia Airport,Alghero,IT,medium_airport,EU,40.632099,8.29077
+AHU,Cherif Al Idrissi Airport,Al Hoceima,MA,medium_airport,AF,35.177101,-3.83952
+AJA,Ajaccio Napoléon Bonaparte airport,Ajaccio,FR,medium_airport,EU,41.923599,8.80292
+AJR,Arvidsjaur Airport,Arvidsjaur,SE,medium_airport,EU,65.59030151367188,19.28190040588379
+AKF,Kufra Airport,Kufra,LY,medium_airport,AF,24.178699493408203,23.31399917602539
+ALC,Alicante-Elche Miguel Hernández Airport,Alicante,ES,large_airport,EU,38.2822,-0.558156
+ALF,Alta Airport,Alta,NO,medium_airport,EU,69.976097,23.3717
+ALG,Houari Boumediene Airport,Algiers,DZ,large_airport,AF,36.693886,3.214531
+AMS,Amsterdam Airport Schiphol,Amsterdam,NL,large_airport,EU,52.308601,4.76389
+AMV,Amderma Airport,Amderma,RU,medium_airport,EU,69.763712,61.556711
+ANR,Antwerp International Airport (Deurne),Antwerp,BE,medium_airport,EU,51.190667,4.463153
+ANX,"Andøya Airport, Andenes",Andenes,NO,medium_airport,EU,69.295193,16.139379
+AOI,Marche Airport,Falconara Marittima (AN),IT,medium_airport,EU,43.616299,13.3623
+AOK,Karpathos Airport,Karpathos Island,GR,medium_airport,EU,35.421398,27.146
+ARH,Talagi Airport,Archangelsk,RU,medium_airport,EU,64.60030364990234,40.71670150756836
+ARN,Stockholm-Arlanda Airport,Stockholm,SE,large_airport,EU,59.64849,17.928829
+ARW,Arad International Airport,Arad,RO,medium_airport,EU,46.176136,21.264322
+ASW,Aswan International Airport,Aswan,EG,large_airport,AF,23.961075,32.820382
+ATH,Athens Eleftherios Venizelos International Airport,Spata-Artemida,GR,large_airport,EU,37.936401,23.9445
+ATZ,Asyut International Airport,Asyut,EG,large_airport,AF,27.045962,31.01276
+AUR,Aurillac airport,Aurillac,FR,medium_airport,EU,44.891399,2.42194
+AVN,Avignon Caumont airport,Avignon,FR,medium_airport,EU,43.907299,4.90183
+AXD,Alexandroupoli Democritus Airport,Alexandroupolis,GR,medium_airport,EU,40.8559,25.956301
+AZR,Touat-Cheikh Sidi Mohamed Belkebir Airport,Adrar,DZ,medium_airport,AF,27.837601,-0.186414
+BAY,Maramureș International Airport,Tăuții-Măgherăuș,RO,medium_airport,EU,47.658444,23.464445
+BBU,Bucharest Băneasa Aurel Vlaicu International Airport,Bucharest,RO,large_airport,EU,44.503133,26.102944
+BCM,Bacău George Enescu International  Airport,Bacău,RO,large_airport,EU,46.5219,26.910299
+BCN,Josep Tarradellas Barcelona-El Prat Airport,Barcelona,ES,large_airport,EU,41.2971,2.07846
+BDS,Brindisi Airport,Brindisi,IT,large_airport,EU,40.6576,17.947001
+BDU,Bardufoss Airport,Målselv,NO,medium_airport,EU,69.055801,18.5404
+BEB,Benbecula Airport,Balivanich,GB,medium_airport,EU,57.481098,-7.36278
+BEG,Belgrade Nikola Tesla Airport,Belgrade,RS,large_airport,EU,44.818401,20.309099
+BEM,Beni Mellal Airport,Oulad Yaich,MA,large_airport,AF,32.401895,-6.315905
+BEN,Benina International Airport,Benina,LY,large_airport,AF,32.096802,20.269501
+BER,Berlin Brandenburg Airport,Berlin,DE,large_airport,EU,52.361738,13.502341
+BES,Brest Bretagne airport,Brest,FR,large_airport,EU,48.447899,-4.41854
+BFS,Belfast International Airport,Belfast,GB,large_airport,EU,54.6575012207,-6.2158298492399995
+BGC,Bragança Airport,Bragança,PT,medium_airport,EU,41.8578,-6.70713
+BGO,"Bergen Airport, Flesland",Bergen,NO,large_airport,EU,60.2934,5.21814
+BGY,Il Caravaggio International Airport,Orio al Serio (BG),IT,large_airport,EU,45.669362,9.708851
+BHD,George Best Belfast City Airport,Belfast,GB,medium_airport,EU,54.618099,-5.8725
+BHX,Birmingham Airport,"Birmingham, West Midlands",GB,large_airport,EU,52.453899,-1.74803
+BIA,Bastia-Poretta International airport,Bastia,FR,large_airport,EU,42.5527,9.48373
+BIO,Bilbao Airport,Bilbao,ES,large_airport,EU,43.301102,-2.91061
+BIQ,Biarritz Pays Basque airport,Biarritz,FR,medium_airport,EU,43.468372,-1.523223
+BJA,Soummam–Abane Ramdane Airport,Béjaïa,DZ,large_airport,AF,36.712547,5.069909
+BJF,Båtsfjord Airport,Båtsfjord,NO,medium_airport,EU,70.60025,29.692612
+BJZ,Badajoz Airport,Badajoz,ES,medium_airport,EU,38.8913,-6.82133
+BLE,Dala Airport,Borlange,SE,medium_airport,EU,60.422001,15.5152
+BLJ,Batna Mostefa Ben Boulaid Airport,Batna,DZ,large_airport,AF,35.752102,6.30859
+BLL,Billund Airport,Billund,DK,large_airport,EU,55.740335,9.157019
+BLQ,Bologna Guglielmo Marconi Airport,Bologna,IT,large_airport,EU,44.5354,11.2887
+BMA,Stockholm-Bromma Airport,Stockholm,SE,medium_airport,EU,59.354401,17.9417
+BMK,Borkum Airport,Borkum,DE,small_airport,EU,53.59639,6.709167
+BMR,Baltrum Airport,Baltrum,DE,small_airport,EU,53.72485,7.373257
+BMW,Bordj Badji Mokhtar Airport,Bordj Badji Mokhtar,DZ,medium_airport,AF,21.3778,0.92698
+BNN,"Brønnøysund Airport, Brønnøy",Brønnøy,NO,medium_airport,EU,65.461098,12.2175
+BNX,Banja Luka International Airport,Mahovljani,BA,large_airport,EU,44.941399,17.297501
+BOD,Bordeaux–Mérignac Airport,Bordeaux,FR,large_airport,EU,44.82865,-0.715356
+BOH,Bournemouth Airport,Bournemouth,GB,medium_airport,EU,50.780483,-1.839576
+BOJ,Burgas Airport,Burgas,BG,large_airport,EU,42.569917,27.515173
+BOO,Bodø Airport,Bodø,NO,large_airport,EU,67.269203,14.3653
+BQT,Brest International Airport,Brest,BY,large_airport,EU,52.108138,23.89676
+BRE,Bremen Airport,Bremen,DE,large_airport,EU,53.046786,8.78932
+BRI,Bari Karol Wojtyła International Airport,Bari,IT,large_airport,EU,41.138901,16.760599
+BRN,Bern Airport,Bern,CH,medium_airport,EU,46.912736,7.498819
+BRQ,Brno-Tuřany Airport,Brno,CZ,medium_airport,EU,49.151276,16.693972
+BRR,Barra Airport,Eoligarry,GB,medium_airport,EU,57.0228,-7.44306
+BRS,Bristol Airport,Bristol,GB,large_airport,EU,51.382326,-2.716453
+BRU,Brussels Airport,Zaventem,BE,large_airport,EU,50.901402,4.48444
+BSK,Biskra - Mohamed Khider Airport,Biskra,DZ,large_airport,AF,34.79318,5.738899
+BSL,EuroAirport Basel–Mulhouse–Freiburg,Bâle / Mulhouse,FR,large_airport,EU,47.60068,7.521117
+BTS,M. R. Štefánik Airport,Bratislava,SK,large_airport,EU,48.1702,17.2127
+BUD,Budapest Liszt Ferenc International Airport,Budapest,HU,large_airport,EU,47.43018,19.262393
+BVA,Beauvais-Tillé airport,Beauvais,FR,large_airport,EU,49.454399,2.11278
+BVE,Brive Souillac airport,Brive,FR,medium_airport,EU,45.039722,1.485556
+BVG,Berlevåg Airport,Berlevåg,NO,medium_airport,EU,70.871517,29.034097
+BWK,Brač Airport,Gornji Humac,HR,medium_airport,EU,43.284454,16.678362
+BWO,Balakovo Airport,Balakovo,RU,medium_airport,EU,51.858299,47.745602
+BYR,Læsø Airport,Læsø,DK,small_airport,EU,57.277199,11.0001
+BZG,Ignacy Jan Paderewski Bydgoszcz Airport,Bydgoszcz,PL,medium_airport,EU,53.096802,17.977699
+BZO,Bolzano Airport,Bolzano (BZ),IT,medium_airport,EU,46.459245,11.326125
+BZR,Béziers Vias airport,Béziers,FR,medium_airport,EU,43.323502,3.3539
+CAG,Cagliari Elmas Airport,Cagliari,IT,large_airport,EU,39.251499,9.05428
+CAI,Cairo International Airport,Cairo,EG,large_airport,AF,30.111534,31.396694
+CAL,Campbeltown Airport,Campbeltown,GB,medium_airport,EU,55.437199,-5.68639
+CAT,Cascais Airport,Cascais,PT,medium_airport,EU,38.724998,-9.35523
+CBH,Béchar Boudghene Ben Ali Lotfi Airport,Béchar,DZ,medium_airport,AF,31.645700454711914,-2.269860029220581
+CCE,Capital International Airport,New Cairo,EG,medium_airport,AF,30.06465,31.839974
+CCF,Carcassonne Salvaza Airport,Carcassonne,FR,medium_airport,EU,43.216,2.30632
+CDG,Charles de Gaulle International Airport,"Paris (Roissy-en-France, Val-d'Oise)",FR,large_airport,EU,49.00896,2.554117
+CDT,Castellón-Costa Azahar Airport,Castellón de la Plana,ES,medium_airport,EU,40.213889,0.073333
+CEE,Cherepovets Airport,Cherepovets,RU,medium_airport,EU,59.273601532,38.015800476100004
+CFE,Clermont-Ferrand Auvergne airport,Clermont-Ferrand,FR,large_airport,EU,45.786701,3.16917
+CFK,Chlef Aboubakr Belkaid International Airport,Chlef,DZ,large_airport,AF,36.216614,1.341114
+CFN,Donegal Airport,Donegal,IE,medium_airport,EU,55.0442008972168,-8.340999603271484
+CFR,Caen Carpiquet airport,Caen,FR,medium_airport,EU,49.17678,-0.454883
+CFU,Corfu Ioannis Kapodistrias International Airport,Kerkyra (Corfu),GR,large_airport,EU,39.60145,19.912179
+CGN,Cologne Bonn Airport,Köln (Cologne),DE,large_airport,EU,50.865898,7.14274
+CHQ,Chania International Airport,Souda,GR,large_airport,EU,35.531207,24.150673
+CIA,Ciampino–G. B. Pastine International Airport,Rome,IT,large_airport,EU,41.798769,12.595331
+CIY,Comiso Airport,Comiso,IT,medium_airport,EU,36.99583,14.60889
+CLJ,Avram Iancu Cluj International Airport,Cluj-Napoca,RO,large_airport,EU,46.786042,23.685733
+CLY,Calvi Sainte Catherine Airport,Calvi,FR,medium_airport,EU,42.530422,8.792984
+CMF,Chambéry Aix les Bains airport,Chambéry,FR,medium_airport,EU,45.6381,5.88023
+CMN,Mohammed V International Airport,Casablanca,MA,large_airport,AF,33.3675,-7.58997
+CND,Mihail Kogălniceanu International Airport,Constanța,RO,large_airport,EU,44.362202,28.4883
+COL,Coll Airport,Coll Island,GB,small_airport,EU,56.601898,-6.61778
+CPH,Copenhagen Kastrup Airport,Copenhagen,DK,large_airport,EU,55.617900848389,12.656000137329
+CRA,Craiova International Airport,Craiova,RO,large_airport,EU,44.3181,23.888599
+CRL,Brussels South Charleroi Airport,Charleroi,BE,large_airport,EU,50.461963,4.459562
+CRV,Crotone Sant'Anna Pythagoras Airport,Isola di Capo Rizzuto (KR),IT,medium_airport,EU,38.9972,17.0802
+CSA,Colonsay Airstrip,Colonsay,GB,small_airport,EU,56.057499,-6.24306
+CSH,Solovki Airport,Solovetsky Islands,RU,small_airport,EU,65.029996,35.730558
+CSY,Cheboksary Airport,Cheboksary,RU,medium_airport,EU,56.090302,47.347301
+CTA,Catania-Fontanarossa Airport,Catania,IT,large_airport,EU,37.466801,15.0664
+CUF,Cuneo International Airport,Levaldigi (CN),IT,medium_airport,EU,44.547458,7.623045
+CVU,Corvo Airport,Corvo,PT,small_airport,EU,39.671501,-31.1136
+CWL,Cardiff International Airport,Cardiff,GB,large_airport,EU,51.396702,-3.34333
+CZL,Mohamed Boudiaf International Airport,Constantine,DZ,large_airport,AF,36.276001,6.62039
+DBB,El Alamein International Airport,El Alamein,EG,large_airport,AF,30.924324,28.46161
+DBV,Dubrovnik Ruđer Bošković Airport,Dubrovnik,HR,large_airport,EU,42.562247,18.265543
+DCM,Castres Mazamet Airport,Castres,FR,medium_airport,EU,43.556301,2.28918
+DEB,Debrecen International Airport,Debrecen,HU,large_airport,EU,47.489469,21.616278
+DJE,Djerba Zarzis International Airport,Mellita,TN,large_airport,AF,33.873719,10.7773
+DJG,Tiska Djanet Airport,Djanet,DZ,large_airport,AF,24.285448,9.463652
+DLE,Dole Tavaux Airport,Dole,FR,medium_airport,EU,47.038955,5.427589
+DME,Domodedovo International Airport,Moscow,RU,large_airport,EU,55.408798,37.9063
+DND,Dundee Airport,Dundee,GB,medium_airport,EU,56.452499,-3.02583
+DOL,Deauville Normandie airport,Deauville,FR,medium_airport,EU,49.365237,0.154481
+DRS,Dresden Airport,Dresden,DE,large_airport,EU,51.134123,13.767831
+DTM,Dortmund Airport,Dortmund,DE,large_airport,EU,51.518299,7.61224
+DUB,Dublin Airport,Dublin,IE,large_airport,EU,53.428713,-6.262121
+DUS,Düsseldorf Airport,Düsseldorf,DE,large_airport,EU,51.289501,6.76678
+EAS,San Sebastián Airport,Hondarribia,ES,medium_airport,EU,43.356499,-1.79061
+EBA,Marina di Campo Airport,Campo nell'Elba (LI),IT,medium_airport,EU,42.760871,10.239811
+EBH,El Bayadh Airport,El Bayadh,DZ,small_airport,AF,33.721667,1.0925
+EBJ,Esbjerg Airport,Esbjerg,DK,medium_airport,EU,55.525902,8.5534
+EDI,Edinburgh Airport,"Ingliston, Edinburgh",GB,large_airport,EU,55.950145,-3.372288
+EGC,Bergerac Dordogne-Périgord airport,Bergerac,FR,medium_airport,EU,44.825298,0.518611
+EGS,Egilsstaðir Airport,Egilsstaðir,IS,medium_airport,EU,65.2833023071289,-14.401399612426758
+EIN,Eindhoven Airport,Eindhoven,NL,large_airport,EU,51.4500999451,5.37452983856
+ELG,El Golea Airport,El Menia,DZ,medium_airport,AF,30.580732,2.861595
+ELU,Guemar Airport - مطار قمار بالوادي,Guemar,DZ,medium_airport,AF,33.511398,6.77679
+EMA,East Midlands Airport,"Nottingham, Leicestershire",GB,large_airport,EU,52.8311,-1.32806
+EME,Emden Airport,Emden,DE,small_airport,EU,53.391109,7.2275
+ENF,Enontekio Airport,Enontekio,FI,medium_airport,EU,68.362602233887,23.424299240112
+EOI,Eday Airport,Eday,GB,medium_airport,EU,59.19060134887695,-2.7722198963165283
+EPU,Pärnu Airport,Pärnu,EE,medium_airport,EU,58.41899871826172,24.47279930114746
+ERF,Erfurt-Weimar Airport,Erfurt,DE,large_airport,EU,50.978281,10.960713
+ERH,Moulay Ali Cherif Airport,Errachidia,MA,medium_airport,AF,31.9475002289,-4.39833021164
+ESL,Elista Airport,Elista,RU,medium_airport,EU,46.373901,44.330898
+ESU,Essaouira-Mogador Airport,Essaouira,MA,medium_airport,AF,31.397499,-9.68167
+ETZ,Metz-Nancy-Lorraine Airport,Goin,FR,medium_airport,EU,48.982101,6.25132
+EUN,Laayoune Hassan I International Airport,El Aaiún,EH,large_airport,AF,27.142467,-13.224947
+EVE,Harstad/Narvik Airport,Evenes,NO,large_airport,EU,68.491302,16.678101
+EVG,Sveg Airport,Sveg,SE,small_airport,EU,62.047798,14.4229
+EXT,Exeter International Airport,"Exeter, Devon",GB,medium_airport,EU,50.734261,-3.413984
+FAE,Vágar Airport,Vágar,FO,large_airport,EU,62.063256,-7.275782
+FAO,Faro - Gago Coutinho International Airport,Faro,PT,large_airport,EU,37.015909,-7.970939
+FCO,Rome–Fiumicino Leonardo da Vinci International Airport,Rome,IT,large_airport,EU,41.804532,12.251998
+FDE,"Førde Airport, Bringeland",Førde,NO,small_airport,EU,61.391102,5.75694
+FDH,Bodensee Airport Friedrichshafen,Friedrichshafen,DE,large_airport,EU,47.671299,9.51149
+FEZ,Fes Saïss International Airport,Saïss,MA,large_airport,AF,33.927299,-4.97796
+FIE,Fair Isle Airport,Fair Isle,GB,small_airport,EU,59.534721,-1.628509
+FKB,Karlsruhe Baden-Baden Airport,Rheinmünster,DE,large_airport,EU,48.7794,8.0805
+FLR,"Florence Airport, Peretola",Firenze (FI),IT,large_airport,EU,43.808558,11.202822
+FLW,Flores Airport,Santa Cruz das Flores,PT,medium_airport,EU,39.455299377441406,-31.131399154663086
+FMM,Memmingen Allgau Airport,Memmingen,DE,large_airport,EU,47.988092,10.238248
+FMO,Münster Osnabrück Airport,Greven,DE,large_airport,EU,52.133816,7.688482
+FNC,Cristiano Ronaldo International Airport,Funchal,PT,large_airport,EU,32.697812,-16.774613
+FNI,Nîmes-Arles-Camargue Airport,Nîmes/Garons,FR,medium_airport,EU,43.757401,4.41635
+FOG,Foggia Gino Lisa Airport,Foggia (FG),IT,medium_airport,EU,41.433596,15.534566
+FRA,Frankfurt Main Airport,Frankfurt am Main,DE,large_airport,EU,50.026706,8.55835
+FRL,Forlì-Luigi Ridolfi International Airport,Forlì (FC),IT,medium_airport,EU,44.194801,12.0701
+FRO,Florø Airport,Florø,NO,medium_airport,EU,61.583599090576,5.0247201919556
+FSC,Figari Sud-Corse Airport,Figari,FR,large_airport,EU,41.50185,9.097092
+GCI,Guernsey Airport,Saint Peter Port,GG,medium_airport,EU,49.435001,-2.60197
+GDN,Gdańsk Lech Wałęsa Airport,Gdańsk,PL,large_airport,EU,54.377602,18.4662
+GDZ,Gelendzhik Airport,Gelendzhik,RU,medium_airport,EU,44.5820926295,38.0124807358
+GEV,Gällivare Airport,Gällivare,SE,medium_airport,EU,67.13240051269531,20.814599990844727
+GHA,Noumérat - Moufdi Zakaria Airport,El Atteuf,DZ,medium_airport,AF,32.384102,3.79411
+GHV,Brașov-Ghimbav International Airport,Brașov (Ghimbav),RO,large_airport,EU,45.70558,25.522871
+GIB,Gibraltar Airport,Gibraltar,GI,large_airport,EU,36.151679,-5.34978
+GJL,Jijel Ferhat Abbas Airport,Tahir,DZ,large_airport,AF,36.794125,5.873652
+GLA,Glasgow Airport,Glasgow,GB,large_airport,EU,55.871899,-4.43306
+GME,Gomel Airport,Gomel,BY,medium_airport,EU,52.527000427246094,31.016700744628906
+GNB,Grenoble Alpes Isère Airport,Grenoble,FR,medium_airport,EU,45.3629,5.32937
+GOA,Genoa Cristoforo Colombo Airport,Genova (GE),IT,large_airport,EU,44.412039,8.840732
+GOJ,Nizhny Novgorod / Strigino International Airport,Nizhny Novgorod,RU,large_airport,EU,56.227351,43.785152
+GOT,Göteborg Landvetter Airport,Göteborg,SE,large_airport,EU,57.6628,12.2798
+GPA,Patras Araxos Agamemnon Airport,Patras,GR,medium_airport,EU,38.1511,21.4256
+GRO,Girona-Costa Brava Airport,Girona,ES,large_airport,EU,41.904639,2.761774
+GRQ,Groningen Airport Eelde,Groningen,NL,large_airport,EU,53.119107,6.577652
+GRW,Graciosa Airport,Santa Cruz da Graciosa,PT,medium_airport,EU,39.092201232910156,-28.029800415039062
+GRX,F.G.L. Airport Granada-Jaén Airport,Granada,ES,medium_airport,EU,37.188702,-3.77736
+GRY,Grímsey Airport,Grímsey/Sandvík,IS,medium_airport,EU,66.5458,-18.0173
+GRZ,Graz Airport,Feldkirchen bei Graz,AT,large_airport,EU,46.9911,15.4396
+GSV,Gagarin International Airport,Saratov,RU,large_airport,EU,51.712778,46.171111
+GVA,Geneva International Airport,Geneva,CH,large_airport,EU,46.238098,6.10895
+GWT,Westerland Sylt Airport,Sylt,DE,medium_airport,EU,54.9132,8.34047
+HAA,Hasvik Airport,Hasvik,NO,small_airport,EU,70.486702,22.1397
+HAD,Halmstad Airport,Halmstad,SE,medium_airport,EU,56.69110107421875,12.820199966430664
+HAJ,Hannover Airport,Hannover,DE,large_airport,EU,52.461102,9.68508
+HAM,Hamburg Helmut Schmidt Airport,Hamburg,DE,large_airport,EU,53.630402,9.98823
+HAU,"Haugesund Airport, Karmøy",Karmøy,NO,medium_airport,EU,59.345299,5.20836
+HBE,Alexandria International Airport,Alexandria,EG,large_airport,AF,30.93249,29.696437
+HDF,Heringsdorf Airport,Zirchow,DE,medium_airport,EU,53.8787,14.1523
+HEI,Heide-Büsum Airport,Oesterdeichstrich,DE,small_airport,EU,54.153332,8.901667
+HEL,Helsinki Vantaa Airport,Helsinki (Vantaa),FI,large_airport,EU,60.318363,24.963341
+HER,Heraklion International Nikos Kazantzakis Airport,Heraklion,GR,large_airport,EU,35.339699,25.1803
+HFN,Hornafjörður Airport,Höfn,IS,medium_airport,EU,64.295601,-15.2272
+HFS,Hagfors Airport,Råda,SE,small_airport,EU,60.0201,13.5789
+HFT,Hammerfest Airport,Hammerfest,NO,medium_airport,EU,70.679703,23.6686
+HGL,Helgoland-Düne Airport,Helgoland,DE,small_airport,EU,54.18528,7.915833
+HHN,Frankfurt-Hahn Airport,Frankfurt am Main (Lautzenhausen),DE,large_airport,EU,49.946353,7.261734
+HMB,Suhaj International Airport,Suhaj,EG,large_airport,AF,26.342515,31.743017
+HME,Hassi Messaoud-Oued Irara Krim Belkacem Airport,Hassi Messaoud,DZ,medium_airport,AF,31.673,6.14044
+HMV,Hemavan Airport,Hemavan,SE,small_airport,EU,65.806099,15.0828
+HOR,Horta Airport,Horta,PT,medium_airport,EU,38.519901275634766,-28.715900421142578
+HOV,"Ørsta-Volda Airport, Hovden",Ørsta,NO,medium_airport,EU,62.180000305176,6.0741000175476
+HRG,Hurghada International Airport,Hurghada,EG,large_airport,AF,27.176776,33.796692
+HUY,Humberside Airport,"Grimsby, Lincolnshire",GB,medium_airport,EU,53.576152,-0.34954
+HVG,"Honningsvåg Airport, Valan",Honningsvåg,NO,medium_airport,EU,71.009697,25.983601
+IAM,Zarzaitine - In Aménas Airport,In Aménas,DZ,medium_airport,AF,28.0515,9.64291
+IAR,Golden Ring Yaroslavl International Airport,Tunoshna,RU,large_airport,EU,57.560699,40.157398
+IAS,Iaşi International Airport,Iaşi,RO,large_airport,EU,47.179633,27.621431
+IBZ,Ibiza Airport,Ibiza (Eivissa),ES,large_airport,EU,38.872898,1.37312
+IEG,Zielona Góra-Babimost Airport,Nowe Kramsko,PL,medium_airport,EU,52.1385,15.7986
+IFJ,Ísafjörður Airport,Ísafjörður,IS,medium_airport,EU,66.058098,-23.1353
+IIA,Inishmaan Aerodrome,Inis Meáin,IE,small_airport,EU,53.092999,-9.56806
+ILD,Lleida-Alguaire Airport,Lleida,ES,medium_airport,EU,41.728185,0.535023
+ILY,Islay Airport,"Isle of Islay, Argyll and Bute",GB,medium_airport,EU,55.682708,-6.257525
+INI,Niš Constantine the Great Airport,Niš,RS,large_airport,EU,43.336538,21.856242
+INN,Innsbruck Airport,Innsbruck,AT,large_airport,EU,47.260201,11.344
+INQ,Inisheer Aerodrome,Inis Oírr,IE,small_airport,EU,53.064701,-9.5109
+INV,Inverness Airport,"Inverness, Highland",GB,medium_airport,EU,57.5425,-4.0475
+INZ,In Salah Airport,In Salah,DZ,medium_airport,AF,27.250999,2.51202
+IOA,Ioannina King Pyrrhus National Airport,Ioannina,GR,medium_airport,EU,39.6964,20.8225
+IOM,Isle of Man Airport,"Castletown, Rushen",IM,large_airport,EU,54.083081,-4.623871
+IOR,Inishmore Aerodrome,Inis Mór,IE,small_airport,EU,53.1067008972168,-9.653610229492188
+ISC,St. Mary's Airport,"St. Mary's, Isles of Scilly",GB,small_airport,EU,49.913375,-6.291894
+IST,İstanbul Airport,Istanbul,TR,large_airport,EU,41.274874,28.732136
+IVL,Ivalo Airport,Ivalo,FI,large_airport,EU,68.6073,27.4053
+IWA,Ivanovo South Airport,Ivanovo,RU,medium_airport,EU,56.93939971923828,40.940799713134766
+JCL,České Budějovice South Bohemian Airport,České Budějovice,CZ,large_airport,EU,48.948171,14.42832
+JER,Jersey Airport,St. Peter,JE,medium_airport,EU,49.207901,-2.19551
+JIK,Ikaria Airport,Ikaria Island,GR,small_airport,EU,37.6827011108,26.3470993042
+JKG,Jönköping Airport,Jönköping,SE,medium_airport,EU,57.757598876953125,14.068699836730957
+JKH,Chios Island National Airport,Chios Island,GR,medium_airport,EU,38.34320068359375,26.140600204467773
+JKL,Kalymnos Airport,Kalymnos Island,GR,small_airport,EU,36.9632987976,26.9405994415
+JMK,Mykonos Island National Airport,Mykonos,GR,medium_airport,EU,37.435101,25.348101
+JNX,Naxos Island National Airport,Naxos,GR,small_airport,EU,37.0811,25.368099
+JOE,Joensuu Airport,Joensuu,FI,medium_airport,EU,62.658815,29.619398
+JSH,Sitia Airport,Crete Island,GR,medium_airport,EU,35.21609878540039,26.101299285888672
+JSI,Skiathos Island National Airport,Skiathos,GR,medium_airport,EU,39.177101,23.5037
+JSY,Syros Airport,Syros Island,GR,small_airport,EU,37.4227981567,24.950899124099998
+JTR,Santorini International Airport,Santorini Island,GR,large_airport,EU,36.400045,25.478638
+JTY,Astypalaia Airport,Astypalaia Island,GR,small_airport,EU,36.5798988342,26.3757991791
+JUI,Juist Airport,Juist,DE,small_airport,EU,53.681421,7.056398
+JYV,Jyväskylä Airport,Jyväskylän Maalaiskunta,FI,medium_airport,EU,62.399502,25.678301
+KAJ,Kajaani Airport,Kajaani,FI,medium_airport,EU,64.2855,27.6924
+KAO,Kuusamo Airport,Kuusamo,FI,medium_airport,EU,65.987602,29.239401
+KDL,Kärdla Airport,Kärdla,EE,medium_airport,EU,58.99079895019531,22.830699920654297
+KEF,Keflavik International Airport,Reykjavík,IS,large_airport,EU,63.985001,-22.6056
+KEM,Kemi-Tornio Airport,Kemi / Tornio,FI,medium_airport,EU,65.778701782227,24.582099914551
+KGD,Khrabrovo Airport,Kaliningrad,RU,large_airport,EU,54.89161,20.598559
+KIR,Kerry Airport,Farranfore,IE,medium_airport,EU,52.180901,-9.52378
+KIT,Kithira Airport,Kithira Island,GR,small_airport,EU,36.273978,23.016719
+KKN,"Kirkenes Airport, Høybuktmoen",Kirkenes,NO,medium_airport,EU,69.7258,29.8913
+KLR,Kalmar Airport,Kalmar,SE,medium_airport,EU,56.685501,16.2876
+KLU,Klagenfurt Airport,Klagenfurt am Wörthersee,AT,large_airport,EU,46.642502,14.3377
+KLV,Karlovy Vary Airport,Karlovy Vary,CZ,large_airport,EU,50.202999,12.915
+KLX,Kalamata Airport,Kalamata,GR,medium_airport,EU,37.06829833984375,22.02549934387207
+KMW,Kostroma Sokerkino Airport,Kostroma,RU,medium_airport,EU,57.796902,41.019402
+KOI,Kirkwall Airport,"Kirkwall, Orkney Islands",GB,medium_airport,EU,58.957903,-2.905077
+KOK,Kokkola-Pietarsaari Airport,Kokkola / Kruunupyy,FI,medium_airport,EU,63.721199,23.143101
+KRF,Kramfors-Sollefteå Höga Kusten Airport,Nyland,SE,medium_airport,EU,63.048599,17.7689
+KRK,Kraków John Paul II International Airport,Balice,PL,large_airport,EU,50.077702,19.7848
+KRN,Kiruna Airport,Kiruna,SE,large_airport,EU,67.821999,20.3368
+KRP,Midtjyllands Airport / Air Base Karup,Karup,DK,medium_airport,EU,56.297139,9.104311
+KRR,Krasnodar Pashkovsky International Airport,Krasnodar,RU,large_airport,EU,45.034465,39.174215
+KRS,Kristiansand Airport,Kristiansand(Kjevik),NO,large_airport,EU,58.204201,8.08537
+KSC,Košice International Airport,Košice,SK,medium_airport,EU,48.663101,21.2411
+KSD,Karlstad Airport,Karlstad,SE,medium_airport,EU,59.444698,13.3374
+KSF,Kassel Airport,Calden,DE,large_airport,EU,51.418395,9.391638
+KSJ,Kasos Airport,Kasos Island,GR,small_airport,EU,35.4213981628,26.909999847399998
+KSO,Kastoria National Airport Aristotle,Argos Orestiko,GR,small_airport,EU,40.446301,21.2822
+KSU,"Kristiansund Airport, Kvernberget",Kvernberget,NO,medium_airport,EU,63.111801,7.82452
+KSZ,Kotlas Airport,Kotlas,RU,medium_airport,EU,61.235801696777344,46.6974983215332
+KTT,Kittilä International Airport,Kittilä,FI,large_airport,EU,67.700996,24.8468
+KTW,Katowice Wojciech Korfanty International Airport,Katowice,PL,large_airport,EU,50.476015,19.080705
+KUF,Kurumoch International Airport,Samara,RU,large_airport,EU,53.504902,50.164299
+KUN,Kaunas International Airport,Kaunas,LT,large_airport,EU,54.963965,24.08582
+KUO,Kuopio Airport,Kuopio / Siilinjärvi,FI,large_airport,EU,63.007099,27.7978
+KVA,Kavala Alexander the Great International Airport,Kavala,GR,large_airport,EU,40.9133,24.6192
+KVK,Kirovsk-Apatity Airport,Apatity,RU,small_airport,EU,67.462851,33.585294
+KVX,Pobedilovo Airport,Kirov,RU,medium_airport,EU,58.503883,49.347831
+KZI,Kozani National Airport Filippos,Kozani,GR,medium_airport,EU,40.286098,21.840799
+LAQ,Al Abraq International Airport,Al Albraq,LY,large_airport,AF,32.789036,21.954864
+LBA,Leeds Bradford Airport,"Leeds, West Yorkshire",GB,large_airport,EU,53.865898,-1.66057
+LBC,Lübeck Blankensee Airport,Lübeck,DE,medium_airport,EU,53.805401,10.7192
+LCG,A Coruña Airport,Culleredo,ES,medium_airport,EU,43.302101,-8.37726
+LCJ,Łódź Władysław Reymont Airport,Łódź,PL,large_airport,EU,51.721901,19.3981
+LCY,London City Airport,London,GB,medium_airport,EU,51.505299,0.055278
+LDE,Tarbes-Lourdes-Pyrénées Airport,Tarbes/Lourdes/Pyrénées,FR,medium_airport,EU,43.178699,-0.006439
+LDG,Leshukonskoye Airport,Leshukonskoye,RU,small_airport,EU,64.896004,45.723
+LDY,City of Derry Airport,"Derry, Derry and Strabane",GB,medium_airport,EU,55.042801,-7.16111
+LED,Pulkovo Airport,St. Petersburg,RU,large_airport,EU,59.800301,30.262501
+LEI,Almería Airport,Almería,ES,medium_airport,EU,36.843899,-2.3701
+LEJ,Leipzig/Halle Airport,Schkeuditz,DE,large_airport,EU,51.420657,12.232705
+LEN,León Airport,La Virgen del Camino,ES,medium_airport,EU,42.590709,-5.653406
+LEQ,Land's End Airport,"Land's End, Cornwall",GB,small_airport,EU,50.102798,-5.67056
+LEU,Pirineus - la Seu d'Urgel Airport,La Seu d'Urgell Pyrenees and Andorra,ES,medium_airport,EU,42.3386,1.40917
+LGG,Liège Airport,Grâce-Hollogne,BE,medium_airport,EU,50.638574,5.443897
+LGW,London Gatwick Airport,London,GB,large_airport,EU,51.148744,-0.185739
+LHR,London Heathrow Airport,London,GB,large_airport,EU,51.470748,-0.459909
+LIG,Limoges Airport,Limoges/Bellegarde,FR,medium_airport,EU,45.862801,1.17944
+LIL,Lille Airport,Lesquin,FR,large_airport,EU,50.566564,3.102429
+LIN,Milano Linate Airport,Segrate (MI),IT,large_airport,EU,45.445099,9.27674
+LIS,Lisbon Humberto Delgado Airport,Lisbon,PT,large_airport,EU,38.7813,-9.13592
+LJU,Ljubljana Jože Pučnik Airport,Zgornji Brnik,SI,large_airport,EU,46.223701,14.4576
+LKL,"Lakselv Airport, Banak",Lakselv,NO,medium_airport,EU,70.068802,24.973499
+LKN,Leknes Airport,Leknes,NO,medium_airport,EU,68.152496337891,13.609399795532
+LLA,Luleå Airport,Luleå,SE,large_airport,EU,65.5438,22.122
+LMP,Lampedusa Airport,Lampedusa,IT,medium_airport,EU,35.497898,12.6181
+LNZ,Linz-Hörsching Airport,Linz,AT,large_airport,EU,48.235362,14.188128
+LOO,Laghouat - Molay Ahmed Medeghri Airport,Laghouat,DZ,medium_airport,AF,33.7644,2.92834
+LPI,Linköping City Airport,Linköping,SE,large_airport,EU,58.404909,15.684499
+LPL,Liverpool John Lennon Airport,Liverpool,GB,large_airport,EU,53.334863,-2.849637
+LPP,Lappeenranta Airport,Lappeenranta,FI,large_airport,EU,61.044601,28.144743
+LPY,Le Puy-Loudes Airfield,"Chaspuzac, Haute-Loire",FR,small_airport,EU,45.0807,3.76289
+LRH,La Rochelle Île de Ré Airport,La Rochelle,FR,medium_airport,EU,46.179199,-1.19528
+LRS,Leros Airport,Leros Island,GR,small_airport,EU,37.184898,26.800301
+LSI,Sumburgh Airport,"Lerwick, Shetland",GB,medium_airport,EU,59.878899,-1.29556
+LTD,Ghadames Airport,Ghadames,LY,medium_airport,AF,30.145484,9.702095
+LTN,London Luton Airport,"Luton, Luton",GB,large_airport,EU,51.874699,-0.368333
+LTT,La Môle Airport,Saint-Tropez,FR,small_airport,EU,43.205399,6.482
+LUG,Lugano Airport,Agno,CH,medium_airport,EU,46.004299,8.91058
+LUX,Luxembourg-Findel International Airport,Luxembourg,LU,large_airport,EU,49.626845,6.212134
+LUZ,Lublin Airport,Lublin,PL,large_airport,EU,51.240157,22.713461
+LWK,Lerwick / Tingwall Airport,"Lerwick, Shetland Islands",GB,small_airport,EU,60.1922,-1.24361
+LXR,Luxor International Airport,Luxor,EG,large_airport,AF,25.671018,32.706446
+LXS,Limnos Airport,Limnos Island,GR,small_airport,EU,39.917098999,25.236299514799995
+LYC,Lycksele Airport,Lycksele,SE,medium_airport,EU,64.548302,18.7162
+LYR,"Svalbard Airport, Longyear",Longyearbyen,NO,medium_airport,EU,78.246101,15.4656
+LYS,Lyon Saint-Exupéry Airport,"Colombier-Saugnieu, Rhône",FR,large_airport,EU,45.725996,5.090139
+MAD,Adolfo Suárez Madrid–Barajas Airport,Madrid,ES,large_airport,EU,40.493407,-3.572249
+MAH,Menorca Airport,Mahón (Maó),ES,large_airport,EU,39.862598,4.21865
+MAN,Manchester Airport,"Manchester, Greater Manchester",GB,large_airport,EU,53.349375,-2.279521
+MBX,Maribor Edvard Rusjan Airport,Maribor,SI,medium_airport,EU,46.4799,15.6861
+MEH,Mehamn Airport,Mehamn,NO,medium_airport,EU,71.029701,27.8267
+MHG,Mannheim-City Airport,Mannheim,DE,medium_airport,EU,49.473057,8.514167
+MHQ,Mariehamn Airport,Mariehamn,FI,medium_airport,EU,60.1222,19.898199
+MIR,Monastir Habib Bourguiba International Airport,Monastir,TN,medium_airport,AF,35.75809860229492,10.75469970703125
+MJF,"Mosjøen Airport, Kjærstad",Mosjøen,NO,medium_airport,EU,65.783997,13.2149
+MJI,Mitiga International Airport,Tripoli,LY,large_airport,AF,32.89177,13.287878
+MJT,Mytilene International Airport,Mytilene,GR,medium_airport,EU,39.057406,26.598629
+MLA,Malta International Airport,Valletta,MT,large_airport,EU,35.845932,14.491546
+MLO,Milos Airport,Milos Island,GR,small_airport,EU,36.696899,24.4769
+MME,Teesside International Airport,"Darlington, Durham",GB,medium_airport,EU,54.509201,-1.42941
+MMK,Emperor Nicholas II Murmansk Airport,Murmansk,RU,large_airport,EU,68.7817,32.750801
+MMX,Malmö Sturup Airport,Malmö,SE,large_airport,EU,55.535564,13.376327
+MOL,"Molde Airport, Årø",Årø,NO,medium_airport,EU,62.744701,7.2625
+MPL,Montpellier-Méditerranée Airport,Montpellier/Méditerranée,FR,large_airport,EU,43.576199,3.96301
+MQN,"Mo i Rana Airport, Røssvoll",Mo i Rana,NO,medium_airport,EU,66.363899230957,14.301400184631
+MRA,Misrata International Airport,Misrata,LY,small_airport,AF,32.325001,15.061
+MRS,Marseille Provence Airport,"Marignane, Bouches-du-Rhône",FR,large_airport,EU,43.438088,5.2125
+MRV,Mineralnye Vody Airport,Mineralnyye Vody,RU,large_airport,EU,44.225101,43.081902
+MSQ,Minsk National Airport,Minsk,BY,large_airport,EU,53.888071,28.039964
+MST,Maastricht Aachen Airport,Maastricht,NL,large_airport,EU,50.911087,5.769401
+MUC,Munich Airport,Munich,DE,large_airport,EU,48.353802,11.7861
+MUH,Mersa Matruh International Airport,Marsa Matruh,EG,large_airport,AF,31.324313,27.22227
+MVQ,Mogilev Airport,Mogilev,BY,medium_airport,EU,53.954898834228516,30.09510040283203
+MXP,Milan Malpensa International Airport,Ferno (VA),IT,large_airport,EU,45.6306,8.72811
+MXX,Mora Airport,Mora,SE,medium_airport,EU,60.957901,14.5114
+MZW,Mecheria Airport,Mecheria,DZ,medium_airport,AF,33.5359,-0.242353
+NAL,Nalchik Airport,Nalchik,RU,medium_airport,EU,43.512901,43.6366
+NAP,Naples International Airport,Napoli,IT,large_airport,EU,40.886002,14.2908
+NBE,Enfidha - Hammamet International Airport,Enfidha,TN,medium_airport,AF,36.075833,10.438611
+NCE,Nice-Côte d'Azur Airport,"Nice, Alpes-Maritimes",FR,large_airport,EU,43.658401,7.21587
+NCL,Newcastle International Airport,"Newcastle upon Tyne, Tyne and Wear",GB,large_airport,EU,55.037958,-1.689577
+NCY,Annecy Meythet airport,Annecy,FR,medium_airport,EU,45.928947,6.0987
+NDR,Nador Al Aaroui International Airport,Al Aaroui,MA,large_airport,AF,34.9888,-3.02821
+NDY,Sanday Airport,Sanday,GB,small_airport,EU,59.250301,-2.57667
+NNM,Naryan Mar Airport,Naryan Mar,RU,medium_airport,EU,67.639999,53.121899
+NNR,Connemara Regional Airport,Inverin,IE,small_airport,EU,53.23030090332031,-9.467780113220215
+NOC,Ireland West Airport Knock,Charlestown,IE,large_airport,EU,53.910439,-8.817002
+NOD,Norden-Norddeich Airport,Norddeich,DE,small_airport,EU,53.633057,7.190278
+NQY,Cornwall Airport Newquay,Newquay,GB,medium_airport,EU,50.440601,-4.99541
+NRD,Norderney Airport,Norderney,DE,small_airport,EU,53.706944,7.23
+NRK,Norrköping Airport,Norrköping,SE,medium_airport,EU,58.586299896240234,16.250600814819336
+NRL,North Ronaldsay Airport,North Ronaldsay,GB,small_airport,EU,59.3675003052,-2.43443989754
+NRN,Weeze (Niederrhein) Airport,Weeze,DE,large_airport,EU,51.601362,6.141228
+NTE,Nantes Atlantique Airport,Nantes,FR,large_airport,EU,47.153198,-1.61073
+NUE,Nuremberg Airport,Nuremberg,DE,large_airport,EU,49.498699,11.078056
+NWI,Norwich Airport,"Norwich, Norfolk",GB,medium_airport,EU,52.6758,1.28278
+NYA,Nyagan Airport,Nyagan,RU,medium_airport,EU,62.110001,65.614998
+NYO,Stockholm Skavsta Airport,Nyköping,SE,large_airport,EU,58.789656,16.911479
+OBN,Oban Airport,North Connel,GB,small_airport,EU,56.463501,-5.39967
+ODB,Córdoba Airport,Córdoba,ES,medium_airport,EU,37.841999,-4.84888
+ODE,Odense Hans Christian Andersen Airport,Odense,DK,large_airport,EU,55.475307,10.327206
+OER,Örnsköldsvik Airport,Örnsköldsvik,SE,medium_airport,EU,63.40829849243164,18.989999771118164
+OGX,Ain Beida Airport,Ouargla,DZ,medium_airport,AF,31.9172,5.41278
+OGZ,Vladikavkaz Beslan International Airport,Beslan,RU,medium_airport,EU,43.205101,44.606602
+OHD,Ohrid St. Paul the Apostle Airport,Ohrid,MK,large_airport,EU,41.18,20.7423
+OLA,Ørland Airport,Ørland,NO,medium_airport,EU,63.69889831542969,9.604000091552734
+OLB,Olbia Costa Smeralda Airport,Olbia (SS),IT,large_airport,EU,40.898953,9.518457
+OMO,Mostar International Airport,Mostar,BA,large_airport,EU,43.282489,17.846101
+OMR,Oradea International Airport,Oradea,RO,large_airport,EU,47.025299,21.9025
+OPO,Francisco de Sá Carneiro Airport,Porto,PT,large_airport,EU,41.2481002808,-8.68138980865
+ORB,Örebro Airport,Örebro,SE,medium_airport,EU,59.22370147705078,15.038000106811523
+ORK,Cork International Airport,Cork,IE,large_airport,EU,51.841301,-8.49111
+ORN,Oran Es-Sénia (Ahmed Ben Bella) International Airport,Es-Sénia,DZ,large_airport,AF,35.620648,-0.622486
+ORY,Paris-Orly Airport,"Paris (Orly, Val-de-Marne)",FR,large_airport,EU,48.729499,2.358963
+OSD,Åre Östersund Airport,Östersund,SE,medium_airport,EU,63.193546,14.504168
+OSI,Osijek Airport,Osijek(Klisa),HR,medium_airport,EU,45.462355,18.811278
+OSL,Oslo-Gardermoen International Airport,Oslo (Gardermoen),NO,large_airport,EU,60.193901,11.1004
+OSR,Leoš Janáček Airport Ostrava,Mošnov,CZ,large_airport,EU,49.696301,18.111099
+OST,Ostend-Bruges International Airport,Oostende,BE,large_airport,EU,51.1998,2.874673
+OSY,Namsos Airport,Namsos,NO,small_airport,EU,64.472198,11.5786
+OTP,Bucharest Henri Coandă International Airport,Otopeni,RO,large_airport,EU,44.571792,26.103285
+OUD,Oujda Angads Airport,Ahl Angad,MA,large_airport,AF,34.789558,-1.926041
+OUI,Ouessant Airport,Ushant,FR,small_airport,EU,48.4632,-5.06358
+OUL,Oulu Airport,Oulu / Oulunsalo,FI,large_airport,EU,64.930099,25.354601
+OVB,Novosibirsk Tolmachevo Airport,Novosibirsk,RU,large_airport,EU,55.019756,82.618675
+OVD,Asturias Airport,Ranón,ES,large_airport,EU,43.563599,-6.03462
+OZG,Zagora Airport,Zagora,MA,large_airport,AF,30.265788,-5.860808
+OZZ,Ouarzazate International Airport,Ouarzazate,MA,large_airport,AF,30.9391,-6.90943
+PAD,Paderborn Lippstadt Airport,Büren,DE,large_airport,EU,51.612527,8.617459
+PAS,Paros National Airport,Paros,GR,small_airport,EU,37.020495,25.113195
+PDL,João Paulo II Airport,Ponta Delgada,PT,large_airport,EU,37.7411994934,-25.6979007721
+PDV,Plovdiv International Airport,Plovdiv,BG,large_airport,EU,42.067799,24.8508
+PED,Pardubice Airport,Pardubice,CZ,large_airport,EU,50.015049,15.73981
+PEG,Perugia San Francesco d'Assisi – Umbria International Airport,Perugia (PG),IT,large_airport,EU,43.095901,12.5132
+PES,Petrozavodsk Airport,Petrozavodsk,RU,medium_airport,EU,61.885201,34.154701
+PEV,Pécs-Pogány International Airport,Pécs,HU,large_airport,EU,45.988891,18.242044
+PEX,Pechora Airport,Pechora,RU,medium_airport,EU,65.121101,57.130798
+PGF,Perpignan-Rivesaltes (Llabanère) Airport,Perpignan/Rivesaltes,FR,medium_airport,EU,42.740398,2.87067
+PIK,Glasgow Prestwick Airport,"Prestwick, South Ayrshire",GB,large_airport,EU,55.501499,-4.577182
+PIS,Poitiers-Biard Airport,Poitiers/Biard,FR,medium_airport,EU,46.5877,0.306666
+PIX,Pico Airport,Pico Island,PT,medium_airport,EU,38.554298,-28.441299
+PJA,Pajala Airport,Pajala,SE,small_airport,EU,67.244569,23.074894
+PKV,Princess Olga Pskov International Airport,Pskov,RU,medium_airport,EU,57.781316,28.39384
+PLQ,Palanga International Airport,Palanga,LT,large_airport,EU,55.973202,21.093901
+PMF,Parma Airport,Parma (PR),IT,medium_airport,EU,44.826351,10.29705
+PMI,Palma de Mallorca Airport,Palma de Mallorca,ES,large_airport,EU,39.551701,2.73881
+PMO,Falcone–Borsellino Airport,Palermo,IT,large_airport,EU,38.175999,13.091
+PNA,Pamplona Airport,Pamplona,ES,medium_airport,EU,42.77,-1.64633
+PNL,Pantelleria Airport,Pantelleria (TP),IT,medium_airport,EU,36.816502,11.9689
+POR,Pori Airport,Pori,FI,medium_airport,EU,61.4617,21.799999
+POZ,Poznań-Ławica Airport,Poznań,PL,large_airport,EU,52.421598,16.823359
+PPW,Papa Westray Airport,"Papa Westray, Orkney Islands",GB,small_airport,EU,59.351012,-2.900353
+PRG,Václav Havel Airport Prague,Prague,CZ,large_airport,EU,50.100874,14.259911
+PRM,Portimão Airport,Portimão,PT,medium_airport,EU,37.1493,-8.58396
+PRN,Priština Adem Jashari International Airport,Prishtina,XK,large_airport,EU,42.5728,21.035801
+PSA,Pisa International Airport,Pisa (PI),IT,large_airport,EU,43.683899,10.3927
+PSD,Port Said International Airport,Port Said,EG,large_airport,AF,31.279285,32.240582
+PSR,Abruzzo Airport,Pescara,IT,large_airport,EU,42.431079,14.182981
+PUF,Pau Pyrénées Airport,Pau/Pyrénées (Uzein),FR,medium_airport,EU,43.380001,-0.418611
+PUY,Pula Airport,Pula,HR,large_airport,EU,44.893501,13.9222
+PVK,Aktion National Airport,Preveza,GR,medium_airport,EU,38.925499,20.765301
+PXO,Porto Santo Airport,Vila Baleira,PT,medium_airport,EU,33.0733985901,-16.3500003815
+QSF,Ain Arnat Airport,Sétif,DZ,medium_airport,AF,36.178488,5.329909
+QSR,Salerno Costa d'Amalfi Airport,Salerno,IT,medium_airport,EU,40.620399,14.9113
+RAK,Marrakesh Menara Airport,Marrakesh,MA,large_airport,AF,31.604807,-8.035788
+RBA,Rabat-Salé Airport,Rabat,MA,large_airport,AF,34.051498,-6.75152
+RDO,Warsaw Radom Airport,Radom,PL,medium_airport,EU,51.38937,21.214742
+RDZ,Rodez–Aveyron Airport,Rodez/Marcillac,FR,medium_airport,EU,44.407902,2.48267
+REG,Reggio Calabria Airport,Reggio Calabria,IT,medium_airport,EU,38.071201,15.6516
+RET,Røst Airport,Røst,NO,small_airport,EU,67.526482,12.101575
+REU,Reus Airport,Reus,ES,large_airport,EU,41.147509,1.168354
+RIX,Riga International Airport,Riga,LV,large_airport,EU,56.920752,23.970711
+RJK,Rijeka Airport,Rijeka(Omišalj),HR,large_airport,EU,45.216376,14.57085
+RJL,Logroño-Agoncillo Airport,Logroño,ES,medium_airport,EU,42.460953,-2.322235
+RKE,Copenhagen Roskilde Airport,Roskilde,DK,medium_airport,EU,55.585602,12.1314
+RKV,Reykjavík Domestic Airport,Reykjavík,IS,medium_airport,EU,64.128732,-21.93759
+RLG,Rostock-Laage Airport,Laage,DE,medium_airport,EU,53.918201,12.2783
+RMF,Marsa Alam International Airport,Marsa Alam,EG,large_airport,AF,25.555548,34.59245
+RMI,Federico Fellini International Airport,Rimini (RN),IT,large_airport,EU,44.020024,12.612198
+RMO,Chişinău International Airport,Chişinău,MD,large_airport,EU,46.92774,28.931704
+RMU,Region of Murcia International Airport,Corvera,ES,large_airport,EU,37.802852,-1.124884
+RNB,Ronneby Airport,Ronneby,SE,medium_airport,EU,56.266701,15.265
+RNN,Bornholm Airport,Rønne,DK,medium_airport,EU,55.063301,14.7596
+RNS,Rennes-Saint-Jacques Airport,"Saint-Jacques-de-la-Lande, Ille-et-Vilaine",FR,medium_airport,EU,48.0695,-1.73479
+RRS,Røros Airport,Røros,NO,medium_airport,EU,62.578399658203,11.342300415039
+RTM,Rotterdam The Hague Airport,Rotterdam,NL,large_airport,EU,51.956902,4.43722
+RVK,"Rørvik Airport, Ryum",Rørvik,NO,medium_airport,EU,64.838302612305,11.14610004425
+RVN,Rovaniemi Airport,Rovaniemi,FI,large_airport,EU,66.563327,25.829751
+RZE,Rzeszów-Jasionka Airport,Jasionka,PL,large_airport,EU,50.109791,22.024155
+SBZ,Sibiu International Airport,Sibiu,RO,large_airport,EU,45.785841,24.086666
+SCN,Saarbrücken Airport,Saarbrücken,DE,medium_airport,EU,49.214545,7.109735
+SCQ,Santiago-Rosalía de Castro Airport,Santiago de Compostela,ES,large_airport,EU,42.896301,-8.41514
+SCR,Scandinavian Mountains Airport,Malung-Sälen,SE,large_airport,EU,61.16508,12.83352
+SCV,Suceava Ștefan cel Mare International Airport,Suceava,RO,large_airport,EU,47.6875,26.354099
+SCW,Syktyvkar Airport,Syktyvkar,RU,medium_airport,EU,61.64699935913086,50.84510040283203
+SDL,Sundsvall-Härnösand Airport,Sundsvall/ Härnösand,SE,medium_airport,EU,62.528099060058594,17.443899154663086
+SDN,"Sandane Airport, Anda",Sandane,NO,small_airport,EU,61.830002,6.10583
+SDR,Seve Ballesteros-Santander Airport,Santander,ES,medium_airport,EU,43.427101,-3.82001
+SEB,Sabha Airport,Sabha,LY,medium_airport,AF,26.992452,14.466162
+SEN,London Southend Airport,"Southend-on-Sea, Essex",GB,medium_airport,EU,51.570562,0.693627
+SFA,Sfax Thyna International Airport,Sfax,TN,medium_airport,AF,34.717999,10.691
+SFT,Skellefteå Airport,Skellefteå,SE,medium_airport,EU,64.62480163574219,21.076900482177734
+SGD,Sønderborg Airport,Sønderborg,DK,medium_airport,EU,54.96440124511719,9.791729927062988
+SJJ,Sarajevo International Airport,Sarajevo,BA,large_airport,EU,43.8246,18.331499
+SJZ,São Jorge Airport,Velas,PT,medium_airport,EU,38.665501,-28.1758
+SKG,Thessaloniki Macedonia International Airport,Thessaloniki,GR,large_airport,EU,40.51928,22.970009
+SKN,"Stokmarknes Airport, Skagen",Hadsel,NO,medium_airport,EU,68.578827,15.033417
+SKP,Skopje International Airport,Ilinden,MK,large_airport,EU,41.958087,21.622581
+SKU,Skiros Airport,Skiros Island,GR,small_airport,EU,38.9676017761,24.4871997833
+SKX,Saransk International Airport,Saransk,RU,large_airport,EU,54.12513,45.212257
+SLD,Sliač Airport,Sliač,SK,medium_airport,EU,48.63779830932617,19.13409996032715
+SLM,Salamanca Airport,Salamanca,ES,medium_airport,EU,40.952099,-5.50199
+SMA,Santa Maria Airport,Vila do Porto,PT,medium_airport,EU,36.97140121459961,-25.17060089111328
+SMI,Samos Airport,Samos Island,GR,medium_airport,EU,37.689999,26.911699
+SMW,Smara Airport,Smara,EH,medium_airport,AF,26.731987,-11.683655
+SNN,Shannon Airport,Shannon,IE,large_airport,EU,52.702,-8.92482
+SOB,Hévíz–Balaton Airport,Sármellék,HU,medium_airport,EU,46.686391,17.159084
+SOF,Sofia Airport,Sofia,BG,large_airport,EU,42.696357,23.417671
+SOG,"Sogndal Airport, Haukåsen",Sogndal,NO,small_airport,EU,61.156101,7.13778
+SOJ,Sørkjosen Airport,Sørkjosen,NO,medium_airport,EU,69.786797,20.9594
+SOU,Southampton Airport,Southampton,GB,medium_airport,EU,50.950298,-1.3568
+SOY,Stronsay Airport,Stronsay,GB,small_airport,EU,59.1553,-2.64139
+SPU,Split Saint Jerome Airport,Split,HR,large_airport,EU,43.538898,16.298
+SPX,Sphinx International Airport,Al Jiza,EG,large_airport,AF,30.108179,30.895728
+SRP,"Stord Airport, Sørstokken",Leirvik,NO,medium_airport,EU,59.791901,5.34085
+SSH,Sharm El Sheikh International Airport,Sharm El Sheikh,EG,large_airport,AS,27.977272,34.394717
+SSJ,"Sandnessjøen Airport, Stokka",Alstahaug,NO,medium_airport,EU,65.956802,12.4689
+STN,London Stansted Airport,"London, Essex",GB,large_airport,EU,51.884998,0.235
+STR,Stuttgart Airport,Stuttgart,DE,large_airport,EU,48.689899,9.22196
+STW,Stavropol Shpakovskoye Airport,Stavropol,RU,medium_airport,EU,45.10919952392578,42.11280059814453
+SUF,Lamezia Terme Sant'Eufemia International Airport,Lamezia Terme (CZ),IT,large_airport,EU,38.906214,16.246007
+SUJ,Satu Mare International Airport,Satu Mare,RO,medium_airport,EU,47.7033,22.8857
+SVG,"Stavanger Airport, Sola",Stavanger,NO,large_airport,EU,58.876701,5.63778
+SVJ,"Svolvær Airport, Helle",Svolvær,NO,medium_airport,EU,68.243301,14.6692
+SVL,Savonlinna Airport,Savonlinna,FI,medium_airport,EU,61.9431,28.945101
+SVO,Sheremetyevo International Airport,Moscow,RU,large_airport,EU,55.977486,37.386677
+SVQ,Seville Airport,Seville,ES,large_airport,EU,37.417999,-5.89311
+SXB,Strasbourg Airport,Strasbourg,FR,large_airport,EU,48.5383,7.62823
+SYY,Stornoway Airport,"Stornoway, Western Isles",GB,medium_airport,EU,58.215599,-6.33111
+SZG,Salzburg Airport,Salzburg,AT,large_airport,EU,47.793301,13.0043
+SZY,Olsztyn-Mazury Airport,Szymany,PL,medium_airport,EU,53.481899,20.9377
+SZZ,Solidarity Szczecin–Goleniów Airport,Szczecin(Glewice),PL,large_airport,EU,53.584702,14.9022
+TAT,Poprad-Tatry Airport,Poprad,SK,medium_airport,EU,49.070994,20.241394
+TAY,Tartu Airport,Tartu,EE,medium_airport,EU,58.307438,26.686473
+TBJ,Tabarka-Aïn Draham International Airport,Tabarka,TN,medium_airport,AF,36.98,8.87694
+TCP,Taba International Airport,Taba,EG,medium_airport,AS,29.594496,34.775752
+TEE,Cheikh Larbi Tébessi Airport,Tébessi,DZ,medium_airport,AF,35.4315986633,8.12071990967
+TEQ,Tekirdağ Çorlu Airport,Çorlu,TR,medium_airport,EU,41.138199,27.9191
+TER,Lajes Airport,Praia da Vitória,PT,medium_airport,EU,38.761799,-27.090799
+TGD,Podgorica Airport / Podgorica Golubovci Airbase,Podgorica,ME,large_airport,EU,42.359402,19.2519
+TGM,Târgu Mureş Transilvania International Airport,Recea,RO,medium_airport,EU,46.467701,24.4125
+TGR,Touggourt Sidi Madhi Airport,Touggourt,DZ,medium_airport,AF,33.067799,6.08867
+THN,Trollhättan-Vänersborg Airport,Trollhättan,SE,medium_airport,EU,58.31809997558594,12.345000267028809
+THO,Þórshöfn Airport,Þórshöfn,IS,small_airport,EU,66.218459,-15.334739
+TIA,Tirana International Airport Mother Teresa,Rinas,AL,large_airport,EU,41.4147,19.7206
+TIN,Tindouf Airport,Tindouf,DZ,medium_airport,AF,27.7003993988,-8.167099952700001
+TIV,Tivat Airport,Tivat,ME,medium_airport,EU,42.404701,18.723301
+TKU,Turku Airport,Turku,FI,large_airport,EU,60.514099,22.2628
+TLL,Lennart Meri Tallinn Airport,Tallinn,EE,large_airport,EU,59.413246,24.83264
+TLM,Zenata – Messali El Hadj Airport,Zenata,DZ,large_airport,AF,35.012732,-1.457117
+TLN,Toulon-Hyères Airport,"Hyères, Var",FR,medium_airport,EU,43.097301,6.14603
+TLS,Toulouse-Blagnac Airport,Toulouse/Blagnac,FR,large_airport,EU,43.629101,1.36382
+TMP,Tampere-Pirkkala Airport,Tampere / Pirkkala,FI,large_airport,EU,61.414101,23.604401
+TMR,Aguenar – Hadj Bey Akhamok Airport,Tamanrasset,DZ,large_airport,AF,22.810992,5.450832
+TMX,Timimoun Airport,Timimoun,DZ,medium_airport,AF,29.237101,0.276033
+TNG,Tangier Ibn Battuta Airport,Tangier,MA,large_airport,AF,35.731741,-5.921459
+TOE,Tozeur Nefta International Airport,Tozeur,TN,medium_airport,AF,33.939701080322266,8.110560417175293
+TOS,Tromsø Airport,Tromsø,NO,large_airport,EU,69.683296,18.9189
+TPS,Vincenzo Florio Airport Trapani-Birgi,Trapani (TP),IT,medium_airport,EU,37.9114,12.488
+TRD,"Trondheim Airport, Værnes",Trondheim,NO,large_airport,EU,63.457802,10.924
+TRE,Tiree Airport,"Balemartine, Argyll and Bute",GB,medium_airport,EU,56.499199,-6.86917
+TRF,"Sandefjord Airport, Torp",Sandefjord(Torp),NO,large_airport,EU,59.186699,10.2586
+TRN,Turin Airport,Caselle Torinese (TO),IT,large_airport,EU,45.200802,7.64963
+TRS,Trieste Airport,Ronchi dei Legionari/Trieste,IT,large_airport,EU,45.827862,13.466672
+TSF,Treviso Airport,Treviso (TV),IT,large_airport,EU,45.648399,12.1944
+TSR,Timișoara Traian Vuia International Airport,Timişoara,RO,large_airport,EU,45.809898,21.3379
+TTA,Tan Tan Airport,Tan Tan,MA,medium_airport,AF,28.447563,-11.161749
+TTU,Sania Ramel Airport,Tétouan,MA,large_airport,AF,35.594299,-5.32002
+TUF,Tours Val de Loire Airport,"Tours, Indre-et-Loire",FR,medium_airport,EU,47.432201,0.727606
+TUN,Tunis Carthage International Airport,Tunis,TN,large_airport,AF,36.851002,10.2272
+TYF,Torsby Airport,Torsby,SE,medium_airport,EU,60.1576,12.9913
+TZL,Tuzla International Airport,Dubrave Gornje,BA,large_airport,EU,44.459858,18.723627
+UAR,Bouarfa Airport,Bouarfa,MA,medium_airport,AF,32.514306,-1.983056
+UFA,Ufa International Airport,Ufa,RU,large_airport,EU,54.557499,55.874401
+ULV,Ulyanovsk Baratayevka Airport,Ulyanovsk,RU,medium_airport,EU,54.27016,48.225569
+UME,Umeå Airport,Umeå,SE,large_airport,EU,63.791801,20.282801
+URE,Kuressaare Airport,Kuressaare,EE,medium_airport,EU,58.22990036010742,22.50950050354004
+VAA,Vaasa Airport,Vaasa,FI,large_airport,EU,63.05023,21.762543
+VAR,Varna Airport,Varna,BG,large_airport,EU,43.232101,27.8251
+VAW,"Vardø Airport, Svartnes",Vardø,NO,medium_airport,EU,70.3554,31.044901
+VBS,Brescia Gabriele d'Annunzio Airport,Montichiari (BS),IT,medium_airport,EU,45.428902,10.3306
+VBY,Visby Airport,Visby,SE,large_airport,EU,57.6628,18.346201
+VCE,Venice Marco Polo Airport,Venezia (VE),IT,large_airport,EU,45.505299,12.3519
+VDS,Vadsø Airport,Vadsø,NO,medium_airport,EU,70.0653,29.8447
+VGO,Vigo Airport,Vigo,ES,medium_airport,EU,42.2318,-8.62677
+VHM,Vilhelmina South Lapland Airport,Vilhelmina,SE,medium_airport,EU,64.579102,16.833599
+VIE,Vienna International Airport,Vienna,AT,large_airport,EU,48.110298,16.5697
+VIL,Dakhla Airport,Dakhla,EH,large_airport,AF,23.7183,-15.932
+VIT,Vitoria Airport,Alava,ES,medium_airport,EU,42.882801,-2.72447
+VKO,Vnukovo International Airport,Moscow,RU,large_airport,EU,55.591499,37.261501
+VLC,Valencia Airport,Valencia,ES,large_airport,EU,39.489162,-0.480961
+VLL,Valladolid Airport,Valladolid,ES,medium_airport,EU,41.7061,-4.85194
+VNO,Vilnius International Airport,Vilnius,LT,large_airport,EU,54.634102,25.285801
+VOG,Volgograd International Airport,Volgograd,RU,large_airport,EU,48.78134,44.339194
+VOL,Nea Anchialos National Airport,Nea Anchialos,GR,medium_airport,EU,39.219601,22.7943
+VOZ,Voronezh International Airport,Voronezh,RU,medium_airport,EU,51.814324,39.230948
+VPN,Vopnafjörður Airport,Vopnafjörður,IS,medium_airport,EU,65.720596,-14.8506
+VRL,Vila Real Airport,Vila Real,PT,medium_airport,EU,41.2743,-7.72047
+VRN,Verona Villafranca Valerio Catullo Airport,Caselle (VR),IT,large_airport,EU,45.394955,10.887303
+VSE,Aerodromo Goncalves Lobato (Viseu Airport),Viseu,PT,medium_airport,EU,40.725498,-7.88899
+VST,Stockholm Västerås Airport,Stockholm / Västerås,SE,large_airport,EU,59.589401,16.6336
+VUS,Velikiy Ustyug Airport,Velikiy Ustyug,RU,medium_airport,EU,60.7883,46.259998
+VVZ,Illizi Takhamalt Airport,Illizi,DZ,medium_airport,AF,26.723499,8.62265
+VXO,Växjö Kronoberg Airport,Växjö,SE,medium_airport,EU,56.929100036621094,14.727999687194824
+WAW,Warsaw Chopin Airport,Warsaw,PL,large_airport,EU,52.165699,20.9671
+WIC,Wick John O'Groats Airport,Wick,GB,medium_airport,EU,58.4589,-3.09306
+WMI,Warsaw Modlin Airport,Nowy Dwór Mazowiecki,PL,large_airport,EU,52.451099,20.6518
+WRO,Copernicus Wrocław Airport,Wrocław,PL,large_airport,EU,51.103719,16.882096
+WRY,Westray Airport,"Westray, Orkney Islands",GB,small_airport,EU,59.350475,-2.950062
+XCR,Chalons Vatry airport,Chalons en Champagne,FR,medium_airport,EU,48.77333,4.20611
+XRY,Jerez Airport,Jerez de la Frontera,ES,medium_airport,EU,36.744598,-6.06011
+ZAD,Zadar Airport,Zadar,HR,large_airport,EU,44.096986,15.353565
+ZAG,Zagreb Franjo Tuđman International Airport,Velika Gorica,HR,large_airport,EU,45.742901,16.0688
+ZAZ,Zaragoza Airport,Zaragoza,ES,large_airport,EU,41.666199,-1.04155
+ZIA,Zhukovsky International Airport,Moscow,RU,large_airport,EU,55.553299,38.150002
+ZRH,Zürich Airport,Zurich,CH,large_airport,EU,47.458056,8.548056

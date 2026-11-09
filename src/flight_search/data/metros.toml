@@ -1,0 +1,111 @@
+# Curated metro groups: airports that are different codes but serve the same
+# destination area. Grouping them means an open-jaw trip may fly into one and
+# back out of another (e.g. LHR in, STN out).
+#
+# Only airports present in the vendored snapshot are used; unknown codes are
+# ignored silently.
+
+[metros.london]
+display = "London"
+airports = ["LHR", "LGW", "LCY", "STN", "LTN", "SEN"]
+
+[metros.paris]
+display = "Paris"
+airports = ["CDG", "ORY", "BVA"]
+
+[metros.milan]
+display = "Milan"
+airports = ["MXP", "LIN", "BGY"]
+
+[metros.rome]
+display = "Rome"
+airports = ["FCO", "CIA"]
+
+[metros.barcelona]
+display = "Barcelona"
+airports = ["BCN", "GRO", "REU"]
+
+[metros.stockholm]
+display = "Stockholm"
+airports = ["ARN", "BMA", "NYO"]
+
+[metros.oslo]
+display = "Oslo"
+airports = ["OSL", "TRF"]
+
+[metros.istanbul]
+display = "Istanbul"
+airports = ["IST", "SAW"]
+
+[metros.moscow]
+display = "Moscow"
+airports = ["SVO", "DME", "VKO", "ZIA"]
+
+[metros.frankfurt]
+display = "Frankfurt"
+airports = ["FRA", "HHN"]
+
+[metros.duesseldorf]
+display = "Düsseldorf"
+airports = ["DUS", "NRN"]
+
+[metros.munich]
+display = "Munich"
+airports = ["MUC", "FMM"]
+
+[metros.brussels]
+display = "Brussels"
+airports = ["BRU", "CRL"]
+
+[metros.basel]
+display = "Basel-Mulhouse"
+airports = ["BSL", "MLH", "EAP"]
+
+[metros.venice]
+display = "Venice"
+airports = ["VCE", "TSF"]
+
+[metros.florence]
+display = "Florence"
+airports = ["FLR", "PSA"]
+
+[metros.warsaw]
+display = "Warsaw"
+airports = ["WAW", "WMI", "RDO"]
+
+[metros.bucharest]
+display = "Bucharest"
+airports = ["OTP", "BBU"]
+
+[metros.tenerife]
+display = "Tenerife"
+airports = ["TFN", "TFS"]
+
+[metros.glasgow]
+display = "Glasgow"
+airports = ["GLA", "PIK"]
+
+[metros.belfast]
+display = "Belfast"
+airports = ["BFS", "BHD"]
+
+[metros.alexandria]
+display = "Alexandria"
+airports = ["HBE", "ALY"]
+
+# Display-name overrides for airports whose OurAirports municipality is the
+# administrative town rather than the city travellers recognise.
+[names]
+ZAG = "Zagreb"
+MRS = "Marseille"
+NCE = "Nice"
+TLS = "Toulouse"
+LPA = "Las Palmas"
+FNC = "Funchal"
+VCE = "Venice"
+TSF = "Venice"
+FLR = "Florence"
+PSA = "Florence"
+TIA = "Tirana"
+SKP = "Skopje"
+PRN = "Pristina"
