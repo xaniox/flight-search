@@ -39,6 +39,24 @@ flight-search --help
 The examples below use `uv run flight-search`; a globally installed
 `flight-search` works identically.
 
+### Windows
+
+Requires Python 3.12+, [Git for Windows](https://git-scm.com/download/win)
+(the pinned `fli` dependency is fetched from git), and uv:
+
+```powershell
+winget install --id Git.Git
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+uv sync
+uv run flight-search --help
+```
+
+`uv tool install --editable .` adds a global `flight-search` command (run
+`uv tool update-shell`, then restart the shell). The cache is
+`%USERPROFILE%\.cache\flight-search`; Windows Terminal renders clickable
+links, and `--output results.json` avoids PowerShell 5.1's UTF-16 `>`
+redirection.
+
 ## Quick start
 
 Cheapest weekend across Europe, North Africa, Turkey and the Caucasus over the
