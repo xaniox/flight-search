@@ -91,6 +91,6 @@ def test_select_candidates_keeps_distinct_cities():
 
 
 def test_request_estimate_counts_batches():
-    estimate = request_estimate(583, 8, 16, home_airports=4, max_candidates=60)
-    assert estimate == (8 + 16) * 59 + 120
+    estimate = request_estimate(639, 8, 16, home_airports=4, max_candidates=60)
+    assert estimate == (8 + 16) * 64 + 120
 

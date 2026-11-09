@@ -41,8 +41,8 @@ The examples below use `uv run flight-search`; a globally installed
 
 ## Quick start
 
-Cheapest weekend in all of Europe / North Africa over the next two weeks:
-(583 airports — roughly 2–4 minutes on a cold cache)
+Cheapest weekend across Europe, North Africa, Turkey and the Caucasus over the
+next two weeks: (643 airports — roughly 2–4 minutes on a cold cache)
 
 ```sh
 uv run flight-search weekend \
@@ -94,7 +94,7 @@ uv run flight-search weekend ... --format json > results.json
 | Option | Meaning |
 | --- | --- |
 | `--from` | Home airports, default `FKB,STR,SXB,FRA`. All are searched at once. |
-| `--region europe\|weekend` | `europe` = every scheduled airport in Europe + North Africa (583); `weekend` = within `--max-distance-km` of Karlsruhe. |
+| `--region europe\|weekend` | `europe` = every scheduled airport in Europe, North Africa, Turkey and the Caucasus (643); `weekend` = within `--max-distance-km` of Karlsruhe. |
 | `--countries`, `--dest`, `--exclude`, `--include-small` | Narrow or override the destination set. |
 | `--depart-days`, `--return-days` | Weekday sets, e.g. `thu,fri` and `sun,mon`. |
 | `--start`, `--end` | Date range; both legs must fall inside it. |
@@ -173,11 +173,12 @@ one-ways the displayed price is made of.
 
 ## Airport data
 
-`src/flight_search/data/airports_eu_na.csv` is generated from
+`src/flight_search/data/airports.csv` is generated from
 [OurAirports](https://ourairports.com/data/): scheduled-service, IATA-coded
-airports in Europe (`continent = EU`, which includes Russia) and North Africa
-(`MA, DZ, TN, LY, EG, EH`), intersected with the airports `fli` can query.
-Medium and large airports are used by default (583); `--include-small` adds 59
+airports in Europe (`continent = EU`, which includes Russia), North Africa
+(`MA, DZ, TN, LY, EG, EH`), Turkey (`TR`) and the Caucasus (`GE, AZ, AM`),
+intersected with the airports `fli` can query. The snapshot holds 703 airports.
+Medium and large airports are used by default (643); `--include-small` adds 60
 smaller scheduled airports.
 
 Curated `metros.toml` groups multi-airport cities so open-jaw works within a

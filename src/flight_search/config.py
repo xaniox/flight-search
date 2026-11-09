@@ -11,8 +11,10 @@ KARLSRUHE_LON = 8.404
 DEFAULT_HOME_AIRPORTS = ("FKB", "STR", "SXB", "FRA")
 
 # OurAirports "continent" covers Europe (including the European part of Russia).
-# North Africa is added explicitly by ISO country code.
+# North Africa, Turkey and the Caucasus are added explicitly by ISO country code.
 NORTH_AFRICA_COUNTRIES = frozenset({"MA", "DZ", "TN", "LY", "EG", "EH"})
+TURKEY_CAUCASUS_COUNTRIES = frozenset({"TR", "GE", "AZ", "AM"})
+INCLUDED_COUNTRIES = NORTH_AFRICA_COUNTRIES | TURKEY_CAUCASUS_COUNTRIES
 
 MEDIUM_LARGE = frozenset({"large_airport", "medium_airport"})
 

@@ -1,7 +1,8 @@
 """Airport metadata, city grouping and region filtering.
 
 The vendored CSV is generated from OurAirports by ``scripts/refresh_airports.py``
-and restricted to scheduled-service airports in Europe / North Africa that also
+and restricted to scheduled-service airports in Europe, North Africa,
+Turkey and the Caucasus that also
 exist in ``fli``'s ``Airport`` enum.
 """
 
@@ -17,7 +18,7 @@ from importlib import resources
 from flight_search.config import KARLSRUHE_LAT, KARLSRUHE_LON, MEDIUM_LARGE
 
 DATA_PACKAGE = "flight_search.data"
-AIRPORTS_FILE = "airports_eu_na.csv"
+AIRPORTS_FILE = "airports.csv"
 METROS_FILE = "metros.toml"
 
 
@@ -122,6 +123,15 @@ def name_map() -> dict[str, str]:
     """Map IATA code -> preferred city display name."""
     data = tomllib.loads(_open_data(METROS_FILE).read().decode("utf-8"))
     return {code.upper(): name for code, name in data.get("names", {}).items()}
+
+
+def display_city(airport: AirportInfo) -> str:
+    """Preferred city label for an airport (metro/display override first)."""
+    return (
+        metro_map().get(airport.iata)
+        or name_map().get(airport.iata)
+        or airport.city
+    )
 
 
 def build_city_groups(

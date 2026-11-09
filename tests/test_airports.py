@@ -16,9 +16,23 @@ def airports():
 
 def test_dataset_contains_expected_airports(airports):
     codes = {a.iata for a in airports}
-    assert {"FRA", "STR", "FKB", "SXB", "BCN", "GRO", "RAK", "CAI"} <= codes
+    assert {
+        "FRA", "STR", "FKB", "SXB", "BCN", "GRO", "RAK", "CAI",
+        "IST", "SAW", "ESB", "AYT", "TBS", "BUS", "GYD", "EVN",
+    } <= codes
     assert len(airports) > 400
     assert all(not a.is_small for a in airports)
+
+
+def test_turkey_and_caucasus_countries_are_included(airports):
+    by_code = {a.iata: a for a in airports}
+    assert by_code["IST"].country == "TR"
+    assert by_code["TBS"].country == "GE"
+    assert by_code["GYD"].country == "AZ"
+    assert by_code["EVN"].country == "AM"
+    assert {a.iata for a in filter_airports(airports, countries=frozenset({"TR"}))} >= {
+        "IST", "SAW", "ESB", "AYT", "ADB", "BJV"
+    }
 
 
 def test_small_airports_are_opt_in():

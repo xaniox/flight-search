@@ -9,7 +9,7 @@ from pathlib import Path
 
 from fli.models.airport import AIRPORT_NAMES
 
-from flight_search.config import MEDIUM_LARGE, NORTH_AFRICA_COUNTRIES
+from flight_search.config import INCLUDED_COUNTRIES, MEDIUM_LARGE
 
 OURAIRPORTS_URL = "https://davidmegginson.github.io/ourairports-data/airports.csv"
 
@@ -26,7 +26,7 @@ FIELDS = (
 
 
 def dataset_path() -> Path:
-    return Path(__file__).parent / "data" / "airports_eu_na.csv"
+    return Path(__file__).parent / "data" / "airports.csv"
 
 
 def fetch_ourairports(url: str = OURAIRPORTS_URL, timeout: int = 90) -> str:
@@ -47,7 +47,7 @@ def build_rows(text: str) -> list[dict[str, str]]:
         code = (record.get("iata_code") or "").strip().upper()
         if not code or code in seen:
             continue
-        if record.get("continent") != "EU" and record.get("iso_country") not in NORTH_AFRICA_COUNTRIES:
+        if record.get("continent") != "EU" and record.get("iso_country") not in INCLUDED_COUNTRIES:
             continue
         if code not in AIRPORT_NAMES:
             # fli cannot query airports missing from its enum.

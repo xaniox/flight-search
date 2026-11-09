@@ -22,6 +22,7 @@ from flight_search.airports import (
     AirportDataError,
     AirportInfo,
     build_city_groups,
+    display_city,
     distance_from_karlsruhe,
     filter_airports,
     load_airports,
@@ -146,7 +147,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--region",
         choices=("europe", "weekend"),
         default="europe",
-        help="europe = all Europe/North Africa airports; weekend = within --max-distance-km.",
+        help="europe = all Europe, North Africa, Turkey and Caucasus airports; weekend = within --max-distance-km.",
     )
     weekend.add_argument(
         "--max-distance-km",
@@ -672,7 +673,7 @@ def _run_airports(args) -> int:
     for airport in selected:
         table.add_row(
             airport.iata,
-            airport.city,
+            display_city(airport),
             airport.country,
             airport.name,
             f"{distance_from_karlsruhe(airport):.0f}",
