@@ -18,12 +18,12 @@ from flight_search import fli_api
 from flight_search.cache import Cache
 from flight_search.combine import (
     filter_departures,
-    filter_return_arrivals,
+    filter_return_legs,
     options_from_results,
 )
 from flight_search.config import SearchSettings
 from flight_search.fli_api import RequestBudget
-from flight_search.windows import DepartureWindow, ReturnArrivalWindow
+from flight_search.windows import DepartureWindow, ReturnWindow
 
 
 class DiscoveryAborted(RuntimeError):
@@ -89,7 +89,7 @@ def run_discovery(
     depart_dates: list[date],
     return_dates: list[date],
     depart_window: DepartureWindow,
-    return_window: ReturnArrivalWindow,
+    return_window: ReturnWindow,
     settings: SearchSettings,
     cache: Cache,
     budget: RequestBudget,
@@ -154,7 +154,7 @@ def run_discovery(
                     if previous is None or option.price < previous:
                         prices[code] = option.price
             else:
-                options = filter_return_arrivals(options, return_window, day)
+                options = filter_return_legs(options, return_window, day)
                 wanted = set(batch)
                 prices = {}
                 for option in options:

@@ -88,34 +88,59 @@ class DepartureWindow:
 
 
 @dataclass(frozen=True, slots=True)
-class ReturnArrivalWindow:
-    """Latest local arrival at the home airport for the return leg."""
+class ReturnWindow:
+    """Constraints on the return leg, in local time.
 
-    before: time | None = None
+    ``depart_after`` applies to departure from the destination; ``arrive_before``
+    applies to arrival at the home airport. Both are optional and inclusive.
+    """
+
+    depart_after: time | None = None
+    arrive_before: time | None = None
 
     def __post_init__(self) -> None:
-        if self.before is not None and self.before == time(0, 0):
+        if self.arrive_before is not None and self.arrive_before == time(0, 0):
             raise TimeWindowError(
                 "A latest arrival of 00:00 is not meaningful; use 23:59 for 'before midnight'"
             )
 
     @property
     def active(self) -> bool:
-        return self.before is not None
+        return self.depart_after is not None or self.arrive_before is not None
 
     def restrictions(self) -> TimeRestrictions | None:
-        if self.before is None:
+        if not self.active:
             return None
-        return TimeRestrictions(latest_arrival=self.before.hour)
+        return TimeRestrictions(
+            earliest_departure=self.depart_after.hour if self.depart_after else None,
+            latest_arrival=self.arrive_before.hour if self.arrive_before else None,
+        )
 
-    def matches(self, arrival: datetime, return_date: date) -> bool:
-        if self.before is None:
-            return True
-        cutoff = datetime.combine(return_date, self.before)
-        return arrival <= cutoff
+    def matches(
+        self, departure: datetime, arrival: datetime, return_date: date
+    ) -> bool:
+        if self.depart_after is not None and departure.time() < self.depart_after:
+            return False
+        if self.arrive_before is not None:
+            cutoff = datetime.combine(return_date, self.arrive_before)
+            if arrival > cutoff:
+                return False
+        return True
 
     def label(self) -> str:
-        return self.before.strftime("%H:%M") if self.before else "any time"
+        parts = []
+        if self.depart_after is not None:
+            parts.append(f"depart ≥ {self.depart_after.strftime('%H:%M')}")
+        if self.arrive_before is not None:
+            parts.append(f"arrive ≤ {self.arrive_before.strftime('%H:%M')}")
+        return " · ".join(parts) if parts else "any time"
 
     def cache_key(self) -> dict[str, str | None]:
-        return {"before": self.before.strftime("%H:%M") if self.before else None}
+        return {
+            "depart_after": self.depart_after.strftime("%H:%M")
+            if self.depart_after
+            else None,
+            "arrive_before": self.arrive_before.strftime("%H:%M")
+            if self.arrive_before
+            else None,
+        }

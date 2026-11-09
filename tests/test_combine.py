@@ -5,11 +5,11 @@ from flight_search.combine import (
     LegInfo,
     combine_itineraries,
     filter_departures,
-    filter_return_arrivals,
+    filter_return_legs,
     options_from_results,
     reduce_best,
 )
-from flight_search.windows import DepartureWindow, ReturnArrivalWindow
+from flight_search.windows import DepartureWindow, ReturnWindow
 
 
 def make_option(
@@ -139,8 +139,13 @@ def test_exact_window_filters():
         make_option("BCN", "SXB", "2026-11-15T19:00:00", "2026-11-15T21:00:00", 50),
         make_option("BCN", "SXB", "2026-11-15T22:00:00", "2026-11-16T00:30:00", 40),
     ]
-    window = ReturnArrivalWindow(before=datetime(2026, 1, 1, 22, 0).time())
-    assert [o.price for o in filter_return_arrivals(returns, window, date(2026, 11, 15))] == [50]
+    window = ReturnWindow(arrive_before=datetime(2026, 1, 1, 22, 0).time())
+    assert [o.price for o in filter_return_legs(returns, window, date(2026, 11, 15))] == [50]
+
+    late_window = ReturnWindow(depart_after=datetime(2026, 1, 1, 20, 0).time())
+    assert [
+        o.price for o in filter_return_legs(returns, late_window, date(2026, 11, 15))
+    ] == [40]
 
 
 def test_option_roundtrip_serialisation():

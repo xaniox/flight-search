@@ -90,7 +90,7 @@ def format_window_line(
     if depart_label != "any time":
         parts.append(f"depart {depart_label}")
     if return_label != "any time":
-        parts.append(f"return arrival ≤ {return_label}")
+        parts.append(f"return {return_label}")
     if not parts:
         return "Any departure / arrival time"
     return " · ".join(parts) + " (local times)"

@@ -79,7 +79,7 @@ uv run flight-search weekend \
   --start 2026-11-13 --end 2026-12-14 \
   --depart-days fri --return-days sun \
   --depart-after 17:30 --depart-before 21:15 \
-  --return-arrive-before 22:00 \
+  --return-depart-after 15:00 --return-arrive-before 22:00 \
   --compare-roundtrip --top 15
 ```
 
@@ -100,6 +100,7 @@ uv run flight-search weekend ... --format json > results.json
 | `--start`, `--end` | Date range; both legs must fall inside it. |
 | `--min-nights`, `--max-nights` | Trip length constraint. |
 | `--depart-after`, `--depart-before` | Optional outbound departure window, local time (`17:30`, `21:15`). |
+| `--return-depart-after` | Optional earliest return departure from the destination, local time (`15:00`). |
 | `--return-arrive-before` | Optional latest return arrival at the home airport, local time. |
 | `--max-stops` | `ANY`, `0`/`NON_STOP`, `1`/`ONE_STOP`, `2+`. |
 | `--top`, `--best-per-city`, `--per-city` | Display count and city diversity in the confirmed shortlist. |
@@ -109,12 +110,17 @@ uv run flight-search weekend ... --format json > results.json
 | `--concurrency`, `--max-requests` | Parallelism and a hard request ceiling. |
 | `--dry-run` | Print the plan and request estimate without network calls. |
 
-Time windows are optional; when omitted the whole day qualifies. Google's
-request format only understands whole hours and its bounds are inclusive of
-the whole hour, and the arrival bound is not date-aware. The tool therefore
-sends permissive hour bounds and enforces the exact minute (and the same-day
-rule, so a Monday 01:00 red-eye does not pass a Sunday 22:00 deadline)
-locally on the decoded itineraries.
+Time windows are optional; when omitted the whole day qualifies. That covers
+the outbound departure window (`--depart-after`/`--depart-before`), the return
+departure floor (`--return-depart-after`) and the return arrival deadline
+(`--return-arrive-before`).
+
+Google's request format only understands whole hours and its bounds are
+inclusive of the whole hour, and the arrival bound is not date-aware. The tool
+therefore sends permissive hour bounds and enforces the exact minute (and the
+same-day rule, so a Monday 01:00 red-eye does not pass a Sunday 22:00 deadline)
+locally on the decoded itineraries. `--return-depart-after 15` and
+`--return-arrive-before 22:30` are both valid forms.
 
 ## How it works
 

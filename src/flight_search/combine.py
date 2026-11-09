@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Iterable
 
-from flight_search.windows import DepartureWindow, ReturnArrivalWindow
+from flight_search.windows import DepartureWindow, ReturnWindow
 
 
 @dataclass(frozen=True, slots=True)
@@ -151,9 +151,9 @@ def filter_departures(
     ]
 
 
-def filter_return_arrivals(
+def filter_return_legs(
     options: Iterable[FlightOption],
-    window: ReturnArrivalWindow,
+    window: ReturnWindow,
     return_date: date,
 ) -> list[FlightOption]:
     if not window.active:
@@ -161,7 +161,11 @@ def filter_return_arrivals(
     return [
         option
         for option in options
-        if window.matches(datetime.fromisoformat(option.arrival), return_date)
+        if window.matches(
+            datetime.fromisoformat(option.departure),
+            datetime.fromisoformat(option.arrival),
+            return_date,
+        )
     ]
 
 

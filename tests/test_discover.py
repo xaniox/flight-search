@@ -5,7 +5,7 @@ from flight_search.cache import Cache
 from flight_search.config import SearchSettings
 from flight_search.discover import batch_codes, run_discovery
 from flight_search.fli_api import max_destinations, RequestBudget
-from flight_search.windows import DepartureWindow, ReturnArrivalWindow
+from flight_search.windows import DepartureWindow, ReturnWindow
 
 
 class FakeAirport:
@@ -82,7 +82,7 @@ def test_discovery_batches_and_records_prices(monkeypatch, tmp_path):
         depart_dates=[date(2026, 11, 13)],
         return_dates=[date(2026, 11, 15)],
         depart_window=DepartureWindow(),
-        return_window=ReturnArrivalWindow(),
+        return_window=ReturnWindow(),
         settings=SearchSettings(),
         cache=cache,
         budget=RequestBudget(100),
@@ -127,7 +127,7 @@ def test_discovery_applies_exact_departure_window(monkeypatch, tmp_path):
         depart_dates=[date(2026, 11, 13)],
         return_dates=[],
         depart_window=DepartureWindow(after=datetime(2026, 1, 1, 18, 0).time()),
-        return_window=ReturnArrivalWindow(),
+        return_window=ReturnWindow(),
         settings=SearchSettings(),
         cache=Cache(directory=tmp_path, ttl=timedelta(0)),
         budget=RequestBudget(10),

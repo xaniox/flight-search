@@ -57,7 +57,7 @@ from flight_search.render import (
 )
 from flight_search.windows import (
     DepartureWindow,
-    ReturnArrivalWindow,
+    ReturnWindow,
     TimeWindowError,
     parse_clock,
 )
@@ -192,6 +192,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--depart-before",
         default=None,
         help="Latest outbound departure, local time (HH or HH:MM).",
+    )
+    weekend.add_argument(
+        "--return-depart-after",
+        default=None,
+        help="Earliest return departure from the destination, local time (HH or HH:MM).",
     )
     weekend.add_argument(
         "--return-arrive-before",
@@ -373,10 +378,13 @@ def _run_weekend(args) -> int:
             after=parse_clock(args.depart_after) if args.depart_after else None,
             before=parse_clock(args.depart_before) if args.depart_before else None,
         )
-        return_window = ReturnArrivalWindow(
-            before=parse_clock(args.return_arrive_before)
+        return_window = ReturnWindow(
+            depart_after=parse_clock(args.return_depart_after)
+            if args.return_depart_after
+            else None,
+            arrive_before=parse_clock(args.return_arrive_before)
             if args.return_arrive_before
-            else None
+            else None,
         )
     except (DateError, TimeWindowError) as exc:
         error_console.print(f"[bold red]Error:[/bold red] {exc}")
@@ -603,7 +611,7 @@ def _run_weekend(args) -> int:
     }
     windows = {
         "departure": depart_window.label(),
-        "return_arrival": return_window.label(),
+        "return": return_window.label(),
     }
     payload = results_payload(
         displayed,

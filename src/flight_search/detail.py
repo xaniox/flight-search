@@ -13,12 +13,12 @@ from flight_search.combine import (
     Itinerary,
     combine_itineraries,
     filter_departures,
-    filter_return_arrivals,
+    filter_return_legs,
     options_from_results,
 )
 from flight_search.config import SearchSettings
 from flight_search.fli_api import RequestBudget
-from flight_search.windows import DepartureWindow, ReturnArrivalWindow
+from flight_search.windows import DepartureWindow, ReturnWindow
 
 
 def _restrictions_key(restrictions) -> dict | None:
@@ -116,7 +116,7 @@ def evaluate_candidates(
     cache: Cache,
     budget: RequestBudget,
     depart_window: DepartureWindow,
-    return_window: ReturnArrivalWindow,
+    return_window: ReturnWindow,
     pool_size: int,
     max_candidates: int | None = None,
     progress: Callable[[int, int], None] | None = None,
@@ -159,7 +159,7 @@ def evaluate_candidates(
             budget=budget,
         )
         out_options = filter_departures(out_options, depart_window)
-        ret_options = filter_return_arrivals(
+        ret_options = filter_return_legs(
             ret_options, return_window, candidate.pair.ret
         )
         for itinerary in combine_itineraries(
