@@ -12,17 +12,19 @@ from flight_search.discover import AirportScreen
 
 def city(*codes: str) -> CityGroup:
     airports = tuple(
-        AirportInfo(code, f"{code} Airport", "Testville", "ES", "medium_airport", "EU", 0, 0)
+        AirportInfo(
+            code, f"{code} Airport", "Testville", "ES", "medium_airport", "EU", 0, 0
+        )
         for code in codes
     )
-    return CityGroup(
-        f"city:es:{codes[0].lower()}", f"City {codes[0]}", "ES", airports
-    )
+    return CityGroup(f"city:es:{codes[0].lower()}", f"City {codes[0]}", "ES", airports)
 
 
 def test_estimate_uses_cheapest_airport_in_city():
     screens = {
-        "BCN": AirportScreen("BCN", out={"2026-11-13": 100.0}, ret={"2026-11-15": 60.0}),
+        "BCN": AirportScreen(
+            "BCN", out={"2026-11-13": 100.0}, ret={"2026-11-15": 60.0}
+        ),
         "GRO": AirportScreen("GRO", out={"2026-11-13": 70.0}, ret={"2026-11-15": 90.0}),
     }
     pairs = [DatePair(date(2026, 11, 13), date(2026, 11, 15))]
@@ -35,7 +37,9 @@ def test_estimate_uses_cheapest_airport_in_city():
 
 def test_missing_dates_are_skipped():
     screens = {
-        "BCN": AirportScreen("BCN", out={"2026-11-13": 100.0}, ret={"2026-11-16": 60.0}),
+        "BCN": AirportScreen(
+            "BCN", out={"2026-11-13": 100.0}, ret={"2026-11-16": 60.0}
+        ),
     }
     pairs = [
         DatePair(date(2026, 11, 13), date(2026, 11, 15)),
@@ -53,7 +57,9 @@ def test_failed_or_empty_screens_are_ignored():
 
 def test_candidates_are_sorted_by_estimate():
     screens = {
-        "BCN": AirportScreen("BCN", out={"2026-11-13": 100.0}, ret={"2026-11-15": 50.0}),
+        "BCN": AirportScreen(
+            "BCN", out={"2026-11-13": 100.0}, ret={"2026-11-15": 50.0}
+        ),
         "GRO": AirportScreen("GRO", out={"2026-11-13": 60.0}, ret={"2026-11-15": 50.0}),
     }
     pairs = [DatePair(date(2026, 11, 13), date(2026, 11, 15))]
@@ -80,8 +86,12 @@ def test_select_candidates_caps_date_pairs_per_city():
 
 def test_select_candidates_keeps_distinct_cities():
     screens = {
-        "BCN": AirportScreen("BCN", out={"2026-11-13": 100.0}, ret={"2026-11-15": 50.0}),
-        "MAD": AirportScreen("MAD", out={"2026-11-13": 110.0}, ret={"2026-11-15": 50.0}),
+        "BCN": AirportScreen(
+            "BCN", out={"2026-11-13": 100.0}, ret={"2026-11-15": 50.0}
+        ),
+        "MAD": AirportScreen(
+            "MAD", out={"2026-11-13": 110.0}, ret={"2026-11-15": 50.0}
+        ),
     }
     pairs = [DatePair(date(2026, 11, 13), date(2026, 11, 15))]
     candidates = build_candidates([city("BCN"), city("MAD")], screens, pairs)
@@ -93,4 +103,3 @@ def test_select_candidates_keeps_distinct_cities():
 def test_request_estimate_counts_batches():
     estimate = request_estimate(639, 8, 16, home_airports=4, max_candidates=60)
     assert estimate == (8 + 16) * 64 + 120
-

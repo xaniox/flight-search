@@ -122,9 +122,7 @@ def itinerary_url(
         return _search_link(outbound, settings)
 
 
-def attach_links(
-    itineraries: Iterable[Itinerary], settings: SearchSettings
-) -> None:
+def attach_links(itineraries: Iterable[Itinerary], settings: SearchSettings) -> None:
     """Populate the three Google Flights URLs on each itinerary."""
     for itinerary in itineraries:
         try:

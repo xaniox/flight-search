@@ -17,8 +17,22 @@ def airports():
 def test_dataset_contains_expected_airports(airports):
     codes = {a.iata for a in airports}
     assert {
-        "FRA", "STR", "FKB", "SXB", "BCN", "GRO", "RAK", "CAI",
-        "IST", "SAW", "ESB", "AYT", "TBS", "BUS", "GYD", "EVN",
+        "FRA",
+        "STR",
+        "FKB",
+        "SXB",
+        "BCN",
+        "GRO",
+        "RAK",
+        "CAI",
+        "IST",
+        "SAW",
+        "ESB",
+        "AYT",
+        "TBS",
+        "BUS",
+        "GYD",
+        "EVN",
     } <= codes
     assert len(airports) > 400
     assert all(not a.is_small for a in airports)
@@ -31,7 +45,12 @@ def test_turkey_and_caucasus_countries_are_included(airports):
     assert by_code["GYD"].country == "AZ"
     assert by_code["EVN"].country == "AM"
     assert {a.iata for a in filter_airports(airports, countries=frozenset({"TR"}))} >= {
-        "IST", "SAW", "ESB", "AYT", "ADB", "BJV"
+        "IST",
+        "SAW",
+        "ESB",
+        "AYT",
+        "ADB",
+        "BJV",
     }
 
 
@@ -74,10 +93,14 @@ def test_explicit_and_country_filters(airports):
     assert {a.iata for a in selected} == {"BCN", "GRO"}
     spanish = filter_airports(airports, countries=frozenset({"ES"}))
     assert spanish and all(a.country == "ES" for a in spanish)
-    excluded = filter_airports(airports, codes=("BCN", "GRO"), exclude=frozenset({"GRO"}))
+    excluded = filter_airports(
+        airports, codes=("BCN", "GRO"), exclude=frozenset({"GRO"})
+    )
     assert {a.iata for a in excluded} == {"BCN"}
 
 
 def test_airport_info_city_fallback():
-    info = AirportInfo("XXX", "Some Airport", "", "DE", "medium_airport", "EU", 0.0, 0.0)
+    info = AirportInfo(
+        "XXX", "Some Airport", "", "DE", "medium_airport", "EU", 0.0, 0.0
+    )
     assert info.city == "Some Airport"

@@ -33,7 +33,11 @@ def test_expand_date_pairs_respects_weekdays_and_nights():
         min_nights=2,
         max_nights=2,
     )
-    assert [p.depart.isoformat() for p in pairs] == ["2026-11-13", "2026-11-20", "2026-11-27"]
+    assert [p.depart.isoformat() for p in pairs] == [
+        "2026-11-13",
+        "2026-11-20",
+        "2026-11-27",
+    ]
     assert all(p.ret.isoformat().endswith(("15", "22", "29")) for p in pairs)
     assert all(p.nights == 2 for p in pairs)
 
