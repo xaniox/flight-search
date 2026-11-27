@@ -25,7 +25,10 @@ packages = ["src/flight_search"]
 allow-direct-references = true
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = [
+    "pytest>=8",
+    "ruff==0.17.6",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
