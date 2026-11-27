@@ -26,6 +26,7 @@ allow-direct-references = true
 
 [dependency-groups]
 dev = [
+    "actionlint-py==1.7.12.25",
     "pytest>=8",
     "ruff==0.17.6",
 ]
