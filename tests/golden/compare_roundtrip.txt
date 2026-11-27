@@ -1,0 +1,30 @@
+
+Weekend getaways from FRA, STR
+Fri 05 Mar 2027 – Sun 21 Mar 2027 · depart fri · return sun · 1–4 nights
+depart 15:00–23:59 (local times)
+6 destination airports in 4 cities · 3 date pairs · up to ~126 requests (3 depart + 3 return dates × 1 batches)
+
+
+6 airports · 4 cities · 36 requests · cache 3 hits
+
+#  Total  City        Outbound                       Return                         Nights  Stops  Open jaw  vs RT  Link
+1   €101  Rome (IT)   Fri 19 Mar · FRA→FCO ·         Sun 21 Mar · CIA→FRA ·              2    0/0    dest      −€8  open
+                      18:40–20:28                    20:05–21:42                                                        
+2   €104  Rome (IT)   Fri 05 Mar · FRA→CIA ·         Sun 07 Mar · CIA→FRA ·              2    0/0     —        +€7  open
+                      18:40–20:17                    20:05–21:42                                                        
+3   €106  Palma (ES)  Fri 05 Mar · FRA→PMI ·         Sun 07 Mar · PMI→FRA ·              2    0/0     —        +€7  open
+                      18:40–20:42                    20:05–22:07                                                        
+4   €107  Rome (IT)   Fri 19 Mar · FRA→FCO ·         Sun 21 Mar · CIA→STR ·              2    0/0    both      −€2  open
+                      18:40–20:28                    20:05–22:14                                                        
+5   €107  Rome (IT)   Fri 19 Mar · STR→FCO ·         Sun 21 Mar · CIA→FRA ·              2    0/0    both      −€2  open
+                      18:40–21:00                    20:05–21:42                                                        
+6   €110  Rome (IT)   Fri 05 Mar · FRA→CIA ·         Sun 07 Mar · CIA→STR ·              2    0/0    home     +€13  open
+                      18:40–20:17                    20:05–22:14                                                        
+
+Google Flights links:
+1. https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTE5Ih8KA0ZSQRIKMjAyNy0wMy0xORoDRkNPKgJGUjIDNTM0agcIARIDRlJBcgcIARIDRkNPGj8SCjIwMjctMDMtMjEiHwoDQ0lBEgoyMDI3LTAzLTIxGgNGUkEqAlZZMgM1MjNqBwgBEgNDSUFyBwgBEgNGUkFAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE
+2. https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA1Ih8KA0ZSQRIKMjAyNy0wMy0wNRoDQ0lBKgJWWTIDNTIzagcIARIDRlJBcgcIARIDQ0lBGj8SCjIwMjctMDMtMDciHwoDQ0lBEgoyMDI3LTAzLTA3GgNGUkEqAlZZMgM1MjNqBwgBEgNDSUFyBwgBEgNGUkFAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE
+3. https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA1Ih8KA0ZSQRIKMjAyNy0wMy0wNRoDUE1JKgJMSDIDNTQ4agcIARIDRlJBcgcIARIDUE1JGj8SCjIwMjctMDMtMDciHwoDUE1JEgoyMDI3LTAzLTA3GgNGUkEqAkxIMgM1NDhqBwgBEgNQTUlyBwgBEgNGUkFAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE
+4. https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTE5Ih8KA0ZSQRIKMjAyNy0wMy0xORoDRkNPKgJGUjIDNTM0agcIARIDRlJBcgcIARIDRkNPGj8SCjIwMjctMDMtMjEiHwoDQ0lBEgoyMDI3LTAzLTIxGgNTVFIqAkZSMgM1NTVqBwgBEgNDSUFyBwgBEgNTVFJAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE
+5. https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTE5Ih8KA1NUUhIKMjAyNy0wMy0xORoDRkNPKgJMSDIDNTY2agcIARIDU1RScgcIARIDRkNPGj8SCjIwMjctMDMtMjEiHwoDQ0lBEgoyMDI3LTAzLTIxGgNGUkEqAlZZMgM1MjNqBwgBEgNDSUFyBwgBEgNGUkFAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE
+6. https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA1Ih8KA0ZSQRIKMjAyNy0wMy0wNRoDQ0lBKgJWWTIDNTIzagcIARIDRlJBcgcIARIDQ0lBGj8SCjIwMjctMDMtMDciHwoDQ0lBEgoyMDI3LTAzLTA3GgNTVFIqAkZSMgM1NTVqBwgBEgNDSUFyBwgBEgNTVFJAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE

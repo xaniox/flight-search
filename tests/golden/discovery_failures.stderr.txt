@@ -1,0 +1,3 @@
+Pricing destinations: 18/18
+warning: 1 discovery requests failed; first: out 2027-03-12 LIS,PMI: RuntimeError: fake outage for this batch
+Confirming candidates: 10/10

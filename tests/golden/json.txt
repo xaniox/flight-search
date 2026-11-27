@@ -1,0 +1,559 @@
+{
+  "query": {
+    "home_airports": [
+      "FRA",
+      "STR"
+    ],
+    "depart_days": [
+      4
+    ],
+    "return_days": [
+      6
+    ],
+    "start": "2027-03-05",
+    "end": "2027-03-21",
+    "min_nights": 1,
+    "max_nights": 4,
+    "region": "europe",
+    "destinations": null,
+    "countries": null,
+    "settings": {
+      "cabin": "ECONOMY",
+      "max_stops": "ANY",
+      "adults": 1,
+      "currency": "EUR",
+      "country": "DE",
+      "language": "de-DE"
+    }
+  },
+  "windows": {
+    "departure": "15:00–23:59",
+    "return": "any time"
+  },
+  "stats": {
+    "destination_airports": 6,
+    "cities": 4,
+    "date_pairs": 3,
+    "distinct_departure_dates": 3,
+    "distinct_return_dates": 3,
+    "batch_size": 12,
+    "candidates": 12,
+    "shortlisted": 12,
+    "confirmed_pool": 6,
+    "discovery_requests": 6,
+    "requests": 30,
+    "cache_hits": 0,
+    "cache_misses": 30,
+    "discovery_failures": 0
+  },
+  "count": 6,
+  "results": [
+    {
+      "city": "Rome",
+      "country": "IT",
+      "depart_date": "2027-03-19",
+      "return_date": "2027-03-21",
+      "nights": 2,
+      "total": 101.0,
+      "currency": "EUR",
+      "open_jaw": {
+        "home": false,
+        "destination": true,
+        "label": "dest"
+      },
+      "outbound": {
+        "price": 50.0,
+        "currency": "EUR",
+        "departure": "2027-03-19T18:40:00",
+        "arrival": "2027-03-19T20:28:00",
+        "stops": 0,
+        "duration": 108,
+        "legs": [
+          {
+            "airline": "FR",
+            "airline_name": "Ryanair",
+            "flight_number": "534",
+            "origin": "FRA",
+            "destination": "FCO",
+            "departure": "2027-03-19T18:40:00",
+            "arrival": "2027-03-19T20:28:00",
+            "duration": 108,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "return": {
+        "price": 51.0,
+        "currency": "EUR",
+        "departure": "2027-03-21T20:05:00",
+        "arrival": "2027-03-21T21:42:00",
+        "stops": 0,
+        "duration": 97,
+        "legs": [
+          {
+            "airline": "VY",
+            "airline_name": "Vueling",
+            "flight_number": "523",
+            "origin": "CIA",
+            "destination": "FRA",
+            "departure": "2027-03-21T20:05:00",
+            "arrival": "2027-03-21T21:42:00",
+            "duration": 97,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "roundtrip_price": null,
+      "roundtrip_delta": null,
+      "booking_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTE5Ih8KA0ZSQRIKMjAyNy0wMy0xORoDRkNPKgJGUjIDNTM0agcIARIDRlJBcgcIARIDRkNPGj8SCjIwMjctMDMtMjEiHwoDQ0lBEgoyMDI3LTAzLTIxGgNGUkEqAlZZMgM1MjNqBwgBEgNDSUFyBwgBEgNGUkFAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE",
+      "outbound_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTE5Ih8KA0ZSQRIKMjAyNy0wMy0xORoDRkNPKgJGUjIDNTM0agcIARIDRlJBcgcIARIDRkNPQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE",
+      "return_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTIxIh8KA0NJQRIKMjAyNy0wMy0yMRoDRlJBKgJWWTIDNTIzagcIARIDQ0lBcgcIARIDRlJBQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE"
+    },
+    {
+      "city": "Rome",
+      "country": "IT",
+      "depart_date": "2027-03-05",
+      "return_date": "2027-03-07",
+      "nights": 2,
+      "total": 104.0,
+      "currency": "EUR",
+      "open_jaw": {
+        "home": false,
+        "destination": false,
+        "label": ""
+      },
+      "outbound": {
+        "price": 44.0,
+        "currency": "EUR",
+        "departure": "2027-03-05T18:40:00",
+        "arrival": "2027-03-05T20:17:00",
+        "stops": 0,
+        "duration": 97,
+        "legs": [
+          {
+            "airline": "VY",
+            "airline_name": "Vueling",
+            "flight_number": "523",
+            "origin": "FRA",
+            "destination": "CIA",
+            "departure": "2027-03-05T18:40:00",
+            "arrival": "2027-03-05T20:17:00",
+            "duration": 97,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "return": {
+        "price": 60.0,
+        "currency": "EUR",
+        "departure": "2027-03-07T20:05:00",
+        "arrival": "2027-03-07T21:42:00",
+        "stops": 0,
+        "duration": 97,
+        "legs": [
+          {
+            "airline": "VY",
+            "airline_name": "Vueling",
+            "flight_number": "523",
+            "origin": "CIA",
+            "destination": "FRA",
+            "departure": "2027-03-07T20:05:00",
+            "arrival": "2027-03-07T21:42:00",
+            "duration": 97,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "roundtrip_price": null,
+      "roundtrip_delta": null,
+      "booking_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA1Ih8KA0ZSQRIKMjAyNy0wMy0wNRoDQ0lBKgJWWTIDNTIzagcIARIDRlJBcgcIARIDQ0lBGj8SCjIwMjctMDMtMDciHwoDQ0lBEgoyMDI3LTAzLTA3GgNGUkEqAlZZMgM1MjNqBwgBEgNDSUFyBwgBEgNGUkFAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE",
+      "outbound_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA1Ih8KA0ZSQRIKMjAyNy0wMy0wNRoDQ0lBKgJWWTIDNTIzagcIARIDRlJBcgcIARIDQ0lBQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE",
+      "return_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA3Ih8KA0NJQRIKMjAyNy0wMy0wNxoDRlJBKgJWWTIDNTIzagcIARIDQ0lBcgcIARIDRlJBQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE"
+    },
+    {
+      "city": "Palma",
+      "country": "ES",
+      "depart_date": "2027-03-05",
+      "return_date": "2027-03-07",
+      "nights": 2,
+      "total": 106.0,
+      "currency": "EUR",
+      "open_jaw": {
+        "home": false,
+        "destination": false,
+        "label": ""
+      },
+      "outbound": {
+        "price": 45.0,
+        "currency": "EUR",
+        "departure": "2027-03-05T18:40:00",
+        "arrival": "2027-03-05T20:42:00",
+        "stops": 0,
+        "duration": 122,
+        "legs": [
+          {
+            "airline": "LH",
+            "airline_name": "Lufthansa",
+            "flight_number": "548",
+            "origin": "FRA",
+            "destination": "PMI",
+            "departure": "2027-03-05T18:40:00",
+            "arrival": "2027-03-05T20:42:00",
+            "duration": 122,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "return": {
+        "price": 61.0,
+        "currency": "EUR",
+        "departure": "2027-03-07T20:05:00",
+        "arrival": "2027-03-07T22:07:00",
+        "stops": 0,
+        "duration": 122,
+        "legs": [
+          {
+            "airline": "LH",
+            "airline_name": "Lufthansa",
+            "flight_number": "548",
+            "origin": "PMI",
+            "destination": "FRA",
+            "departure": "2027-03-07T20:05:00",
+            "arrival": "2027-03-07T22:07:00",
+            "duration": 122,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "roundtrip_price": null,
+      "roundtrip_delta": null,
+      "booking_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA1Ih8KA0ZSQRIKMjAyNy0wMy0wNRoDUE1JKgJMSDIDNTQ4agcIARIDRlJBcgcIARIDUE1JGj8SCjIwMjctMDMtMDciHwoDUE1JEgoyMDI3LTAzLTA3GgNGUkEqAkxIMgM1NDhqBwgBEgNQTUlyBwgBEgNGUkFAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE",
+      "outbound_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA1Ih8KA0ZSQRIKMjAyNy0wMy0wNRoDUE1JKgJMSDIDNTQ4agcIARIDRlJBcgcIARIDUE1JQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE",
+      "return_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA3Ih8KA1BNSRIKMjAyNy0wMy0wNxoDRlJBKgJMSDIDNTQ4agcIARIDUE1JcgcIARIDRlJBQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE"
+    },
+    {
+      "city": "Rome",
+      "country": "IT",
+      "depart_date": "2027-03-19",
+      "return_date": "2027-03-21",
+      "nights": 2,
+      "total": 107.0,
+      "currency": "EUR",
+      "open_jaw": {
+        "home": true,
+        "destination": true,
+        "label": "both"
+      },
+      "outbound": {
+        "price": 50.0,
+        "currency": "EUR",
+        "departure": "2027-03-19T18:40:00",
+        "arrival": "2027-03-19T20:28:00",
+        "stops": 0,
+        "duration": 108,
+        "legs": [
+          {
+            "airline": "FR",
+            "airline_name": "Ryanair",
+            "flight_number": "534",
+            "origin": "FRA",
+            "destination": "FCO",
+            "departure": "2027-03-19T18:40:00",
+            "arrival": "2027-03-19T20:28:00",
+            "duration": 108,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "return": {
+        "price": 57.0,
+        "currency": "EUR",
+        "departure": "2027-03-21T20:05:00",
+        "arrival": "2027-03-21T22:14:00",
+        "stops": 0,
+        "duration": 129,
+        "legs": [
+          {
+            "airline": "FR",
+            "airline_name": "Ryanair",
+            "flight_number": "555",
+            "origin": "CIA",
+            "destination": "STR",
+            "departure": "2027-03-21T20:05:00",
+            "arrival": "2027-03-21T22:14:00",
+            "duration": 129,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "roundtrip_price": null,
+      "roundtrip_delta": null,
+      "booking_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTE5Ih8KA0ZSQRIKMjAyNy0wMy0xORoDRkNPKgJGUjIDNTM0agcIARIDRlJBcgcIARIDRkNPGj8SCjIwMjctMDMtMjEiHwoDQ0lBEgoyMDI3LTAzLTIxGgNTVFIqAkZSMgM1NTVqBwgBEgNDSUFyBwgBEgNTVFJAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE",
+      "outbound_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTE5Ih8KA0ZSQRIKMjAyNy0wMy0xORoDRkNPKgJGUjIDNTM0agcIARIDRlJBcgcIARIDRkNPQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE",
+      "return_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTIxIh8KA0NJQRIKMjAyNy0wMy0yMRoDU1RSKgJGUjIDNTU1agcIARIDQ0lBcgcIARIDU1RSQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE"
+    },
+    {
+      "city": "Rome",
+      "country": "IT",
+      "depart_date": "2027-03-19",
+      "return_date": "2027-03-21",
+      "nights": 2,
+      "total": 107.0,
+      "currency": "EUR",
+      "open_jaw": {
+        "home": true,
+        "destination": true,
+        "label": "both"
+      },
+      "outbound": {
+        "price": 56.0,
+        "currency": "EUR",
+        "departure": "2027-03-19T18:40:00",
+        "arrival": "2027-03-19T21:00:00",
+        "stops": 0,
+        "duration": 140,
+        "legs": [
+          {
+            "airline": "LH",
+            "airline_name": "Lufthansa",
+            "flight_number": "566",
+            "origin": "STR",
+            "destination": "FCO",
+            "departure": "2027-03-19T18:40:00",
+            "arrival": "2027-03-19T21:00:00",
+            "duration": 140,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "return": {
+        "price": 51.0,
+        "currency": "EUR",
+        "departure": "2027-03-21T20:05:00",
+        "arrival": "2027-03-21T21:42:00",
+        "stops": 0,
+        "duration": 97,
+        "legs": [
+          {
+            "airline": "VY",
+            "airline_name": "Vueling",
+            "flight_number": "523",
+            "origin": "CIA",
+            "destination": "FRA",
+            "departure": "2027-03-21T20:05:00",
+            "arrival": "2027-03-21T21:42:00",
+            "duration": 97,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "roundtrip_price": null,
+      "roundtrip_delta": null,
+      "booking_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTE5Ih8KA1NUUhIKMjAyNy0wMy0xORoDRkNPKgJMSDIDNTY2agcIARIDU1RScgcIARIDRkNPGj8SCjIwMjctMDMtMjEiHwoDQ0lBEgoyMDI3LTAzLTIxGgNGUkEqAlZZMgM1MjNqBwgBEgNDSUFyBwgBEgNGUkFAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE",
+      "outbound_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTE5Ih8KA1NUUhIKMjAyNy0wMy0xORoDRkNPKgJMSDIDNTY2agcIARIDU1RScgcIARIDRkNPQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE",
+      "return_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTIxIh8KA0NJQRIKMjAyNy0wMy0yMRoDRlJBKgJWWTIDNTIzagcIARIDQ0lBcgcIARIDRlJBQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE"
+    },
+    {
+      "city": "Rome",
+      "country": "IT",
+      "depart_date": "2027-03-05",
+      "return_date": "2027-03-07",
+      "nights": 2,
+      "total": 110.0,
+      "currency": "EUR",
+      "open_jaw": {
+        "home": true,
+        "destination": false,
+        "label": "home"
+      },
+      "outbound": {
+        "price": 44.0,
+        "currency": "EUR",
+        "departure": "2027-03-05T18:40:00",
+        "arrival": "2027-03-05T20:17:00",
+        "stops": 0,
+        "duration": 97,
+        "legs": [
+          {
+            "airline": "VY",
+            "airline_name": "Vueling",
+            "flight_number": "523",
+            "origin": "FRA",
+            "destination": "CIA",
+            "departure": "2027-03-05T18:40:00",
+            "arrival": "2027-03-05T20:17:00",
+            "duration": 97,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "return": {
+        "price": 66.0,
+        "currency": "EUR",
+        "departure": "2027-03-07T20:05:00",
+        "arrival": "2027-03-07T22:14:00",
+        "stops": 0,
+        "duration": 129,
+        "legs": [
+          {
+            "airline": "FR",
+            "airline_name": "Ryanair",
+            "flight_number": "555",
+            "origin": "CIA",
+            "destination": "STR",
+            "departure": "2027-03-07T20:05:00",
+            "arrival": "2027-03-07T22:14:00",
+            "duration": 129,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "roundtrip_price": null,
+      "roundtrip_delta": null,
+      "booking_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA1Ih8KA0ZSQRIKMjAyNy0wMy0wNRoDQ0lBKgJWWTIDNTIzagcIARIDRlJBcgcIARIDQ0lBGj8SCjIwMjctMDMtMDciHwoDQ0lBEgoyMDI3LTAzLTA3GgNTVFIqAkZSMgM1NTVqBwgBEgNDSUFyBwgBEgNTVFJAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE",
+      "outbound_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA1Ih8KA0ZSQRIKMjAyNy0wMy0wNRoDQ0lBKgJWWTIDNTIzagcIARIDRlJBcgcIARIDQ0lBQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE",
+      "return_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA3Ih8KA0NJQRIKMjAyNy0wMy0wNxoDU1RSKgJGUjIDNTU1agcIARIDQ0lBcgcIARIDU1RSQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE"
+    }
+  ],
+  "best_per_city": [
+    {
+      "city": "Rome",
+      "country": "IT",
+      "depart_date": "2027-03-19",
+      "return_date": "2027-03-21",
+      "nights": 2,
+      "total": 101.0,
+      "currency": "EUR",
+      "open_jaw": {
+        "home": false,
+        "destination": true,
+        "label": "dest"
+      },
+      "outbound": {
+        "price": 50.0,
+        "currency": "EUR",
+        "departure": "2027-03-19T18:40:00",
+        "arrival": "2027-03-19T20:28:00",
+        "stops": 0,
+        "duration": 108,
+        "legs": [
+          {
+            "airline": "FR",
+            "airline_name": "Ryanair",
+            "flight_number": "534",
+            "origin": "FRA",
+            "destination": "FCO",
+            "departure": "2027-03-19T18:40:00",
+            "arrival": "2027-03-19T20:28:00",
+            "duration": 108,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "return": {
+        "price": 51.0,
+        "currency": "EUR",
+        "departure": "2027-03-21T20:05:00",
+        "arrival": "2027-03-21T21:42:00",
+        "stops": 0,
+        "duration": 97,
+        "legs": [
+          {
+            "airline": "VY",
+            "airline_name": "Vueling",
+            "flight_number": "523",
+            "origin": "CIA",
+            "destination": "FRA",
+            "departure": "2027-03-21T20:05:00",
+            "arrival": "2027-03-21T21:42:00",
+            "duration": 97,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "roundtrip_price": null,
+      "roundtrip_delta": null,
+      "booking_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTE5Ih8KA0ZSQRIKMjAyNy0wMy0xORoDRkNPKgJGUjIDNTM0agcIARIDRlJBcgcIARIDRkNPGj8SCjIwMjctMDMtMjEiHwoDQ0lBEgoyMDI3LTAzLTIxGgNGUkEqAlZZMgM1MjNqBwgBEgNDSUFyBwgBEgNGUkFAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE",
+      "outbound_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTE5Ih8KA0ZSQRIKMjAyNy0wMy0xORoDRkNPKgJGUjIDNTM0agcIARIDRlJBcgcIARIDRkNPQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE",
+      "return_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTIxIh8KA0NJQRIKMjAyNy0wMy0yMRoDRlJBKgJWWTIDNTIzagcIARIDQ0lBcgcIARIDRlJBQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE"
+    },
+    {
+      "city": "Palma",
+      "country": "ES",
+      "depart_date": "2027-03-05",
+      "return_date": "2027-03-07",
+      "nights": 2,
+      "total": 106.0,
+      "currency": "EUR",
+      "open_jaw": {
+        "home": false,
+        "destination": false,
+        "label": ""
+      },
+      "outbound": {
+        "price": 45.0,
+        "currency": "EUR",
+        "departure": "2027-03-05T18:40:00",
+        "arrival": "2027-03-05T20:42:00",
+        "stops": 0,
+        "duration": 122,
+        "legs": [
+          {
+            "airline": "LH",
+            "airline_name": "Lufthansa",
+            "flight_number": "548",
+            "origin": "FRA",
+            "destination": "PMI",
+            "departure": "2027-03-05T18:40:00",
+            "arrival": "2027-03-05T20:42:00",
+            "duration": 122,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "return": {
+        "price": 61.0,
+        "currency": "EUR",
+        "departure": "2027-03-07T20:05:00",
+        "arrival": "2027-03-07T22:07:00",
+        "stops": 0,
+        "duration": 122,
+        "legs": [
+          {
+            "airline": "LH",
+            "airline_name": "Lufthansa",
+            "flight_number": "548",
+            "origin": "PMI",
+            "destination": "FRA",
+            "departure": "2027-03-07T20:05:00",
+            "arrival": "2027-03-07T22:07:00",
+            "duration": 122,
+            "aircraft": null,
+            "overnight": false
+          }
+        ]
+      },
+      "roundtrip_price": null,
+      "roundtrip_delta": null,
+      "booking_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA1Ih8KA0ZSQRIKMjAyNy0wMy0wNRoDUE1JKgJMSDIDNTQ4agcIARIDRlJBcgcIARIDUE1JGj8SCjIwMjctMDMtMDciHwoDUE1JEgoyMDI3LTAzLTA3GgNGUkEqAkxIMgM1NDhqBwgBEgNQTUlyBwgBEgNGUkFAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE",
+      "outbound_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA1Ih8KA0ZSQRIKMjAyNy0wMy0wNRoDUE1JKgJMSDIDNTQ4agcIARIDRlJBcgcIARIDUE1JQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE",
+      "return_url": "https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA3Ih8KA1BNSRIKMjAyNy0wMy0wNxoDRlJBKgJMSDIDNTQ4agcIARIDUE1JcgcIARIDRlJBQAFIAXABggELCP___________wGYAQI&curr=EUR&hl=de-DE&gl=DE"
+    }
+  ],
+  "failed": []
+}
