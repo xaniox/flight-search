@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from datetime import date
-from typing import Callable, Iterable
 
 from flight_search import fli_api
 from flight_search.cache import Cache
@@ -134,7 +134,6 @@ def evaluate_candidates(
 
     results: list[Itinerary] = []
     seen: set[tuple[tuple[str, ...], tuple[str, ...]]] = set()
-    total = len(candidates)
 
     for index, candidate in enumerate(candidates, 1):
         city_codes = candidate.city.codes

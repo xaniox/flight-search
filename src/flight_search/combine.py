@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from typing import Any, Iterable
+from typing import Any
 
 from flight_search.windows import DepartureWindow, ReturnWindow
 
@@ -37,7 +38,7 @@ class LegInfo:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "LegInfo":
+    def from_dict(cls, data: dict[str, Any]) -> LegInfo:
         return cls(**data)
 
 
@@ -79,7 +80,7 @@ class FlightOption:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "FlightOption":
+    def from_dict(cls, data: dict[str, Any]) -> FlightOption:
         return cls(
             price=float(data["price"]),
             currency=data["currency"],
