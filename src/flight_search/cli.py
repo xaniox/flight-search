@@ -125,6 +125,12 @@ class Reporter:
             self.progress = None
 
 
+REGION_HELP = (
+    "europe = Europe including Cyprus, the Greek islands and the Canaries, plus "
+    "North Africa, Turkey and the Caucasus; weekend = the same within --max-distance-km."
+)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="flight-search",
@@ -152,7 +158,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--region",
         choices=("europe", "weekend"),
         default="europe",
-        help="europe = all Europe, North Africa, Turkey and Caucasus airports; weekend = within --max-distance-km.",
+        help=REGION_HELP,
     )
     weekend.add_argument(
         "--max-distance-km",
@@ -163,7 +169,10 @@ def _build_parser() -> argparse.ArgumentParser:
     weekend.add_argument(
         "--countries",
         default="",
-        help="Restrict destinations to ISO country codes, e.g. ES,IT,MA.",
+        help=(
+            "Choose destinations by ISO country code from the worldwide dataset "
+            "instead of the default region, e.g. ES,IT,IL; --region weekend keeps its radius."
+        ),
     )
     weekend.add_argument(
         "--exclude",
@@ -316,6 +325,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--region",
         choices=("europe", "weekend"),
         default="europe",
+        help=REGION_HELP,
     )
     airports.add_argument("--max-distance-km", type=float, default=1200.0)
     airports.add_argument(

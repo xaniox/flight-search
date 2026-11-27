@@ -15,6 +15,12 @@ DEFAULT_HOME_AIRPORTS = ("FKB", "STR", "SXB", "FRA")
 NORTH_AFRICA_COUNTRIES = frozenset({"MA", "DZ", "TN", "LY", "EG", "EH"})
 TURKEY_CAUCASUS_COUNTRIES = frozenset({"TR", "GE", "AZ", "AM"})
 INCLUDED_COUNTRIES = NORTH_AFRICA_COUNTRIES | TURKEY_CAUCASUS_COUNTRIES
+# Countries that belong to the default region completely, whatever OurAirports'
+# continent says: e.g. Rhodes, Kos and Cyprus are tagged "AS" and the Canaries
+# "AF", so the continent rule alone would drop them. Portugal is listed so that
+# Madeira and the Azores stay inside whatever their tag. Russia is deliberately
+# not listed, so only its European part stays in the default region.
+WHOLE_COUNTRIES_IN_DEFAULT_REGION = frozenset({"GR", "CY", "ES", "PT"})
 
 MEDIUM_LARGE = frozenset({"large_airport", "medium_airport"})
 

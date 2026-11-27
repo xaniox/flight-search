@@ -59,8 +59,8 @@ redirection.
 
 ## Quick start
 
-Cheapest weekend across Europe, North Africa, Turkey and the Caucasus over the
-next two weeks: (643 airports — roughly 2–4 minutes on a cold cache)
+Cheapest weekend across Europe including Cyprus, the Greek islands and the
+Canaries, plus North Africa, Turkey and the Caucasus, over the next two weeks: (658 airports — roughly 2–4 minutes on a cold cache)
 
 ```sh
 uv run flight-search weekend \
@@ -112,8 +112,8 @@ uv run flight-search weekend ... --format json > results.json
 | Option | Meaning |
 | --- | --- |
 | `--from` | Home airports, default `FKB,STR,SXB,FRA`. All are searched at once. |
-| `--region europe\|weekend` | `europe` = every scheduled airport in Europe, North Africa, Turkey and the Caucasus (643); `weekend` = within `--max-distance-km` of Karlsruhe. |
-| `--countries`, `--dest`, `--exclude`, `--include-small` | Narrow or override the destination set. |
+| `--region europe\|weekend` | `europe` = every scheduled airport in Europe including Cyprus, the Greek islands and the Canaries, plus North Africa, Turkey and the Caucasus (658); `weekend` = the same, within `--max-distance-km` of Karlsruhe. |
+| `--countries`, `--dest`, `--exclude`, `--include-small` | Override or narrow the destination set. `--countries` and `--dest` choose from the worldwide dataset, e.g. `--countries IL` or `--dest TLV`. |
 | `--depart-days`, `--return-days` | Weekday sets, e.g. `thu,fri` and `sun,mon`. |
 | `--start`, `--end` | Date range; both legs must fall inside it. |
 | `--min-nights`, `--max-nights` | Trip length constraint. |
@@ -193,11 +193,15 @@ one-ways the displayed price is made of.
 
 `src/flight_search/data/airports.csv` is generated from
 [OurAirports](https://ourairports.com/data/): scheduled-service, IATA-coded
-airports in Europe (`continent = EU`, which includes Russia), North Africa
-(`MA, DZ, TN, LY, EG, EH`), Turkey (`TR`) and the Caucasus (`GE, AZ, AM`),
-intersected with the airports `fli` can query. The snapshot holds 703 airports.
-Medium and large airports are used by default (643); `--include-small` adds 60
-smaller scheduled airports.
+airports worldwide, intersected with the airports `fli` can query. The snapshot
+holds 3835 airports (3173 medium and large, 662 small).
+
+The default region (`--region europe`) is applied at runtime: Europe
+(`continent = EU`, which includes the European part of Russia), North Africa
+(`MA, DZ, TN, LY, EG, EH`), Turkey (`TR`) and the Caucasus (`GE, AZ, AM`), plus
+all of Greece, Cyprus, Spain and Portugal whatever their OurAirports continent
+(Rhodes, Kos, Cyprus, the Canaries). Medium and large airports are used by
+default (658); `--include-small` adds 62 smaller scheduled airports.
 
 Curated `metros.toml` groups multi-airport cities so open-jaw works within a
 metro (London, Paris, Milan, Rome, Barcelona, Stockholm, Oslo, Istanbul,
