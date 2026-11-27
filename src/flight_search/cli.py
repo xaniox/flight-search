@@ -26,6 +26,7 @@ from flight_search.airports import (
     display_city,
     distance_from_karlsruhe,
     filter_airports,
+    in_default_region,
     load_airports,
 )
 from flight_search.cache import Cache, default_cache_dir, parse_duration
@@ -332,6 +333,21 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _destination_pool(
+    airports: tuple[AirportInfo, ...],
+    codes: tuple[str, ...],
+    countries: frozenset[str],
+) -> tuple[AirportInfo, ...]:
+    """The airports a destination choice draws from.
+
+    Explicit codes or countries choose from the whole snapshot; otherwise the
+    default region applies.
+    """
+    if codes or countries:
+        return airports
+    return tuple(a for a in airports if in_default_region(a))
+
+
 def _select_airports(args) -> tuple[tuple[AirportInfo, ...], list[str]]:
     all_airports = load_airports(include_small=args.include_small)
     home = _csv_tuple(args.home_airports)
@@ -361,7 +377,7 @@ def _select_airports(args) -> tuple[tuple[AirportInfo, ...], list[str]]:
         countries = frozenset(_csv_tuple(args.countries))
         max_distance = args.max_distance_km if args.region == "weekend" else None
         destinations = filter_airports(
-            all_airports,
+            _destination_pool(all_airports, (), countries),
             countries=countries,
             max_distance_km=max_distance,
             exclude=frozenset(excluded),
@@ -679,12 +695,12 @@ def _run_airports(args) -> int:
         console.print(f"[bold red]Error:[/bold red] {exc}")
         return 2
     max_distance = args.max_distance_km if args.region == "weekend" else None
+    codes = _csv_tuple(args.dest) if args.dest else ()
+    countries = frozenset(_csv_tuple(args.countries)) if args.countries else frozenset()
     selected = filter_airports(
-        airports,
-        codes=_csv_tuple(args.dest) if args.dest else (),
-        countries=frozenset(_csv_tuple(args.countries))
-        if args.countries
-        else frozenset(),
+        _destination_pool(airports, codes, countries),
+        codes=codes,
+        countries=countries,
         max_distance_km=max_distance,
     )
     table = Table(box=None)

@@ -15,7 +15,12 @@ from dataclasses import dataclass
 from functools import lru_cache
 from importlib import resources
 
-from flight_search.config import KARLSRUHE_LAT, KARLSRUHE_LON, MEDIUM_LARGE
+from flight_search.config import (
+    INCLUDED_COUNTRIES,
+    KARLSRUHE_LAT,
+    KARLSRUHE_LON,
+    MEDIUM_LARGE,
+)
 
 DATA_PACKAGE = "flight_search.data"
 AIRPORTS_FILE = "airports.csv"
@@ -181,6 +186,11 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 def distance_from_karlsruhe(airport: AirportInfo) -> float:
     return haversine_km(KARLSRUHE_LAT, KARLSRUHE_LON, airport.lat, airport.lon)
+
+
+def in_default_region(airport: AirportInfo) -> bool:
+    """True for Europe (OurAirports continent ``EU``), North Africa, Turkey and the Caucasus."""
+    return airport.continent == "EU" or airport.country in INCLUDED_COUNTRIES
 
 
 def filter_airports(
