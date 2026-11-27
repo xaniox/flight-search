@@ -31,7 +31,7 @@ def dataset_path() -> Path:
 
 def fetch_ourairports(url: str = OURAIRPORTS_URL, timeout: int = 90) -> str:
     request = urllib.request.Request(url, headers={"User-Agent": "flight-search/0.1"})
-    with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310
+    with urllib.request.urlopen(request, timeout=timeout) as response:
         return response.read().decode("utf-8")
 
 

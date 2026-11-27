@@ -9,10 +9,10 @@ rows for the batch, which is enough to rank cities by price.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Callable, Iterable
 
 from flight_search import fli_api
 from flight_search.cache import Cache
@@ -118,7 +118,6 @@ def run_discovery(
         for batch in batches:
             jobs.append(("ret", day, batch))
 
-    total = len(jobs)
     done = 0
     request_count = 0
 

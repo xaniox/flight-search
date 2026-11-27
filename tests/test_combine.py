@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from itertools import pairwise
 
 from flight_search.combine import (
     FlightOption,
@@ -86,7 +87,7 @@ def test_combine_labels_open_jaw_and_sorts_by_total():
     assert "dest" in labels  # BCN in, GRO out
     assert "both" in labels  # SXB/BCN out, GRO/FKB back
     assert "" in labels  # same airports both ways
-    assert all(a.total <= b.total for a, b in zip(itineraries, itineraries[1:]))
+    assert all(a.total <= b.total for a, b in pairwise(itineraries))
 
 
 def test_options_from_results_skips_unpriced_and_tuple_rows():
@@ -110,7 +111,7 @@ def test_options_from_results_skips_unpriced_and_tuple_rows():
         aircraft = "B737"
 
     class FakeResult:
-        legs = [FakeLeg()]
+        legs = (FakeLeg(),)
         price = 88.0
         currency = "EUR"
         duration = 110

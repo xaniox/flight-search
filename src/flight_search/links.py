@@ -13,7 +13,7 @@ is actually made of.
 
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Iterable
 
 from flight_search.combine import FlightOption, Itinerary
 from flight_search.config import SearchSettings
@@ -133,6 +133,6 @@ def attach_links(
             )
             itinerary.outbound_url = leg_url(itinerary.out, settings)
             itinerary.return_url = leg_url(itinerary.ret, settings)
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S112
             # Leave links as None rather than failing a successful search.
             continue

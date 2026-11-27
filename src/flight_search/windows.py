@@ -45,13 +45,16 @@ class DepartureWindow:
     def __post_init__(self) -> None:
         if self.before is not None and self.before == time(0, 0):
             raise TimeWindowError("A latest departure of 00:00 is not meaningful")
-        if self.after is not None and self.before is not None:
-            if self.after >= self.before:
-                raise TimeWindowError(
-                    "Departure window crosses midnight or is empty: "
-                    f"{self.after.strftime('%H:%M')}–{self.before.strftime('%H:%M')}. "
-                    "Windows must stay inside one day."
-                )
+        if (
+            self.after is not None
+            and self.before is not None
+            and self.after >= self.before
+        ):
+            raise TimeWindowError(
+                "Departure window crosses midnight or is empty: "
+                f"{self.after.strftime('%H:%M')}–{self.before.strftime('%H:%M')}. "
+                "Windows must stay inside one day."
+            )
 
     @property
     def active(self) -> bool:
@@ -69,9 +72,7 @@ class DepartureWindow:
         moment = departure.time()
         if self.after is not None and moment < self.after:
             return False
-        if self.before is not None and moment > self.before:
-            return False
-        return True
+        return not (self.before is not None and moment > self.before)
 
     def label(self) -> str:
         if not self.active:

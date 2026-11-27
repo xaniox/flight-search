@@ -1,10 +1,10 @@
 from datetime import date, datetime, timedelta
 
-from flight_search import fli_api, discover
+from flight_search import fli_api
 from flight_search.cache import Cache
 from flight_search.config import SearchSettings
 from flight_search.discover import batch_codes, run_discovery
-from flight_search.fli_api import max_destinations, RequestBudget
+from flight_search.fli_api import RequestBudget, max_destinations
 from flight_search.windows import DepartureWindow, ReturnWindow
 
 

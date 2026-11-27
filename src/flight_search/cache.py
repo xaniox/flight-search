@@ -8,7 +8,7 @@ import os
 import tempfile
 import threading
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -93,7 +93,7 @@ class Cache:
         except (KeyError, ValueError):
             self._miss()
             return None
-        if datetime.now(timezone.utc) - created > self.ttl:
+        if datetime.now(UTC) - created > self.ttl:
             self._miss()
             return None
         self._hit()
@@ -104,7 +104,7 @@ class Cache:
             return
         self.directory.mkdir(parents=True, exist_ok=True)
         record = {
-            "created": datetime.now(timezone.utc).isoformat(),
+            "created": datetime.now(UTC).isoformat(),
             "key": key,
             "payload": payload,
         }

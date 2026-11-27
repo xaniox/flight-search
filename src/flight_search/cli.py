@@ -18,6 +18,7 @@ from rich.progress import (
 )
 from rich.table import Table
 
+from flight_search import fli_api
 from flight_search.airports import (
     AirportDataError,
     AirportInfo,
@@ -28,7 +29,11 @@ from flight_search.airports import (
     load_airports,
 )
 from flight_search.cache import Cache, default_cache_dir, parse_duration
-from flight_search.candidates import build_candidates, request_estimate, select_candidates
+from flight_search.candidates import (
+    build_candidates,
+    request_estimate,
+    select_candidates,
+)
 from flight_search.config import (
     DEFAULT_COUNTRY,
     DEFAULT_CURRENCY,
@@ -45,7 +50,6 @@ from flight_search.dates import (
 )
 from flight_search.detail import add_roundtrip_comparison, evaluate_candidates
 from flight_search.discover import DiscoveryAborted, run_discovery
-from flight_search import fli_api
 from flight_search.fli_api import RequestBudget
 from flight_search.links import attach_links
 from flight_search.refresh import refresh_airports
@@ -638,8 +642,10 @@ def _run_weekend(args) -> int:
             displayed,
             console=console,
             query_lines=[
-                f"{len(destinations)} airports · {len(cities)} cities · "
-                f"{stats['requests']} requests · cache {stats['cache_hits']} hits",
+                (
+                    f"{len(destinations)} airports · {len(cities)} cities · "
+                    f"{stats['requests']} requests · cache {stats['cache_hits']} hits"
+                ),
             ],
             show_roundtrip=args.compare_roundtrip,
             verbose=args.verbose,
