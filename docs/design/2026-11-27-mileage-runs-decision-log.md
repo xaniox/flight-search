@@ -102,15 +102,21 @@ Statt eines Routenplaners gibt es drei Bausteine, die ich kombiniere:
 
 - Neue Option für eine Liste erlaubter Airlines (IATA-Codes), z. B.
   `A3,OA`. Sie gilt für alle Suchtypen.
-- Der Filter wird an Google geschickt (`FlightSearchFilters.airlines`),
-  damit die knappen Ergebnisplätze nicht von anderen Airlines belegt
-  werden.
-- Zusätzlich prüft das Tool lokal **jedes Segment** einer Verbindung
-  (laut den von Google gelieferten Leg-Daten). Grund: Was Google bei
-  Umsteigeverbindungen und Codeshares unter dem Filter versteht, ist
-  nicht dokumentiert. Für Mileage Runs zählt aber jedes einzelne Segment.
-  In der Testsuche vom 2026-11-27 kamen bei MUC→HER gemischte
-  Verbindungen vor (GQ + A3).
+- Das Tool prüft lokal **jedes Segment** einer Verbindung anhand der
+  von Google gelieferten Daten. Im gepinnten `fli` greift
+  `FlightSearchFilters.airlines` erst nach dem Abruf und lässt eine
+  Verbindung bereits bei einem passenden Segment durch. In der
+  Testsuche vom 2026-11-27 kamen bei MUC→HER gemischte Verbindungen
+  vor (GQ + A3).
+  [Filter im gepinnten `fli`](https://github.com/punitarani/fli/blob/881aee5ff4321e81ea2157cb44be94ce6a21dc1b/fli/search/_tfs.py#L237-L278)
+- **Akzeptiertes Risiko:** Google liefert pro Batch nur einen Teil der
+  verfügbaren Flüge. Angezeigt wird der günstigste passende **gefundene**
+  Preis. Eine günstigere passende Verbindung kann in der Antwort fehlen.
+  Bei Next-Hop (D5) können ganze Ziele fehlen, beim Gabelflug (D4) können
+  sie schon aus der Shortlist fallen. Die erste Version bleibt bei den
+  geplanten Batch-Abfragen. Eine gezielte Nachsuche pro Flughafen und
+  Datum lässt sich später bei Bedarf ergänzen. Sie kann die Abdeckung
+  verbessern und kostet zusätzliche Requests.
 - **Verkaufende und ausführende Airline:** `fli` liefert pro Segment
   die Airline der Flugnummer (`airline`) und die ausführende Airline
   (`operating_airline`). `operating_flight_number` ist im gepinnten
@@ -127,27 +133,24 @@ Statt eines Routenplaners gibt es drei Bausteine, die ich kombiniere:
     Airline (Flugnummer) in der Liste steht. Die ausführende darf
     abweichen.
   - Fehlt die Angabe zur ausführenden Airline (`operating_airline is
-    None`), gilt die verkaufende als ausführende. **(Claudes
-    Entscheidung)** Grund: `fli` setzt `None`, wenn Google keinen
-    abweichenden Betreiber meldet, also im Normalfall eines eigenen
-    Flugs. Dieselbe Lücke entsteht leider auch, wenn der Code des
-    Betreibers nicht im `Airline`-Enum von `fli` steht. Das ist selten,
-    und es auszuschließen hieße, Googles Rohdaten an `fli` vorbei zu
-    lesen. Das ist bewusst nicht vorgesehen.
+    None`), gilt die verkaufende als ausführende. Grund: `fli` setzt
+    `None`, wenn Google keinen abweichenden Betreiber meldet, also im
+    Normalfall eines eigenen Flugs. Dieselbe Lücke entsteht leider auch,
+    wenn der Code des Betreibers nicht im `Airline`-Enum von `fli` steht.
+    Das ist selten, und es auszuschließen hieße, Googles Rohdaten an `fli`
+    vorbei zu lesen. Das ist bewusst nicht vorgesehen.
   - `fli` liefert außerdem `self_transfer` pro Verbindung (Umstieg auf
     eigenes Risiko, getrennte Tickets). Solche Verbindungen werden in
-    der Anzeige markiert, aber nicht ausgefiltert. **(Claudes
-    Entscheidung)**
+    der kompakten Ergebniszeile und in der Detailansicht markiert (D6).
+    Sie bleiben in der Trefferliste.
 - In der Anzeige (D6) wird die ausführende Airline zusätzlich gezeigt,
   wenn sie von der verkaufenden abweicht.
-- **Cache:** Die an Google geschickte Airline-Liste ändert die Anfrage
-  und gehört deshalb in den Cache-Schlüssel (Phase 1 und Phase 2).
-  `--allow-codeshare` ändert die Anfrage nicht und gehört nicht hinein.
-  Die Segmentprüfung läuft lokal auf den gecachten, ungefilterten
-  Flügen. Das funktioniert auch in Phase 1, weil Phase 1 künftig
-  ebenfalls vollständige Flüge cacht (D9). So landen gemischte
-  Verbindungen (GQ + A3) nicht schon in Phase 1 als günstigster Preis in
-  der Shortlist.
+- **Cache:** Phase 1 und Phase 2 cachen die Flüge vor der lokalen
+  Segmentprüfung (D9). Dadurch können verschiedene Airline-Listen und
+  `--allow-codeshare` dieselben Cache-Einträge nutzen. In Phase 1 wird
+  der Mindestpreis für die Shortlist erst nach der Segmentprüfung
+  ermittelt. Falls später ein Airline-Filter an Google geschickt wird,
+  gehört dessen Wert zum Cache-Schlüssel.
 - Allianz-Filter und Ausschlusslisten sind nicht gefordert. Ob sie
   „nebenbei“ mit durchgereicht werden, entscheidet der Umsetzer.
 
@@ -160,6 +163,9 @@ Statt eines Routenplaners gibt es drei Bausteine, die ich kombiniere:
   ab `GR`.
 - Weekday-, Nächte- und Zeitfenster-Regeln gelten wie bei der heutigen
   Wochenendsuche.
+- Die tatsächliche Ankunft des Hinflugs muss vor dem Abflug des
+  Rückflugs liegen. Die Prüfung erfolgt vor der Auswahl des günstigsten
+  gültigen Paars.
 - **Ergebnisform:** eine Zeile pro Kombination (Ankunftsstadt A,
   Rückflugstadt B, Datumspaar), sortiert nach Gesamtpreis. Für Vielfalt
   gibt es eine Obergrenze, wie oft dieselbe Stadt A und dieselbe Stadt B
@@ -177,17 +183,27 @@ Statt eines Routenplaners gibt es drei Bausteine, die ich kombiniere:
   Shortlist-Städte und wächst nicht mit A × B.
 - Das heutige Verhalten (Open-Jaw nur innerhalb einer Metro-Region)
   bleibt der Default, wenn keine eigene Rückflug-Auswahl angegeben ist.
-- **Optionaler Preisvergleich mit einem Gabelflug-Ticket:** Gesucht wird
-  immer mit zwei Einweg-Tickets. Für die angezeigten Top-Treffer kann das
-  Tool optional den Preis als **ein** Gabelflug-Ticket („Mehrere Städte“)
-  abfragen und die Differenz zeigen, analog zu `--compare-roundtrip`. Das
-  kostet nur wenige zusätzliche Requests, weil es nur für die angezeigten
-  Zeilen läuft. Unterstützt `fli` Mehrstrecken-Suchen nicht sauber,
-  entfällt die Option. Dann bleibt der kombinierte Google-Flights-Link,
-  der beide Flüge bereits als ein Ticket öffnet.
-- Für die Segmente ist es egal, ob die Flüge auf einem Ticket oder auf
-  zweien stehen. Umstiege innerhalb eines Einweg-Tickets sind geschützt.
-  Anschlüsse zwischen getrennten Tickets baut das Tool nicht.
+- **Optionaler Preisvergleich mit einem Gabelflug-Ticket:** Die Suche
+  kombiniert zwei Einwegpreise. Für die angezeigten Top-Treffer soll
+  PR 5 optional den Preis als gemeinsames Gabelflug-Ticket abfragen und
+  die Differenz anzeigen, analog zu `--compare-roundtrip`, sofern eine
+  zuverlässige Preisabfrage mit dem gepinnten `fli` möglich ist.
+  Ist kein zuverlässiger Abruf möglich, zeigt das Tool die Summe der
+  beiden Einwegpreise und den kombinierten Google-Flights-Link für die
+  Browseransicht.
+- **Live-Test zum Preisvergleich (2026-11-27):** Getestet mit dem Pin
+  `881aee5` und dem damaligen `main` `f43a92d` (`fli` 0.11.1), Hinflug
+  am 16.04.2027, Rückflug am 25.04.2027. Die Kontrolle MUC→LCA→MUC
+  lieferte Preise. `MULTI_CITY` wurde in beiden Ständen abgelehnt.
+  Im `ROUND_TRIP`-Modus mit zwei expliziten Strecken lieferte Google
+  für MUC→LCA / RHO→MUC fünf Rückflüge ab LCA und für
+  MUC→LHR / CDG→MUC neun Rückflüge ab LHR. Keines der Paare entsprach
+  dem angefragten Gabelflug. Ein späterer Preisvergleich muss die
+  Flughäfen beider Richtungen gegen die Anfrage prüfen.
+  [Multi-City im gepinnten `fli`](https://github.com/punitarani/fli/blob/881aee5ff4321e81ea2157cb44be94ce6a21dc1b/fli/search/_tfs.py#L103-L118)
+- Für die Segmentzahl ist die Ticketaufteilung unerheblich. Ein Einweg
+  kann einen Self-Transfer enthalten. Das Tool übernimmt dafür den
+  Hinweis von Google (D6).
 
 ### D5 – Einweg-Weiterflugsuche („next hop“)
 
@@ -205,10 +221,10 @@ Statt eines Routenplaners gibt es drei Bausteine, die ich kombiniere:
   Ziel-Batches pro Datum, ohne Bestätigungsphase. Eine Einweg-Anfrage
   liefert bereits konkrete Flüge. Eine zweite Phase würde die Requests
   etwa verdoppeln. Ergebnis: **eine Zeile pro Zielstadt** mit dem
-  günstigsten passenden Flug, sortiert nach Preis. Aufgeklappt bzw. mit
-  `--verbose` erscheinen die weiteren gefundenen Flüge zu dieser Stadt.
-  Weil eine Batch-Anfrage nur die günstigsten Zeilen liefert, ist diese
-  Liste nicht vollständig. Das steht in der Hilfe.
+  günstigsten gefundenen passenden Flug, sortiert nach Preis. Aufgeklappt
+  bzw. mit `--verbose` erscheinen die weiteren gefundenen Flüge zu dieser Stadt.
+  Die Hilfe erklärt, dass durch die begrenzte Batch-Antwort einzelne
+  Flüge und ganze Zielstädte fehlen können (D3).
 - **Zielauswahl (Claudes Entscheidung):** Next-Hop nutzt den
   **weltweiten** Datensatz, nicht die Default-Region `europe`. Ein
   Umkreis um LCA findet also auch Tel Aviv oder Beirut.
@@ -231,6 +247,7 @@ Für alle Suchtypen zeigt die Tabelle pro Richtung:
 - die Route mit allen Zwischenstopps (`LCA→ATH→RHO`),
 - die Zahl der Segmente,
 - die Airline pro Segment (`A3/OA`),
+- den Hinweis `Self-Transfer` bei der betroffenen Richtung,
 - Umsteigeort und Umsteigezeit (`ATH 1h35`),
 - einen sichtbaren Hinweis, wenn Ankunft oder Anschluss an einem späteren
   Tag liegen.
@@ -241,14 +258,21 @@ Umstiege über Nacht sind ausdrücklich markiert.
 **Verbindlich für die eingeklappte Tabelle (Claudes Entscheidung):**
 Route mit Zwischenstopps, Segmentzahl, Airlines pro Segment und eine
 Tagesmarkierung (`+1`), wenn Ankunft oder Anschluss an einem späteren Tag
-liegen. Umsteigezeiten, Datum je Segment, abweichender Betreiber und
-`self_transfer` stehen in der aufgeklappten Ansicht bzw. bei `--verbose`.
-So bleibt die Tabelle schmal genug für normale Terminals.
+liegen. Der Hinweis `Self-Transfer` ist bereits in der kompakten Zeile
+sichtbar. Umsteigezeiten, Datum je Segment und abweichender Betreiber
+stehen in der aufgeklappten Ansicht bzw. bei `--verbose`.
 
-Sortierung nach Gesamtpreis. **Keine** Spalte und keine Sortierung
-„Preis pro Segment“. Das JSON bekommt Segmentzahl und Umsteigezeiten
-zusätzlich. Bestehende Felder bleiben erhalten (Abwärtskompatibilität für
-Skripte meines Freundes).
+Sortierung nach Gesamtpreis. Bei Preisgleichstand steht die Verbindung
+mit weniger Stopps vorn. Bei Hin- und Rückflug zählen dafür die Stopps
+beider Richtungen. Gleich teure Verbindungen mit mehr Stopps bleiben
+als Alternativen sichtbar. Wo die kompakte Tabelle eine Hauptzeile pro
+Ziel oder pro Städtepaar und Datum hat, weist diese Zeile auf die
+Alternativen hin. `--verbose` und die aufklappbare TUI-Ansicht zeigen
+die Alternativen einzeln.
+
+**Keine** Spalte und keine Sortierung „Preis pro Segment“. Das JSON
+bekommt Segmentzahl und Umsteigezeiten zusätzlich. Bestehende Felder
+bleiben erhalten (Abwärtskompatibilität für Skripte meines Freundes).
 
 Beispiel eingeklappt (Gabelflug MUC → Zypern, zurück ab Griechenland):
 
@@ -336,11 +360,11 @@ Layout im Detail und Farben entscheidet der Umsetzer.
   Heimatkoordinate“. Für meinen Freund ändert sich dadurch nichts außer
   den gewollten Ergänzungen. Next-Hop nutzt dagegen den weltweiten
   Datensatz (D5).
-- Die bereits vorhandene, nicht committete Änderung an `airports.csv`
-  stammt von einem `refresh-airports`-Lauf nach README (Upstream-Drift:
-  Koordinaten, Namen, `KLV` large → medium). Sie kommt als **eigener
-  Commit** in PR 1, vor dem Commit mit der Datensatz-Erweiterung, damit
-  beide Änderungen einzeln lesbar sind. Ein eigener PR ist nicht nötig.
+- Für PR 1 wird `airports.csv` mit `refresh-airports` nach README und
+  der bisherigen Regionsregel neu erzeugt. Der Refresh kommt als
+  **eigener Commit** vor der weltweiten Datensatz-Erweiterung, damit
+  Änderungen aus OurAirports und die neue Regionsregel einzeln lesbar
+  sind.
 - `refresh-airports` schreibt heute ins Paketverzeichnis. Das bleibt so
   (Entwicklerbefehl). Ob es einen Hinweis bei nicht-editierbarer
   Installation gibt, entscheidet der Umsetzer.
@@ -371,14 +395,12 @@ Suchphasen und Ausgabe. Vor den neuen Features wird daraus:
   Ergebnisobjekt liefert,
 - die CLI nur noch für Parsen, Fortschrittsanzeige und Ausgabe.
 
-Das Ergebnisobjekt enthält nicht nur die fertigen Kombinationen, sondern
-auch die **vollständigen bestätigten Einzelflüge je Richtung** (alle
-Hin- und Rückflug-Optionen pro Stadt und Datum, nicht nur den
-günstigsten pro Flughafenpaar wie heute in `reduce_best`). Heute werden
-sie nach der Kombination verworfen. Die Begrenzung auf die Top-N
-(`pool_size`) wandert von der Suche in die Anzeige. Der interaktive Modus
-(D11) braucht diese Listen. Zusätzliche Requests entstehen dadurch
-nicht.
+Das Ergebnisobjekt enthält die fertigen Kombinationen und **alle von
+Phase 2 gelieferten Einzelflüge je Stadt, Datum und Richtung**. Damit
+bleiben für D6 und D11 auch Optionen verfügbar, die `reduce_best` beim
+Ermitteln des günstigsten Flugs pro Flughafenpaar verwerfen würde.
+Die Begrenzung auf die Top-N (`pool_size`) wandert von der Suche in die
+Anzeige. Zusätzliche Requests entstehen dadurch nicht.
 
 **Gefiltert oder ungefiltert (Claudes Entscheidung):** Das Ergebnisobjekt
 hält die Flüge **vor** den lokalen Filtern (Zeitfenster,
@@ -407,18 +429,19 @@ Das gehört dann in einen eigenen PR.
      Preis und Gesamtpreis „ab“ (mit dem günstigsten passenden
      Rückflug). Auswahl eines Hinflugs zeigt alle passenden Rückflüge
      (Datum, Nächte, Zeitfenster, bei Gabelflug auch andere Städte) mit
-     Gesamtpreis, sortiert nach Gesamtpreis, ebenfalls aufklappbar.
+     Gesamtpreis, sortiert nach Gesamtpreis, ebenfalls aufklappbar. Bei
+     Gabelflügen gilt auch hier die zeitliche Prüfung aus D4.
 - Für Next-Hop (Einweg) gibt es nur eine Liste mit aufklappbaren Zeilen.
 - **Kein Nachladen:** Der Modus zeigt vorerst nur, was die Suche bereits
   geladen hat, und schickt keine weiteren Anfragen an Google. Nachladen
   kann später ergänzt werden.
-- Das kostet keine zusätzlichen Requests: Phase 2 lädt pro (Stadt, Datum,
-  Richtung) ohnehin die komplette Ergebnisseite. Das Ergebnisobjekt (D10)
-  liefert diese vollständigen Listen mit, und alle Kombinationen,
-  Gesamtpreise und Filter entstehen lokal bei der Anzeige. Grenze: Es
-  gibt nur Flüge für Städte und Daten, die es in die Shortlist von
-  Phase 2 geschafft haben. Phase 1 kennt nur Preise pro Flughafen und
-  Tag, keine konkreten Flüge.
+- Bei Wochenend- und Gabelflugsuchen speichert Phase 1 die konkreten
+  Batch-Treffer (D9) und leitet daraus die Mindestpreise für die
+  Shortlist ab. Für die TUI liefert das Ergebnisobjekt (D10) die
+  gezielt abgefragten Flugoptionen aus Phase 2. Dort sind nur Städte
+  und Daten aus der Shortlist vertreten. Kombinationen, Gesamtpreise
+  und Filter entstehen lokal. Bei Next-Hop stammen die angezeigten
+  Flüge aus dessen einziger Batch-Suche (D5).
 - Links lassen sich aus der Ansicht im Browser öffnen.
 
 ## PR-Reihenfolge
@@ -429,11 +452,11 @@ Schritt für Schritt lesen kann.
 
 | # | PR | Commits (Themen) | Verhalten für Defaults |
 |---|---|---|---|
-| 1 | **Fixes & Daten** | Cache-Fix Discovery (D9) · vorhandener OurAirports-Refresh · Datensatz weltweit, Region nach Ländern (D8) · Namen (ATH) | korrigiert; Rhodos, Kos, Zypern, Kanaren neu; leichte Drift |
+| 1 | **Fixes & Daten** | Cache-Fix Discovery (D9) · neu erzeugter OurAirports-Refresh nach bisheriger Regionsregel · Datensatz weltweit, Region nach Ländern (D8) · Namen (ATH) | korrigiert; Rhodos, Kos, Zypern, Kanaren neu; Änderungen aus OurAirports |
 | 2 | **Basis: Such-Kern & Konfiguration** | Duplikate und `RunPlan` entfernen · Such-Kern aus der CLI lösen, vollständige Fluglisten im Ergebnis (D10) · Heimatkoordinate statt Karlsruhe-Konstante · Config-Datei mit Regionen und `include_small` (D7) · explizit genannte kleine Flughäfen immer nutzen (D7a) · `--exclude-countries` inkl. Config-Default (D8) | unverändert ohne Config; `--dest` mit kleinen Flughäfen funktioniert |
 | 3 | **Umsteigeverbindungen & Airline-Filter** | Umsteige-Darstellung (D6) · Airline-Filter mit Prüfung jedes Segments (D3) | Tabelle erweitert; Filter nur mit Option |
 | 4 | **Next-Hop** | Einweg-Weiterflugsuche (D5) | neues Kommando |
-| 5 | **Gabelflug** | Rückflug ab anderer Stadt, Paare mit Vielfalts-Grenze · optionaler Preisvergleich mit einem Gabelflug-Ticket (D4) | unverändert ohne Option |
+| 5 | **Gabelflug** | Rückflug ab anderer Stadt, Paare mit Vielfalts-Grenze · optionaler Preisvergleich mit einem Gabelflug-Ticket, sofern technisch möglich (D4) | unverändert ohne Option |
 | 6 | **Interaktiver Modus** | Textual als Extra, beide Ansichten (D11) | unverändert ohne Option |
 
 PR 1 ist für meinen Freund auch allein nützlich. PRs 4–6 sind die
