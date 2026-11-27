@@ -17,6 +17,7 @@ from datetime import date
 from flight_search import fli_api
 from flight_search.cache import Cache
 from flight_search.combine import (
+    FlightOption,
     filter_departures,
     filter_return_legs,
     options_from_results,
@@ -64,6 +65,20 @@ def _restrictions_key(restrictions) -> dict | None:
     return restrictions.model_dump(exclude_none=True)
 
 
+# Bump when the cached payload changes shape, so older entries become misses.
+CACHE_FORMAT = 2
+
+
+def _decode_cached(cached) -> list[FlightOption] | None:
+    """The cached flights of a batch, or None when the entry is absent or unreadable."""
+    if not isinstance(cached, list):
+        return None
+    try:
+        return [FlightOption.from_dict(item) for item in cached]
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return None
+
+
 def _batch_key(
     home: tuple[str, ...],
     batch: tuple[str, ...],
@@ -74,6 +89,7 @@ def _batch_key(
 ) -> dict:
     return {
         "phase": "discover",
+        "format": CACHE_FORMAT,
         "home": list(home),
         "batch": list(batch),
         "date": day.isoformat(),
@@ -125,51 +141,34 @@ def run_discovery(
         nonlocal request_count
         restrictions = out_restrictions if direction == "out" else ret_restrictions
         key = _batch_key(home, batch, day, direction, settings, restrictions)
-        cached = cache.get(key)
-        if isinstance(cached, dict):
-            return (
-                direction,
-                day,
-                batch,
-                {str(k): float(v) for k, v in cached.items()},
-                None,
-            )
-
+        options = _decode_cached(cache.get(key))
         try:
-            budget.acquire()
-            request_count += 1
-            if direction == "out":
-                results = fli_api.detail_results(
-                    list(home), list(batch), day, restrictions, settings
-                )
-            else:
-                results = fli_api.detail_results(
-                    list(batch), list(home), day, restrictions, settings
-                )
-            options = options_from_results(results)
+            if options is None:
+                budget.acquire()
+                request_count += 1
+                if direction == "out":
+                    results = fli_api.detail_results(
+                        list(home), list(batch), day, restrictions, settings
+                    )
+                else:
+                    results = fli_api.detail_results(
+                        list(batch), list(home), day, restrictions, settings
+                    )
+                options = options_from_results(results)
+                cache.put(key, [option.to_dict() for option in options])
             if direction == "out":
                 options = filter_departures(options, depart_window)
-                wanted = set(batch)
-                prices: dict[str, float] = {}
-                for option in options:
-                    code = option.destination
-                    if code not in wanted:
-                        continue
-                    previous = prices.get(code)
-                    if previous is None or option.price < previous:
-                        prices[code] = option.price
             else:
                 options = filter_return_legs(options, return_window, day)
-                wanted = set(batch)
-                prices = {}
-                for option in options:
-                    code = option.origin
-                    if code not in wanted:
-                        continue
-                    previous = prices.get(code)
-                    if previous is None or option.price < previous:
-                        prices[code] = option.price
-            cache.put(key, prices)
+            wanted = set(batch)
+            prices: dict[str, float] = {}
+            for option in options:
+                code = option.destination if direction == "out" else option.origin
+                if code not in wanted:
+                    continue
+                previous = prices.get(code)
+                if previous is None or option.price < previous:
+                    prices[code] = option.price
             return direction, day, batch, prices, None
         except fli_api.BudgetExceeded as exc:
             return direction, day, batch, {}, str(exc)
