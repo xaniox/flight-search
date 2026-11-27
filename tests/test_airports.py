@@ -1,4 +1,5 @@
 import pytest
+from airport_factory import airport
 
 from flight_search.airports import (
     AirportInfo,
@@ -104,3 +105,77 @@ def test_airport_info_city_fallback():
         "XXX", "Some Airport", "", "DE", "medium_airport", "EU", 0.0, 0.0
     )
     assert info.city == "Some Airport"
+
+
+def _group_codes(airports):
+    from flight_search.airports import build_city_groups
+
+    return sorted(
+        tuple(a.iata for a in g.airports) for g in build_city_groups(airports)
+    )
+
+
+def test_same_named_airports_far_apart_are_separate_groups():
+    portland_or = airport(
+        "PDX",
+        "US",
+        municipality="Portland",
+        lat=45.59,
+        lon=-122.60,
+    )
+    portland_me = airport(
+        "PWM",
+        "US",
+        municipality="Portland",
+        lat=43.65,
+        lon=-70.31,
+    )
+    assert _group_codes([portland_or, portland_me]) == [("PDX",), ("PWM",)]
+
+
+def test_same_named_airports_within_100_km_stay_one_group():
+    from flight_search.airports import build_city_groups
+
+    kef = airport(
+        "KEF",
+        "IS",
+        municipality="Reykjavík",
+        lat=63.985,
+        lon=-22.606,
+    )
+    rkv = airport(
+        "RKV",
+        "IS",
+        municipality="Reykjavík",
+        lat=64.129,
+        lon=-21.938,
+    )
+    groups = build_city_groups([kef, rkv])
+    assert [tuple(a.iata for a in g.airports) for g in groups] == [("KEF", "RKV")]
+    assert groups[0].key == "city:IS:reykjavík"
+
+
+def test_city_group_links_through_any_member_single_linkage():
+    # A-B and B-C are about 80 km, A-C about 160 km: one group by chaining.
+    a = airport(
+        "PDX",
+        "US",
+        municipality="Springfield",
+        lat=40.00,
+        lon=-100.0,
+    )
+    b = airport(
+        "PWM",
+        "US",
+        municipality="Springfield",
+        lat=40.72,
+        lon=-100.0,
+    )
+    c = airport(
+        "JFK",
+        "US",
+        municipality="Springfield",
+        lat=41.44,
+        lon=-100.0,
+    )
+    assert _group_codes([a, b, c]) == [("JFK", "PDX", "PWM")]

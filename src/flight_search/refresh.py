@@ -1,4 +1,8 @@
-"""Regenerate the vendored airport snapshot from OurAirports."""
+"""Regenerate the vendored airport snapshot from OurAirports.
+
+The snapshot keeps scheduled-service airports worldwide; the default region is
+applied at runtime (``airports.in_default_region``).
+"""
 
 from __future__ import annotations
 
@@ -9,7 +13,7 @@ from pathlib import Path
 
 from fli.models.airport import AIRPORT_NAMES
 
-from flight_search.config import INCLUDED_COUNTRIES, MEDIUM_LARGE
+from flight_search.config import MEDIUM_LARGE
 
 OURAIRPORTS_URL = "https://davidmegginson.github.io/ourairports-data/airports.csv"
 
@@ -50,11 +54,6 @@ def build_rows(text: str) -> list[dict[str, str]]:
             continue
         code = (record.get("iata_code") or "").strip().upper()
         if not code or code in seen:
-            continue
-        if (
-            record.get("continent") != "EU"
-            and record.get("iso_country") not in INCLUDED_COUNTRIES
-        ):
             continue
         if code not in AIRPORT_NAMES:
             # fli cannot query airports missing from its enum.

@@ -1,34 +1,20 @@
 """Default region applied only without explicit choice (PRONE-CRITERION-05)."""
 
 import pytest
+from airport_factory import airport
 
 from flight_search import cli
-from flight_search.airports import AirportInfo
-
-
-def _airport(iata, country, continent, lat=49.0, lon=8.5):
-    return AirportInfo(
-        iata=iata,
-        name=f"{iata} Airport",
-        municipality=iata,
-        country=country,
-        type="medium_airport",
-        continent=continent,
-        lat=lat,
-        lon=lon,
-    )
-
 
 # FRA is the home airport; AMS (EU) and IST (TR/AS) are inside the default
 # region, TLV (IL/AS) and LED (RU/AS) outside; all are near Karlsruhe.
 # LIS (PT/EU) is inside the region but beyond the weekend radius.
 AIRPORTS = (
-    _airport("FRA", "DE", "EU"),
-    _airport("AMS", "NL", "EU"),
-    _airport("IST", "TR", "AS"),
-    _airport("TLV", "IL", "AS"),
-    _airport("LED", "RU", "AS"),
-    _airport("LIS", "PT", "EU", lat=38.77, lon=-9.13),
+    airport("FRA", "DE", "EU"),
+    airport("AMS", "NL", "EU"),
+    airport("IST", "TR", "AS"),
+    airport("TLV", "IL", "AS"),
+    airport("LED", "RU", "AS"),
+    airport("LIS", "PT", "EU", lat=38.77, lon=-9.13),
 )
 
 

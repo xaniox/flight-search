@@ -1,21 +1,9 @@
-"""Default-region rule: the function itself (PRONE-CRITERION-04)."""
+"""Default-region rule: the function itself (PRONE-CRITERION-04, -06)."""
 
 import pytest
+from airport_factory import airport as _airport
 
-from flight_search.airports import AirportInfo
-
-
-def _airport(iata: str, country: str, continent: str) -> AirportInfo:
-    return AirportInfo(
-        iata=iata,
-        name=f"{iata} Airport",
-        municipality=iata,
-        country=country,
-        type="medium_airport",
-        continent=continent,
-        lat=49.0,
-        lon=8.5,
-    )
+from flight_search.airports import in_default_region
 
 
 @pytest.mark.parametrize(
@@ -45,3 +33,24 @@ def test_in_default_region_covers_all_north_african_countries(country):
     from flight_search.airports import in_default_region
 
     assert in_default_region(_airport("XXX", country, "AF")) is True
+
+
+# GR, CY, ES, PT completely (PRONE-CRITERION-06)
+@pytest.mark.parametrize(
+    ("iata", "country", "continent"),
+    [
+        ("RHO", "GR", "AS"),
+        ("LCA", "CY", "AS"),
+        ("TFS", "ES", "AF"),
+        ("FNC", "PT", "AF"),
+        ("PDL", "PT", "NA"),
+    ],
+)
+def test_greece_cyprus_spain_portugal_are_inside_whatever_the_continent(
+    iata, country, continent
+):
+    assert in_default_region(_airport(iata, country, continent)) is True
+
+
+def test_russia_in_asia_stays_outside():
+    assert in_default_region(_airport("OVB", "RU", "AS")) is False

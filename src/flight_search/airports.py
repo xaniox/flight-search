@@ -1,9 +1,8 @@
 """Airport metadata, city grouping and region filtering.
 
 The vendored CSV is generated from OurAirports by ``scripts/refresh_airports.py``
-and restricted to scheduled-service airports in Europe, North Africa,
-Turkey and the Caucasus that also
-exist in ``fli``'s ``Airport`` enum.
+and holds the scheduled-service airports worldwide that also exist in ``fli``'s
+``Airport`` enum. The default region is applied at runtime by ``in_default_region``.
 """
 
 from __future__ import annotations
@@ -20,6 +19,7 @@ from flight_search.config import (
     KARLSRUHE_LAT,
     KARLSRUHE_LON,
     MEDIUM_LARGE,
+    WHOLE_COUNTRIES_IN_DEFAULT_REGION,
 )
 
 DATA_PACKAGE = "flight_search.data"
@@ -135,6 +135,33 @@ def display_city(airport: AirportInfo) -> str:
     return metro_map().get(airport.iata) or name_map().get(airport.iata) or airport.city
 
 
+# Airports outside the metro map that share a city name are one destination
+# only when they lie this close; the worldwide snapshot has far-apart namesakes
+# such as Portland, Oregon and Portland, Maine.
+SAME_CITY_MAX_KM = 100.0
+
+
+def _split_far_apart(items: list[AirportInfo]) -> list[list[AirportInfo]]:
+    """Single-linkage clusters of airports within SAME_CITY_MAX_KM of each other."""
+    clusters: list[list[AirportInfo]] = []
+    for airport in sorted(items, key=lambda a: a.iata):
+        near = [
+            cluster
+            for cluster in clusters
+            if any(
+                haversine_km(airport.lat, airport.lon, other.lat, other.lon)
+                <= SAME_CITY_MAX_KM
+                for other in cluster
+            )
+        ]
+        merged = [airport]
+        for cluster in near:
+            merged.extend(cluster)
+            clusters.remove(cluster)
+        clusters.append(merged)
+    return clusters
+
+
 def build_city_groups(
     airports: tuple[AirportInfo, ...] | list[AirportInfo],
 ) -> list[CityGroup]:
@@ -158,15 +185,21 @@ def build_city_groups(
         displays.setdefault(key, display)
         countries.setdefault(key, airport.country)
 
-    groups = [
-        CityGroup(
-            key=key,
-            display=displays[key],
-            country=countries[key],
-            airports=tuple(sorted(items, key=lambda a: a.iata)),
-        )
-        for key, items in buckets.items()
-    ]
+    groups: list[CityGroup] = []
+    for key, items in buckets.items():
+        clusters = [items] if key.startswith("metro:") else _split_far_apart(items)
+        for cluster in clusters:
+            members = tuple(sorted(cluster, key=lambda a: a.iata))
+            groups.append(
+                CityGroup(
+                    key=key
+                    if len(clusters) == 1
+                    else f"{key}:{members[0].iata.lower()}",
+                    display=displays[key],
+                    country=countries[key],
+                    airports=members,
+                )
+            )
     groups.sort(key=lambda g: (g.country, g.display.lower()))
     return groups
 
@@ -189,8 +222,13 @@ def distance_from_karlsruhe(airport: AirportInfo) -> float:
 
 
 def in_default_region(airport: AirportInfo) -> bool:
-    """True for Europe (OurAirports continent ``EU``), North Africa, Turkey and the Caucasus."""
-    return airport.continent == "EU" or airport.country in INCLUDED_COUNTRIES
+    """True for Europe (OurAirports continent ``EU``), North Africa, Turkey, the Caucasus,
+    and all of Greece, Cyprus, Spain and Portugal whatever their continent."""
+    return (
+        airport.continent == "EU"
+        or airport.country in INCLUDED_COUNTRIES
+        or airport.country in WHOLE_COUNTRIES_IN_DEFAULT_REGION
+    )
 
 
 def filter_airports(
