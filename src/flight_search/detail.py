@@ -119,7 +119,7 @@ def evaluate_candidates(
     return_window: ReturnWindow,
     pool_size: int,
     max_candidates: int | None = None,
-    progress: Callable[[int, int], None] | None = None,
+    progress: Callable[[int], None] | None = None,
 ) -> list[Itinerary]:
     """Confirm the shortlisted candidates with complete, per-city searches.
 
