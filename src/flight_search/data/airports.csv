@@ -51,7 +51,7 @@ BCM,Bacău George Enescu International  Airport,Bacău,RO,large_airport,EU,46.52
 BCN,Josep Tarradellas Barcelona-El Prat Airport,Barcelona,ES,large_airport,EU,41.2971,2.07846
 BDS,Brindisi Airport,Brindisi,IT,large_airport,EU,40.6576,17.947001
 BDU,Bardufoss Airport,Målselv,NO,medium_airport,EU,69.055801,18.5404
-BEB,Benbecula Airport,Balivanich,GB,medium_airport,EU,57.481098,-7.36278
+BEB,Benbecula Airport,"Balivanich, Eilean Siar",GB,medium_airport,EU,57.481098,-7.36278
 BEG,Belgrade Nikola Tesla Airport,Belgrade,RS,large_airport,EU,44.818401,20.309099
 BEM,Beni Mellal Airport,Oulad Yaich,MA,large_airport,AF,32.401895,-6.315905
 BEN,Benina International Airport,Benina,LY,large_airport,AF,32.096802,20.269501
@@ -90,7 +90,7 @@ BRE,Bremen Airport,Bremen,DE,large_airport,EU,53.046786,8.78932
 BRI,Bari Karol Wojtyła International Airport,Bari,IT,large_airport,EU,41.138901,16.760599
 BRN,Bern Airport,Bern,CH,medium_airport,EU,46.912736,7.498819
 BRQ,Brno-Tuřany Airport,Brno,CZ,medium_airport,EU,49.151276,16.693972
-BRR,Barra Airport,Eoligarry,GB,medium_airport,EU,57.0228,-7.44306
+BRR,Barra Airport,"Eoligarry, Eilean Siar",GB,medium_airport,EU,57.0228,-7.44306
 BRS,Bristol Airport,Bristol,GB,large_airport,EU,51.382326,-2.716453
 BRU,Brussels Airport,Zaventem,BE,large_airport,EU,50.901402,4.48444
 BSK,Biskra - Mohamed Khider Airport,Biskra,DZ,large_airport,AF,34.79318,5.738899
@@ -278,7 +278,7 @@ IIA,Inishmaan Aerodrome,Inis Meáin,IE,small_airport,EU,53.092999,-9.56806
 ILD,Lleida-Alguaire Airport,Lleida,ES,medium_airport,EU,41.728185,0.535023
 ILY,Islay Airport,"Isle of Islay, Argyll and Bute",GB,medium_airport,EU,55.682708,-6.257525
 INI,Niš Constantine the Great Airport,Niš,RS,large_airport,EU,43.336538,21.856242
-INN,Innsbruck Airport,Innsbruck,AT,large_airport,EU,47.260201,11.344
+INN,Innsbruck Airport,Innsbruck,AT,large_airport,EU,47.260278,11.343889
 INQ,Inisheer Aerodrome,Inis Oírr,IE,small_airport,EU,53.064701,-9.5109
 INV,Inverness Airport,"Inverness, Highland",GB,medium_airport,EU,57.5425,-4.0475
 INZ,In Salah Airport,In Salah,DZ,medium_airport,AF,27.250999,2.51202
@@ -319,7 +319,7 @@ KIT,Kithira Airport,Kithira Island,GR,small_airport,EU,36.273978,23.016719
 KKN,"Kirkenes Airport, Høybuktmoen",Kirkenes,NO,medium_airport,EU,69.7258,29.8913
 KLR,Kalmar Airport,Kalmar,SE,medium_airport,EU,56.685501,16.2876
 KLU,Klagenfurt Airport,Klagenfurt am Wörthersee,AT,large_airport,EU,46.642502,14.3377
-KLV,Karlovy Vary Airport,Karlovy Vary,CZ,large_airport,EU,50.202999,12.915
+KLV,Karlovy Vary Airport,Karlovy Vary,CZ,medium_airport,EU,50.202999,12.915
 KLX,Kalamata Airport,Kalamata,GR,medium_airport,EU,37.06829833984375,22.02549934387207
 KMW,Kostroma Sokerkino Airport,Kostroma,RU,medium_airport,EU,57.796902,41.019402
 KOI,Kirkwall Airport,"Kirkwall, Orkney Islands",GB,medium_airport,EU,58.957903,-2.905077
@@ -404,7 +404,7 @@ LYS,Lyon Saint-Exupéry Airport,"Colombier-Saugnieu, Rhône",FR,large_airport,EU
 MAD,Adolfo Suárez Madrid–Barajas Airport,Madrid,ES,large_airport,EU,40.493407,-3.572249
 MAH,Menorca Airport,Mahón (Maó),ES,large_airport,EU,39.862598,4.21865
 MAN,Manchester Airport,"Manchester, Greater Manchester",GB,large_airport,EU,53.349375,-2.279521
-MBX,Maribor Edvard Rusjan Airport,Maribor,SI,medium_airport,EU,46.4799,15.6861
+MBX,Maribor Edvard Rusjan Airport,Maribor,SI,medium_airport,EU,46.479861,15.686131
 MEH,Mehamn Airport,Mehamn,NO,medium_airport,EU,71.029701,27.8267
 MHG,Mannheim-City Airport,Mannheim,DE,medium_airport,EU,49.473057,8.514167
 MHQ,Mariehamn Airport,Mariehamn,FI,medium_airport,EU,60.1222,19.898199
