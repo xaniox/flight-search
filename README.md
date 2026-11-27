@@ -232,6 +232,18 @@ batch limit are the two places most likely to need adjusting.
 
 ```sh
 uv run pytest
+uv run ruff check .
+uv run ruff format --check .
+uv run actionlint
+```
+
+`uv run ruff format .` fixes a failing format check. CI runs the same
+checks with Python 3.12, the oldest supported version, on every push to
+`main` and every pull request. GitHub hides the
+formatting commit in its blame view by itself; locally, skip it with:
+
+```sh
+git blame --ignore-revs-file .git-blame-ignore-revs <file>
 ```
 
 The tests cover date expansion, time-window rounding and date-aware arrival
