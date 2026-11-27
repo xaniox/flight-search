@@ -18,13 +18,7 @@ from flight_search.combine import (
 )
 from flight_search.config import SearchSettings
 from flight_search.fli_api import RequestBudget
-from flight_search.windows import DepartureWindow, ReturnWindow
-
-
-def _restrictions_key(restrictions) -> dict | None:
-    if restrictions is None:
-        return None
-    return restrictions.model_dump(exclude_none=True)
+from flight_search.windows import DepartureWindow, ReturnWindow, restrictions_key
 
 
 def _detail_key(
@@ -41,7 +35,7 @@ def _detail_key(
         "city": list(city_codes),
         "date": day.isoformat(),
         "direction": direction,
-        "restrictions": _restrictions_key(restrictions),
+        "restrictions": restrictions_key(restrictions),
         "settings": settings.cache_key(),
     }
 
@@ -63,14 +57,9 @@ def fetch_options(
         return [FlightOption.from_dict(item) for item in cached]
 
     budget.acquire()
-    if direction == "out":
-        results = fli_api.detail_results(
-            list(home), list(city_codes), day, restrictions, settings
-        )
-    else:
-        results = fli_api.detail_results(
-            list(city_codes), list(home), day, restrictions, settings
-        )
+    results = fli_api.fetch_leg(
+        home, city_codes, day, direction, restrictions, settings
+    )
     options = options_from_results(results)
     cache.put(key, [option.to_dict() for option in options])
     return options

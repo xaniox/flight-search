@@ -24,7 +24,7 @@ from flight_search.combine import (
 )
 from flight_search.config import SearchSettings
 from flight_search.fli_api import RequestBudget
-from flight_search.windows import DepartureWindow, ReturnWindow
+from flight_search.windows import DepartureWindow, ReturnWindow, restrictions_key
 
 
 class DiscoveryAborted(RuntimeError):
@@ -59,12 +59,6 @@ def batch_codes(codes: Iterable[str], size: int) -> list[tuple[str, ...]]:
     return [tuple(ordered[i : i + size]) for i in range(0, len(ordered), size)]
 
 
-def _restrictions_key(restrictions) -> dict | None:
-    if restrictions is None:
-        return None
-    return restrictions.model_dump(exclude_none=True)
-
-
 # Bump when the cached payload changes shape, so older entries become misses.
 CACHE_FORMAT = 2
 
@@ -94,7 +88,7 @@ def _batch_key(
         "batch": list(batch),
         "date": day.isoformat(),
         "direction": direction,
-        "restrictions": _restrictions_key(restrictions),
+        "restrictions": restrictions_key(restrictions),
         "settings": settings.cache_key(),
     }
 
@@ -146,14 +140,9 @@ def run_discovery(
             if options is None:
                 budget.acquire()
                 request_count += 1
-                if direction == "out":
-                    results = fli_api.detail_results(
-                        list(home), list(batch), day, restrictions, settings
-                    )
-                else:
-                    results = fli_api.detail_results(
-                        list(batch), list(home), day, restrictions, settings
-                    )
+                results = fli_api.fetch_leg(
+                    home, batch, day, direction, restrictions, settings
+                )
                 options = options_from_results(results)
                 cache.put(key, [option.to_dict() for option in options])
             if direction == "out":

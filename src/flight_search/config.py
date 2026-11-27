@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 # Karlsruhe (city centre) — used for the "weekend" distance preset.
 KARLSRUHE_LAT = 49.013
@@ -51,15 +51,3 @@ class SearchSettings:
             "country": self.country,
             "language": self.language,
         }
-
-
-@dataclass(slots=True)
-class RunPlan:
-    """Resolved, human-readable description of what a run will do."""
-
-    home_airports: tuple[str, ...] = DEFAULT_HOME_AIRPORTS
-    destination_airports: tuple[str, ...] = ()
-    trips: int = 0
-    screen_requests: int = 0
-    detail_requests: int = 0
-    notes: list[str] = field(default_factory=list)
