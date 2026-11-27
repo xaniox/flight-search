@@ -50,8 +50,13 @@ def make_itinerary() -> Itinerary:
             "FKB", "TIA", "2026-11-13T17:20:00", "2026-11-13T19:30:00", price=35.0
         ),
         ret=make_option(
-            "TIA", "STR", "2026-11-16T09:45:00", "2026-11-16T11:55:00",
-            price=34.0, airline="W4", number="5119",
+            "TIA",
+            "STR",
+            "2026-11-16T09:45:00",
+            "2026-11-16T11:55:00",
+            price=34.0,
+            airline="W4",
+            number="5119",
         ),
     )
 
@@ -158,9 +163,7 @@ def test_attach_links_never_raises_for_incomplete_data():
 def test_payload_includes_links_for_results_and_best_per_city():
     itinerary = make_itinerary()
     attach_links([itinerary], SearchSettings())
-    payload = results_payload(
-        [itinerary], query={}, stats={}, failed=[], windows={}
-    )
+    payload = results_payload([itinerary], query={}, stats={}, failed=[], windows={})
     result = payload["results"][0]
     assert result["booking_url"] == itinerary.booking_url
     assert result["outbound_url"] == itinerary.outbound_url
@@ -169,5 +172,8 @@ def test_payload_includes_links_for_results_and_best_per_city():
 
 
 def test_link_cell_markup():
-    assert link_cell("https://example.com/x") == "[link=https://example.com/x][cyan]open[/cyan][/link]"
+    assert (
+        link_cell("https://example.com/x")
+        == "[link=https://example.com/x][cyan]open[/cyan][/link]"
+    )
     assert link_cell(None) == "—"

@@ -127,11 +127,7 @@ def name_map() -> dict[str, str]:
 
 def display_city(airport: AirportInfo) -> str:
     """Preferred city label for an airport (metro/display override first)."""
-    return (
-        metro_map().get(airport.iata)
-        or name_map().get(airport.iata)
-        or airport.city
-    )
+    return metro_map().get(airport.iata) or name_map().get(airport.iata) or airport.city
 
 
 def build_city_groups(
@@ -176,7 +172,10 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
-    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    a = (
+        math.sin(dphi / 2) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    )
     return 2 * radius * math.asin(math.sqrt(a))
 
 

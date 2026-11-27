@@ -120,7 +120,9 @@ def test_options_from_results_skips_unpriced_and_tuple_rows():
     class Unpriced(FakeResult):
         price = None
 
-    options = options_from_results([FakeResult(), Unpriced(), (FakeResult(), FakeResult())])
+    options = options_from_results(
+        [FakeResult(), Unpriced(), (FakeResult(), FakeResult())]
+    )
     assert len(options) == 1
     assert options[0].origin == "SXB"
     assert options[0].destination == "BCN"
@@ -141,7 +143,9 @@ def test_exact_window_filters():
         make_option("BCN", "SXB", "2026-11-15T22:00:00", "2026-11-16T00:30:00", 40),
     ]
     window = ReturnWindow(arrive_before=datetime(2026, 1, 1, 22, 0).time())
-    assert [o.price for o in filter_return_legs(returns, window, date(2026, 11, 15))] == [50]
+    assert [
+        o.price for o in filter_return_legs(returns, window, date(2026, 11, 15))
+    ] == [50]
 
     late_window = ReturnWindow(depart_after=datetime(2026, 1, 1, 20, 0).time())
     assert [
@@ -150,6 +154,8 @@ def test_exact_window_filters():
 
 
 def test_option_roundtrip_serialisation():
-    option = make_option("SXB", "BCN", "2026-11-13T14:45:00", "2026-11-13T16:35:00", 88.0)
+    option = make_option(
+        "SXB", "BCN", "2026-11-13T14:45:00", "2026-11-13T16:35:00", 88.0
+    )
     restored = FlightOption.from_dict(option.to_dict())
     assert restored == option

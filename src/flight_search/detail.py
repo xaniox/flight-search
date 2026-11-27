@@ -158,9 +158,7 @@ def evaluate_candidates(
             budget=budget,
         )
         out_options = filter_departures(out_options, depart_window)
-        ret_options = filter_return_legs(
-            ret_options, return_window, candidate.pair.ret
-        )
+        ret_options = filter_return_legs(ret_options, return_window, candidate.pair.ret)
         for itinerary in combine_itineraries(
             city_key=candidate.city.key,
             city=candidate.city.display,

@@ -184,8 +184,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default="sun",
         help="Weekdays allowed for the return (default: sun).",
     )
-    weekend.add_argument("--start", required=True, help="Start of the date range (YYYY-MM-DD).")
-    weekend.add_argument("--end", required=True, help="End of the date range (YYYY-MM-DD).")
+    weekend.add_argument(
+        "--start", required=True, help="Start of the date range (YYYY-MM-DD)."
+    )
+    weekend.add_argument(
+        "--end", required=True, help="End of the date range (YYYY-MM-DD)."
+    )
     weekend.add_argument("--min-nights", type=int, default=1)
     weekend.add_argument("--max-nights", type=int, default=4)
     weekend.add_argument(
@@ -297,8 +301,12 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Show the plan and request estimate without searching.",
     )
-    weekend.add_argument("--verbose", action="store_true", help="Print full leg details.")
-    weekend.add_argument("--quiet", action="store_true", help="Disable progress output.")
+    weekend.add_argument(
+        "--verbose", action="store_true", help="Print full leg details."
+    )
+    weekend.add_argument(
+        "--quiet", action="store_true", help="Disable progress output."
+    )
 
     airports = subparsers.add_parser("airports", help="List the airport dataset.")
     airports.add_argument("--countries", default="")
@@ -328,7 +336,11 @@ def _select_airports(args) -> tuple[tuple[AirportInfo, ...], list[str]]:
     all_airports = load_airports(include_small=args.include_small)
     home = _csv_tuple(args.home_airports)
     known = {a.iata for a in all_airports}
-    warnings = [f"Unknown or unsupported airport code: {code}" for code in home if code not in known]
+    warnings = [
+        f"Unknown or unsupported airport code: {code}"
+        for code in home
+        if code not in known
+    ]
     if not home:
         raise ValueError("At least one home airport is required")
 
@@ -337,7 +349,9 @@ def _select_airports(args) -> tuple[tuple[AirportInfo, ...], list[str]]:
 
     if wanted_codes:
         missing = [code for code in wanted_codes if code not in known]
-        warnings.extend(f"Unknown or unsupported destination code: {code}" for code in missing)
+        warnings.extend(
+            f"Unknown or unsupported destination code: {code}" for code in missing
+        )
         destinations = filter_airports(
             all_airports,
             codes=tuple(code for code in wanted_codes if code in known),
@@ -410,7 +424,9 @@ def _run_weekend(args) -> int:
 
     home = _csv_tuple(args.home_airports)
     if not home:
-        error_console.print("[bold red]Error:[/bold red] at least one home airport is required.")
+        error_console.print(
+            "[bold red]Error:[/bold red] at least one home airport is required."
+        )
         return 2
     if len(home) > 8:
         error_console.print(
@@ -438,7 +454,9 @@ def _run_weekend(args) -> int:
         error_console.print(f"[yellow]warning:[/yellow] {warning}")
 
     if not destinations:
-        error_console.print("[bold red]Error:[/bold red] no destination airports selected.")
+        error_console.print(
+            "[bold red]Error:[/bold red] no destination airports selected."
+        )
         return 2
 
     cities = build_city_groups(destinations)
@@ -461,9 +479,7 @@ def _run_weekend(args) -> int:
             f"{_date_label(start)} – {_date_label(end)} · depart {_weekday_label(depart_days)}"
             f" · return {_weekday_label(return_days)} · {args.min_nights}–{args.max_nights} nights"
         )
-        console.print(
-            format_window_line(depart_window.label(), return_window.label())
-        )
+        console.print(format_window_line(depart_window.label(), return_window.label()))
         console.print(
             f"{len(destinations)} destination airports in {len(cities)} cities · "
             f"{len(pairs)} date pairs · up to ~{estimated} requests "
@@ -471,7 +487,6 @@ def _run_weekend(args) -> int:
             f"{max(1, (len(destinations) + batch_size - 1) // batch_size)} batches)"
         )
         console.print()
-
 
     if args.dry_run:
         error_console.print("[bold]Dry run — no requests made.[/bold]")
@@ -667,7 +682,9 @@ def _run_airports(args) -> int:
     selected = filter_airports(
         airports,
         codes=_csv_tuple(args.dest) if args.dest else (),
-        countries=frozenset(_csv_tuple(args.countries)) if args.countries else frozenset(),
+        countries=frozenset(_csv_tuple(args.countries))
+        if args.countries
+        else frozenset(),
         max_distance_km=max_distance,
     )
     table = Table(box=None)

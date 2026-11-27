@@ -44,9 +44,7 @@ def _route(option: FlightOption) -> str:
 
 
 def _timing(option: FlightOption) -> str:
-    return (
-        f"{_stamp(option.departure, '%H:%M')}–{_stamp(option.arrival, '%H:%M')}"
-    )
+    return f"{_stamp(option.departure, '%H:%M')}–{_stamp(option.arrival, '%H:%M')}"
 
 
 def _leg_detail(option: FlightOption) -> str:
@@ -75,7 +73,9 @@ def render_links(
     """Print raw URLs when the terminal cannot render OSC-8 hyperlinks."""
     if console.is_terminal:
         return
-    rows = [(i, it.booking_url) for i, it in enumerate(itineraries, 1) if it.booking_url]
+    rows = [
+        (i, it.booking_url) for i, it in enumerate(itineraries, 1) if it.booking_url
+    ]
     if not rows:
         return
     console.print()
@@ -84,9 +84,7 @@ def render_links(
         console.print(f"{index}. {url}", soft_wrap=True)
 
 
-def format_window_line(
-    depart_label: str, return_label: str
-) -> str:
+def format_window_line(depart_label: str, return_label: str) -> str:
     parts = []
     if depart_label != "any time":
         parts.append(f"depart {depart_label}")
@@ -173,19 +171,23 @@ def render_results(
                     f"{fmt_money(itinerary.roundtrip_price, itinerary.out.currency)}"
                 )
             if itinerary.booking_url:
-                console.print(f"   google flights: {itinerary.booking_url}", soft_wrap=True)
+                console.print(
+                    f"   google flights: {itinerary.booking_url}", soft_wrap=True
+                )
             if itinerary.outbound_url:
-                console.print(f"   outbound link:  {itinerary.outbound_url}", soft_wrap=True)
+                console.print(
+                    f"   outbound link:  {itinerary.outbound_url}", soft_wrap=True
+                )
             if itinerary.return_url:
-                console.print(f"   return link:    {itinerary.return_url}", soft_wrap=True)
+                console.print(
+                    f"   return link:    {itinerary.return_url}", soft_wrap=True
+                )
             console.print()
     else:
         render_links(itineraries, console=console)
 
 
-def render_best_per_city(
-    itineraries: Iterable[Itinerary], *, console: Console
-) -> None:
+def render_best_per_city(itineraries: Iterable[Itinerary], *, console: Console) -> None:
     best: dict[str, Itinerary] = {}
     for itinerary in itineraries:
         current = best.get(itinerary.city_key)

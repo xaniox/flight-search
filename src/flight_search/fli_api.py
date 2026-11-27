@@ -145,7 +145,9 @@ def roundtrip_price(
     for item in results:
         # Round-trip searches return (outbound, inbound) tuples; Google puts the
         # full trip price on the outbound leg.
-        price = item[0].price if isinstance(item, tuple) else getattr(item, "price", None)
+        price = (
+            item[0].price if isinstance(item, tuple) else getattr(item, "price", None)
+        )
         if price is None:
             continue
         if best is None or price < best:

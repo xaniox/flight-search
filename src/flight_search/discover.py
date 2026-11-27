@@ -127,7 +127,13 @@ def run_discovery(
         key = _batch_key(home, batch, day, direction, settings, restrictions)
         cached = cache.get(key)
         if isinstance(cached, dict):
-            return direction, day, batch, {str(k): float(v) for k, v in cached.items()}, None
+            return (
+                direction,
+                day,
+                batch,
+                {str(k): float(v) for k, v in cached.items()},
+                None,
+            )
 
         try:
             budget.acquire()
@@ -208,12 +214,8 @@ def run_discovery(
                 handle(future.result())
                 if failures:
                     failure_ratio_now = len(failures) / max(done, 1)
-                    if (
-                        consecutive >= min_consecutive_failures
-                        or (
-                            done >= 20
-                            and failure_ratio_now > failure_ratio
-                        )
+                    if consecutive >= min_consecutive_failures or (
+                        done >= 20 and failure_ratio_now > failure_ratio
                     ):
                         aborted = True
                         for pending in futures:

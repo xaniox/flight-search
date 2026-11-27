@@ -42,12 +42,19 @@ def build_rows(text: str) -> list[dict[str, str]]:
     for record in reader:
         if record.get("scheduled_service") != "yes":
             continue
-        if record.get("type") not in {"large_airport", "medium_airport", "small_airport"}:
+        if record.get("type") not in {
+            "large_airport",
+            "medium_airport",
+            "small_airport",
+        }:
             continue
         code = (record.get("iata_code") or "").strip().upper()
         if not code or code in seen:
             continue
-        if record.get("continent") != "EU" and record.get("iso_country") not in INCLUDED_COUNTRIES:
+        if (
+            record.get("continent") != "EU"
+            and record.get("iso_country") not in INCLUDED_COUNTRIES
+        ):
             continue
         if code not in AIRPORT_NAMES:
             # fli cannot query airports missing from its enum.
@@ -79,7 +86,9 @@ def write_rows(rows: list[dict[str, str]], path: Path | None = None) -> Path:
     return target
 
 
-def refresh_airports(path: Path | None = None, url: str = OURAIRPORTS_URL) -> dict[str, int]:
+def refresh_airports(
+    path: Path | None = None, url: str = OURAIRPORTS_URL
+) -> dict[str, int]:
     rows = build_rows(fetch_ourairports(url))
     write_rows(rows, path)
     return {
