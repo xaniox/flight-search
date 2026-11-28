@@ -65,8 +65,8 @@ def test_empty_time_field_is_sent_as_no_bound(page: Page, app_url: str):
     page.goto(app_url)
     expect(page.get_by_role("button", name="Flüge suchen")).to_be_enabled()
     page.locator("summary", has_text="Weitere Suchfilter").click()
-    page.get_by_label("Hinflug ab").fill("15:00")
-    page.get_by_label("Rückflug ab").fill("")
+    page.get_by_label("Hinflug ab", exact=True).fill("15:00")
+    page.get_by_label("Rückflug ab", exact=True).fill("")
 
     with page.expect_request("**/api/searches") as posted:
         page.get_by_role("button", name="Flüge suchen").click()
@@ -74,3 +74,66 @@ def test_empty_time_field_is_sent_as_no_bound(page: Page, app_url: str):
 
     assert fields["depart_after"] == "15:00"
     assert fields["return_depart_after"] is None
+
+
+def open_filters(page: Page, app_url: str) -> None:
+    page.goto(app_url)
+    expect(page.get_by_role("button", name="Flüge suchen")).to_be_enabled()
+    page.locator("summary", has_text="Weitere Suchfilter").click()
+
+
+def test_clear_button_empties_a_time_field_and_sends_no_bound(page: Page, app_url: str):
+    open_filters(page, app_url)
+    field = page.locator("label", has=page.locator("input[name=depart_after]"))
+    time_input = page.locator("input[name=depart_after]")
+    clear = page.get_by_role("button", name="Hinflug ab leeren")
+    time_input.fill("15:00")
+    expect(clear).to_be_visible(timeout=2000)
+
+    clear.click()
+
+    expect(time_input).to_have_value("")
+    expect(field.get_by_text("beliebig")).to_be_visible(timeout=2000)
+    expect(clear).to_be_hidden(timeout=2000)
+    with page.expect_request("**/api/searches") as posted:
+        page.get_by_role("button", name="Flüge suchen").click()
+    assert json.loads(posted.value.post_data)["depart_after"] is None
+
+
+def test_clear_button_resets_partially_deleted_native_time_field(
+    page: Page, app_url: str
+):
+    open_filters(page, app_url)
+    field = page.get_by_label("Rückflug ab", exact=True)
+    clear = page.get_by_role("button", name="Rückflug ab leeren")
+    field.fill("16:32")
+    field.click(position={"x": 16, "y": 21})
+    page.keyboard.press("Backspace")
+
+    expect(field).to_have_value("")
+    assert field.evaluate("input => input.validity.badInput")
+
+    clear.click()
+
+    expect(field).to_have_value("")
+    assert not field.evaluate("input => input.validity.badInput")
+    with page.expect_request("**/api/searches") as posted:
+        page.get_by_role("button", name="Flüge suchen").click()
+    assert json.loads(posted.value.post_data)["return_depart_after"] is None
+
+
+def test_empty_time_field_shows_any_time(page: Page, app_url: str):
+    open_filters(page, app_url)
+    field = page.locator("label", has=page.locator("input[name=return_arrive_before]"))
+    time_input = page.locator("input[name=return_arrive_before]")
+    clear = page.get_by_role("button", name="Rückkehr bis leeren")
+    time_input.fill("")
+    time_input.blur()
+
+    expect(field.get_by_text("beliebig")).to_be_visible(timeout=2000)
+    expect(clear).to_be_hidden(timeout=2000)
+
+    time_input.fill("20:30")
+
+    expect(field.get_by_text("beliebig")).to_be_hidden(timeout=2000)
+    expect(clear).to_be_visible(timeout=2000)

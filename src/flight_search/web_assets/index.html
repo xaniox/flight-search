@@ -54,10 +54,10 @@
             <fieldset class="weekdays"><legend>Rückflugtage</legend><div class="day-options" id="return-days"></div></fieldset>
             <label>Mind. Nächte<input name="min_nights" type="number" min="0" required></label>
             <label>Max. Nächte<input name="max_nights" type="number" min="0" required></label>
-            <label>Hinflug ab<input name="depart_after" type="time"></label>
-            <label>Hinflug bis<input name="depart_before" type="time"></label>
-            <label>Rückflug ab<input name="return_depart_after" type="time"></label>
-            <label>Rückkehr bis<input name="return_arrive_before" type="time"></label>
+            <label class="time-field">Hinflug ab<input name="depart_after" type="time" aria-label="Hinflug ab"><span class="any" aria-hidden="true">beliebig</span><button class="clear" type="button" aria-label="Hinflug ab leeren">×</button></label>
+            <label class="time-field">Hinflug bis<input name="depart_before" type="time" aria-label="Hinflug bis"><span class="any" aria-hidden="true">beliebig</span><button class="clear" type="button" aria-label="Hinflug bis leeren">×</button></label>
+            <label class="time-field">Rückflug ab<input name="return_depart_after" type="time" aria-label="Rückflug ab"><span class="any" aria-hidden="true">beliebig</span><button class="clear" type="button" aria-label="Rückflug ab leeren">×</button></label>
+            <label class="time-field">Rückkehr bis<input name="return_arrive_before" type="time" aria-label="Rückkehr bis"><span class="any" aria-hidden="true">beliebig</span><button class="clear" type="button" aria-label="Rückkehr bis leeren">×</button></label>
             <label>Max. Anfragen<input name="max_requests" type="number" min="0" required></label>
             <label class="check"><input name="allow_codeshare" type="checkbox">Codeshares erlauben</label>
           </div>

@@ -52,6 +52,25 @@ function setupDays(id, name, defaults) {
   }
 }
 
+function setupTimeField(input) {
+  const field = input.closest('.time-field');
+  const sync = () => {
+    const empty = !input.value && !input.validity.badInput && document.activeElement !== input;
+    field.classList.toggle('empty', empty);
+  };
+  field.querySelector('.clear').addEventListener('click', () => {
+    // WebKit keeps incomplete time segments when its value is already empty.
+    if (input.validity.badInput) input.value = '00:00';
+    input.value = '';
+    // Refresh native form validation after the time segments have been cleared.
+    input.setCustomValidity('');
+    input.blur();
+    sync();
+  });
+  for (const type of ['input', 'change', 'focus', 'blur']) input.addEventListener(type, sync);
+  sync();
+}
+
 function timeValue(raw) {
   if (!raw) return '';
   const [hours, minutes = '00'] = raw.trim().split(':');
@@ -94,7 +113,11 @@ async function initialize() {
   }
   form.elements.namedItem('start').min = defaults.start;
   form.elements.namedItem('end').min = defaults.start;
-  for (const name of timeFields) form.elements.namedItem(name).value = timeValue(defaults[name]);
+  for (const name of timeFields) {
+    const input = form.elements.namedItem(name);
+    input.value = timeValue(defaults[name]);
+    setupTimeField(input);
+  }
   form.elements.namedItem('allow_codeshare').checked = defaults.allow_codeshare;
   setupDays('#departure-days', 'depart_days', defaults.depart_days);
   setupDays('#return-days', 'return_days', defaults.return_days);
