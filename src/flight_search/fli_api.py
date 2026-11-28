@@ -35,7 +35,7 @@ class BudgetExceeded(RuntimeError):
 
 
 class RequestBudget:
-    """Thread-safe counter guarding how many HTTP requests a run may make."""
+    """Thread-safe budget for search requests before transport retries."""
 
     def __init__(self, limit: int | None = None) -> None:
         self.limit = limit

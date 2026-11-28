@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from collections.abc import Sequence
+from copy import copy
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from time import monotonic
+from typing import ClassVar
 
 from rich.console import Console
 from rich.markup import escape
@@ -19,6 +23,7 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 from rich.table import Table
+from rich.text import Text
 
 from flight_search import fli_api
 from flight_search.airports import (
@@ -73,6 +78,36 @@ from flight_search.windows import (
     TimeWindowError,
     parse_clock,
 )
+
+logger = logging.getLogger(__name__)
+
+
+class _ConsoleLogHandler(logging.Handler):
+    """Print through the console shared with Rich progress."""
+
+    _labels: ClassVar[dict[str, str]] = {
+        "flight_search.cli": "Search",
+        "flight_search.search": "Search",
+        "flight_search.discover": "Discovery",
+        "flight_search.detail": "Confirmation",
+        "flight_search.detail.roundtrip": "Round-trip",
+        "flight_search.cache": "Cache",
+        "fli.search._tfs": "Transport",
+    }
+
+    def __init__(self, console: Console) -> None:
+        super().__init__()
+        self.console = console
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            record = copy(record)
+            record.name = self._labels.get(record.name, record.name)
+            if record.threadName and record.threadName.startswith("discovery_"):
+                record.name += f" [{record.threadName.removeprefix('discovery_')}]"
+            self.console.print(Text(self.format(record)), soft_wrap=True)
+        except Exception:  # noqa: BLE001 - report handler failures via logging
+            self.handleError(record)
 
 
 def _csv_tuple(value: str) -> tuple[str, ...]:
@@ -429,7 +464,7 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
         "--max-requests",
         type=int,
         default=6000,
-        help="Hard ceiling on HTTP requests for the run (default: %(default)s).",
+        help="Search request budget before transport retries (default: %(default)s).",
     )
     weekend.add_argument(
         "--max-candidates",
@@ -460,6 +495,12 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
         action=argparse.BooleanOptionalAction,
         default=False,
         help="Print full leg details.",
+    )
+    weekend.add_argument(
+        "--debug",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Log all search phases, cache activity and transport diagnostics to stderr.",
     )
     weekend.add_argument(
         "--quiet",
@@ -595,9 +636,10 @@ def _build_settings(args) -> SearchSettings:
     )
 
 
-def _run_weekend(args) -> int:
+def _run_weekend(args, *, error_console: Console | None = None) -> int:
+    started = monotonic()
     console = Console()
-    error_console = Console(stderr=True)
+    error_console = error_console or Console(stderr=True)
     reporter = Reporter(console=error_console, quiet=args.quiet)
 
     try:
@@ -695,6 +737,23 @@ def _run_weekend(args) -> int:
         batch_size=batch_size,
         max_candidates=args.max_candidates,
     )
+    carrier_label = ", ".join(sorted(airlines)) or "any airline"
+    if airlines and args.allow_codeshare:
+        carrier_label += " (codeshares allowed)"
+    logger.debug(
+        "%s: %s · %s to %s · %d date pairs, %d destinations · %d per batch · %s "
+        "· estimated requests: %d (budget: %d)",
+        "Dry run" if args.dry_run else "Plan",
+        ", ".join(home),
+        start,
+        end,
+        len(pairs),
+        len(destinations),
+        batch_size,
+        carrier_label,
+        estimated,
+        args.max_requests,
+    )
 
     if args.format == "text":
         console.print()
@@ -736,6 +795,9 @@ def _run_weekend(args) -> int:
         enabled=args.cache,
     )
     budget = RequestBudget(args.max_requests)
+    logger.debug(
+        "Cache: %s", f"enabled (TTL {args.cache_ttl})" if cache.active else "disabled"
+    )
 
     request = SearchRequest(
         home=home,
@@ -754,9 +816,10 @@ def _run_weekend(args) -> int:
     try:
         result = run_search(request, cache=cache, budget=budget, progress=reporter)
     except DiscoveryAborted as exc:
-        error_console.print(f"[bold red]Error:[/bold red] {exc}")
+        error_console.print(f"[bold red]Error:[/bold red] {escape(str(exc))}")
         return 2
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
+        logger.debug("Search failed", exc_info=True)
         error_console.print(f"[bold red]Error:[/bold red] {type(exc).__name__}: {exc}")
         return 2
 
@@ -773,7 +836,11 @@ def _run_weekend(args) -> int:
         return 1
 
     pool_size = max(args.top, 100) if args.best_per_city else args.top
-    pool = result.itineraries()[:pool_size]
+    itineraries = result.itineraries()
+    pool = itineraries[:pool_size]
+    logger.debug(
+        "Ranked %d itineraries (kept %d for display)", len(itineraries), len(pool)
+    )
     if not pool:
         explanation = (
             f"No detailed results matched the search with {airline_filter}. "
@@ -882,6 +949,17 @@ def _run_weekend(args) -> int:
         if args.best_per_city:
             render_best_per_city(pool, console=console)
 
+    logger.debug(
+        "Finished in %.0f ms · results shown: %d · requests: %d · cache: %d hits, "
+        "%d misses, %d writes · discovery failures: %d",
+        (monotonic() - started) * 1000,
+        len(displayed),
+        budget.used,
+        cache.stats.hits,
+        cache.stats.misses,
+        cache.stats.writes,
+        len(failures),
+    )
     return 0
 
 
@@ -949,7 +1027,32 @@ def main(argv: list[str] | None = None) -> int:
     if args.command in CONFIGURED_COMMANDS:
         _drop_file_selection(args)
     if args.command == "weekend":
-        return _run_weekend(args)
+        if not args.debug:
+            return _run_weekend(args)
+        error_console = Console(stderr=True)
+        handler = _ConsoleLogHandler(error_console)
+        handler.setFormatter(
+            logging.Formatter(
+                "%(asctime)s.%(msecs)03d %(levelname)-7s %(name)-13s | %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+        )
+        loggers = (
+            logging.getLogger("flight_search"),
+            logging.getLogger("fli.search._tfs"),
+        )
+        states = [(target, target.level, target.propagate) for target in loggers]
+        for target in loggers:
+            target.addHandler(handler)
+            target.setLevel(logging.DEBUG)
+            target.propagate = False
+        try:
+            return _run_weekend(args, error_console=error_console)
+        finally:
+            for target, level, propagate in states:
+                target.removeHandler(handler)
+                target.setLevel(level)
+                target.propagate = propagate
     if args.command == "airports":
         return _run_airports(args)
     if args.command == "refresh-airports":

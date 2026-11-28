@@ -8,6 +8,7 @@ The caller can limit how many to return.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Protocol
@@ -22,6 +23,8 @@ from flight_search.detail import OptionKey, confirm_options, rank_itineraries
 from flight_search.discover import run_discovery
 from flight_search.fli_api import RequestBudget, destination_batch_size
 from flight_search.windows import DepartureWindow, ReturnWindow
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "OptionKey",
@@ -149,6 +152,11 @@ def run_search(
             candidates, per_city=request.per_city, limit=request.max_candidates
         )
     )[: max(0, request.max_candidates)]
+    logger.debug(
+        "Shortlisted %d of %d candidates",
+        len(shortlist),
+        len(candidates),
+    )
     options: dict[OptionKey, tuple[FlightOption, ...]] = {}
     if shortlist:
         update = (

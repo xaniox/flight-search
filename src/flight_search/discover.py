@@ -8,10 +8,15 @@ rows returned from each batch are used to rank cities by price.
 
 from __future__ import annotations
 
+import logging
+from collections import Counter
 from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import date
+from time import monotonic
+
+from fli.search.exceptions import SearchHTTPError
 
 from flight_search import fli_api
 from flight_search.cache import Cache
@@ -26,9 +31,11 @@ from flight_search.config import SearchSettings
 from flight_search.fli_api import RequestBudget
 from flight_search.windows import DepartureWindow, ReturnWindow, restrictions_key
 
+logger = logging.getLogger(__name__)
+
 
 class DiscoveryAborted(RuntimeError):
-    """Raised when Google rejects too many requests to continue usefully."""
+    """Raised when too many discovery batches fail to continue usefully."""
 
 
 @dataclass(slots=True)
@@ -116,6 +123,8 @@ def run_discovery(
 
     screens = {code: AirportScreen(code) for code in destinations}
     failures: list[str] = []
+    failure_counts: Counter[str] = Counter()
+    failure_examples: dict[str, str] = {}
     jobs: list[tuple[str, date, tuple[str, ...]]] = []
     for day in depart_dates:
         for batch in batches:
@@ -124,30 +133,47 @@ def run_discovery(
         for batch in batches:
             jobs.append(("ret", day, batch))
 
+    discovery_started = monotonic()
+    logger.debug(
+        "Starting %d batches from %s · up to %d destinations per batch · workers: %d",
+        len(jobs),
+        ", ".join(home),
+        per_request,
+        concurrency,
+    )
     done = 0
     request_count = 0
 
     def worker(direction: str, day: date, batch: tuple[str, ...]):
         nonlocal request_count
+        started = monotonic()
         restrictions = out_restrictions if direction == "out" else ret_restrictions
         key = _batch_key(home, batch, day, direction, settings, restrictions)
-        options = options_from_cache(cache.get(key))
+        source = "cache"
+        error = None
+        received = within_window = matched = 0
+        prices: dict[str, float] = {}
         try:
+            options = options_from_cache(cache.get(key))
             if options is None:
+                source = "request budget"
                 budget.acquire()
+                source = "Google"
                 request_count += 1
                 results = fli_api.fetch_leg(
                     home, batch, day, direction, restrictions, settings
                 )
                 options = options_from_results(results)
                 cache.put(key, [option.to_dict() for option in options])
+            received = len(options)
             if direction == "out":
                 options = filter_departures(options, depart_window)
             else:
                 options = filter_return_legs(options, return_window, day)
+            within_window = len(options)
             options = filter_airlines(options, airlines, allow_codeshare)
+            matched = len(options)
             wanted = set(batch)
-            prices: dict[str, float] = {}
             for option in options:
                 code = option.destination if direction == "out" else option.origin
                 if code not in wanted:
@@ -155,11 +181,45 @@ def run_discovery(
                 previous = prices.get(code)
                 if previous is None or option.price < previous:
                     prices[code] = option.price
-            return direction, day, batch, prices, None
-        except fli_api.BudgetExceeded as exc:
-            return direction, day, batch, {}, str(exc)
         except Exception as exc:  # noqa: BLE001 - one bad batch must not kill the run
-            return direction, day, batch, {}, f"{type(exc).__name__}: {exc}"
+            kind = type(exc).__name__
+            message = (
+                str(exc)
+                if isinstance(exc, fli_api.BudgetExceeded)
+                else f"{kind}: {exc}"
+            )
+            if isinstance(exc, SearchHTTPError) and exc.status_code is not None:
+                kind = f"HTTP {exc.status_code}"
+            error = (kind, message)
+            prices.clear()
+        route = "Outbound" if direction == "out" else "Return"
+        airports = ", ".join(batch)
+        elapsed_ms = (monotonic() - started) * 1000
+        if error:
+            logger.debug(
+                "%s %s · %s · %s failed after %.0f ms · %s",
+                route,
+                day,
+                airports,
+                source,
+                elapsed_ms,
+                error[1],
+            )
+        else:
+            logger.debug(
+                "%s %s · %s · %s in %.0f ms · options: %d → %d (time) → %d (airline) "
+                "· priced airports: %d",
+                route,
+                day,
+                airports,
+                source,
+                elapsed_ms,
+                received,
+                within_window,
+                matched,
+                len(prices),
+            )
+        return direction, day, batch, prices, error
 
     consecutive = 0
     aborted = False
@@ -172,10 +232,14 @@ def run_discovery(
         if progress:
             progress(done)
         if error:
-            failures.append(f"{direction} {day} {','.join(batch)}: {error}")
+            kind, message = error
+            failure = f"{direction} {day} {','.join(batch)}: {message}"
+            failures.append(failure)
+            failure_counts[kind] += 1
+            failure_examples.setdefault(kind, failure)
             consecutive += 1
             for code in batch:
-                screens[code].errors.append(error)
+                screens[code].errors.append(message)
             return
         consecutive = 0
         day_key = day.isoformat()
@@ -193,7 +257,9 @@ def run_discovery(
                 aborted = True
                 break
     else:
-        with ThreadPoolExecutor(max_workers=concurrency) as pool:
+        with ThreadPoolExecutor(
+            max_workers=concurrency, thread_name_prefix="discovery"
+        ) as pool:
             futures = {pool.submit(worker, *job): job for job in all_jobs}
             for future in as_completed(futures):
                 handle(future.result())
@@ -207,11 +273,25 @@ def run_discovery(
                             pending.cancel()
                         break
 
+    logger.debug(
+        "%s in %.0f ms · %d/%d batches processed, %d failed · Google requests: %d",
+        "Aborted" if aborted else "Finished",
+        (monotonic() - discovery_started) * 1000,
+        done,
+        len(jobs),
+        len(failures),
+        request_count,
+    )
     if aborted:
+        counts = failure_counts.most_common()
+        summary = ", ".join(f"{kind}: {count}" for kind, count in counts)
+        examples = "\n".join(
+            f"Example ({kind}): {failure_examples[kind]}" for kind, _ in counts[:3]
+        )
         raise DiscoveryAborted(
-            f"Google rejected {len(failures)} of {done} discovery requests. "
-            "This usually means throttling or a changed page format. "
-            "Try again later, use --region weekend, or narrow --countries."
+            f"{len(failures)} of {done} processed discovery batches failed. "
+            f"Causes: {summary}.\n{examples}\n"
+            "Use --debug to show per-batch diagnostics."
         )
 
     return DiscoveryResult(screens=screens, failures=failures, requests=request_count)

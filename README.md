@@ -132,15 +132,24 @@ uv run flight-search weekend ... --format json > results.json
 | `--compare-roundtrip` | Also price a conventional same-airport round-trip across all airlines, even with `--airlines`. |
 | `--max-candidates` | How many city/date-pair candidates are confirmed exactly (default 60). |
 | `--cache-ttl`, `--cache`/`--no-cache` | Disk cache lifetime (default 12h) in `~/.cache/flight-search`; `--no-cache` bypasses it, `--cache` undoes `cache = false` from the config file. |
-| `--concurrency`, `--max-requests` | Parallelism and a hard request ceiling. |
+| `--concurrency`, `--max-requests` | Parallelism and a search request budget before transport retries. |
 | `--batch-size` | Discovery destinations per request, capped at 10 destinations and 14 airports total including the home airports. |
 | `--dry-run` | Print the plan and request estimate without network calls. |
+| `--debug` | Log the search plan, discovery, confirmation, round-trip comparison, and cache activity to stderr. |
 
 Every on/off option has a negative form that switches it off again, for
 example when the config file switches it on: `--no-include-small`,
 `--no-allow-codeshare`, `--no-best-per-city`, `--no-compare-roundtrip`,
-`--no-dry-run`, `--no-verbose` and `--no-quiet`. `airports --help` and
+`--no-dry-run`, `--no-verbose`, `--no-debug` and `--no-quiet`. `airports --help` and
 `weekend --help` show the defaults in effect, including those from the config file.
+
+If discovery aborts, stderr shows the counts by HTTP status or error type
+and sample batches. Add `--debug` to see how many discovery options pass the
+time window and airline filter, which lookups use the cache, and why `fli`
+retries or rejects a search page. Durations include retries. The request budget
+and result counters account for scheduled queries before transport retries.
+Use `--quiet --debug 2>flight-search.log` to capture the diagnostics without
+progress updates. JSON results are written to stdout.
 
 Time windows are optional; when omitted the whole day qualifies. That covers
 the outbound departure window (`--depart-after`/`--depart-before`), the return

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import date
+from time import monotonic
 from typing import Literal
 
 from flight_search import fli_api
@@ -22,6 +24,9 @@ from flight_search.combine import (
 from flight_search.config import SearchSettings
 from flight_search.fli_api import RequestBudget
 from flight_search.windows import DepartureWindow, ReturnWindow, restrictions_key
+
+logger = logging.getLogger(__name__)
+roundtrip_logger = logger.getChild("roundtrip")
 
 
 def _detail_key(
@@ -54,17 +59,35 @@ def fetch_options(
     cache: Cache,
     budget: RequestBudget,
 ) -> list[FlightOption]:
+    started = monotonic()
+    airports = ", ".join(city_codes)
+    route = "Outbound" if direction == "out" else "Return"
     key = _detail_key(home, city_codes, day, direction, settings, restrictions)
-    cached = options_from_cache(cache.get(key))
-    if cached is not None:
-        return cached
-
-    budget.acquire()
-    results = fli_api.fetch_leg(
-        home, city_codes, day, direction, restrictions, settings
+    options = options_from_cache(cache.get(key))
+    source = "cache"
+    if options is None:
+        logger.debug(
+            "Fetching %s %s from Google · %s",
+            route.lower(),
+            day,
+            airports,
+        )
+        budget.acquire()
+        source = "Google"
+        results = fli_api.fetch_leg(
+            home, city_codes, day, direction, restrictions, settings
+        )
+        options = options_from_results(results)
+        cache.put(key, [option.to_dict() for option in options])
+    logger.debug(
+        "%s %s · %s · %s in %.0f ms · options: %d",
+        route,
+        day,
+        airports,
+        source,
+        (monotonic() - started) * 1000,
+        len(options),
     )
-    options = options_from_results(results)
-    cache.put(key, [option.to_dict() for option in options])
     return options
 
 
@@ -78,6 +101,8 @@ def _roundtrip(
     cache: Cache,
     budget: RequestBudget,
 ) -> float | None:
+    started = monotonic()
+    airports = ", ".join(city_codes)
     key = {
         "phase": "roundtrip",
         "home": list(home),
@@ -87,16 +112,34 @@ def _roundtrip(
         "settings": settings.cache_key(),
     }
     cached = cache.get(key)
+    source = "cache"
     if isinstance(cached, (int, float)):
-        return float(cached)
-    if cached == "none":
-        return None
-    # A round-trip search costs 1 + top_n fetches; top_n=1 keeps it at two.
-    budget.acquire(2)
-    price = fli_api.roundtrip_price(
-        list(home), list(city_codes), depart_date, return_date, settings
+        price = float(cached)
+    elif cached == "none":
+        price = None
+    else:
+        roundtrip_logger.debug(
+            "Fetching %s to %s from Google · %s",
+            depart_date,
+            return_date,
+            airports,
+        )
+        # A round-trip search costs 1 + top_n fetches; top_n=1 keeps it at two.
+        budget.acquire(2)
+        source = "Google"
+        price = fli_api.roundtrip_price(
+            list(home), list(city_codes), depart_date, return_date, settings
+        )
+        cache.put(key, price if price is not None else "none")
+    roundtrip_logger.debug(
+        "%s to %s · %s · %s in %.0f ms · %s",
+        depart_date,
+        return_date,
+        airports,
+        source,
+        (monotonic() - started) * 1000,
+        f"{price} {settings.currency}" if price is not None else "no fare found",
     )
-    cache.put(key, price if price is not None else "none")
     return price
 
 
