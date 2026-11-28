@@ -13,9 +13,34 @@ const dayNames = [
   ['fri', 'Fr'], ['sat', 'Sa'], ['sun', 'So'],
 ];
 const timeFields = ['depart_after', 'depart_before', 'return_depart_after', 'return_arrive_before'];
+const searchInputKey = 'flight-search:weekend-search-input';
 const regions = new Map([['europe', 'Europa und angrenzende Länder'], ['weekend', 'Wochenendumkreis']]);
 const countryNames = new Intl.DisplayNames(['de'], { type: 'region' });
 let destinationChanged = false;
+
+function readSearchInput() {
+  try {
+    const entries = JSON.parse(localStorage.getItem(searchInputKey));
+    return Array.isArray(entries) ? new URLSearchParams(entries) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSearchInput(event) {
+  if (!event.target.name) return;
+  try {
+    localStorage.setItem(searchInputKey, JSON.stringify([...new FormData(form)]));
+  } catch {
+    // The form remains usable when storage is blocked or full.
+  }
+}
+
+function pickerSelection(saved, name, groups, defaults) {
+  if (!saved) return defaults;
+  const choices = new Set(groups.flatMap(([, items]) => items.map(([value]) => value)));
+  return saved.getAll(name).filter(value => choices.has(value));
+}
 
 async function json(url, options) {
   const response = await fetch(url, { cache: 'no-store', ...options });
@@ -65,7 +90,7 @@ function setupTimeField(input) {
     // Refresh native form validation after the time segments have been cleared.
     input.setCustomValidity('');
     input.blur();
-    sync();
+    input.dispatchEvent(new Event('input', { bubbles: true }));
   });
   for (const type of ['input', 'change', 'focus', 'blur']) input.addEventListener(type, sync);
   sync();
@@ -80,6 +105,7 @@ function timeValue(raw) {
 async function initialize() {
   const data = await json('/api/catalogs');
   const { defaults } = data;
+  const saved = readSearchInput();
   const preset = defaults.configured_destination;
   const labelForRegion = code => code === preset?.id ? preset.label : (regions.get(code) || code);
   const targetGroups = [
@@ -98,29 +124,38 @@ async function initialize() {
   for (const code of defaults.airline_codes) {
     if (!airlineCodes.has(code)) airlines.unshift([code, code, code]);
   }
-  setupPicker('#home-picker', 'home', [['Flughäfen', airports]], defaults.home, 'Abflughäfen wählen');
-  setupPicker('#destination-picker', 'destination', targetGroups, [
+  const homeGroups = [['Flughäfen', airports]];
+  const airlineGroups = [['Airlines', airlines]];
+  const defaultTargets = [
     ...defaults.regions.map(code => `region:${code}`),
     ...defaults.countries.map(code => `country:${code}`),
-  ], 'Region oder Land wählen');
-  setupPicker('#airline-picker', 'airline_codes', [['Airlines', airlines]], defaults.airline_codes, 'Alle Airlines');
+  ];
+  const home = pickerSelection(saved, 'home', homeGroups, defaults.home);
+  const targets = pickerSelection(saved, 'destination', targetGroups, defaultTargets);
+  const selectedAirlines = pickerSelection(saved, 'airline_codes', airlineGroups, defaults.airline_codes);
+  setupPicker('#home-picker', 'home', homeGroups, home, 'Abflughäfen wählen');
+  setupPicker('#destination-picker', 'destination', targetGroups, targets, 'Region oder Land wählen');
+  setupPicker('#airline-picker', 'airline_codes', airlineGroups, selectedAirlines, 'Alle Airlines');
+  destinationChanged = targets.length !== defaultTargets.length ||
+    targets.some(value => !defaultTargets.includes(value));
   document.querySelector('#destination-picker').addEventListener('change', event => {
     if (event.target.name === 'destination') destinationChanged = true;
   });
 
   for (const name of ['start', 'end', 'min_nights', 'max_nights', 'max_requests']) {
-    form.elements.namedItem(name).value = defaults[name];
+    form.elements.namedItem(name).value = saved?.get(name) ?? defaults[name];
   }
   form.elements.namedItem('start').min = defaults.start;
   form.elements.namedItem('end').min = defaults.start;
   for (const name of timeFields) {
     const input = form.elements.namedItem(name);
-    input.value = timeValue(defaults[name]);
+    input.value = saved?.get(name) ?? timeValue(defaults[name]);
     setupTimeField(input);
   }
-  form.elements.namedItem('allow_codeshare').checked = defaults.allow_codeshare;
-  setupDays('#departure-days', 'depart_days', defaults.depart_days);
-  setupDays('#return-days', 'return_days', defaults.return_days);
+  form.elements.namedItem('allow_codeshare').checked = saved ? saved.has('allow_codeshare') : defaults.allow_codeshare;
+  setupDays('#departure-days', 'depart_days', saved?.getAll('depart_days') ?? defaults.depart_days);
+  setupDays('#return-days', 'return_days', saved?.getAll('return_days') ?? defaults.return_days);
+  form.addEventListener('input', saveSearchInput);
   submit.disabled = false;
 }
 
