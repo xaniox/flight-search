@@ -354,7 +354,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _select_airports(args) -> tuple[tuple[AirportInfo, ...], list[str]]:
-    all_airports = load_airports(include_small=args.include_small)
+    all_airports = load_airports(include_small=True)
     home = _csv_tuple(args.home_airports)
     known = {a.iata for a in all_airports}
     warnings = [
@@ -650,7 +650,7 @@ def _run_weekend(args) -> int:
 def _run_airports(args) -> int:
     console = Console()
     try:
-        airports = load_airports(include_small=args.include_small)
+        airports = load_airports(include_small=True)
     except AirportDataError as exc:
         console.print(f"[bold red]Error:[/bold red] {exc}")
         return 2
@@ -658,7 +658,7 @@ def _run_airports(args) -> int:
     codes = _csv_tuple(args.dest) if args.dest else ()
     countries = frozenset(_csv_tuple(args.countries)) if args.countries else frozenset()
     selected = filter_airports(
-        destination_pool(airports, codes, countries),
+        destination_pool(airports, codes, countries, args.include_small),
         codes=codes,
         countries=countries,
         max_distance_km=max_distance,

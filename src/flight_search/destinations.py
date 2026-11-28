@@ -11,6 +11,8 @@ from flight_search.airports import (
 )
 from flight_search.config import Coordinate
 
+SMALL_AIRPORT = "small_airport"
+
 
 @dataclass(frozen=True, slots=True)
 class DestinationChoice:
@@ -28,12 +30,19 @@ def destination_pool(
     airports: tuple[AirportInfo, ...],
     codes: tuple[str, ...],
     countries: frozenset[str],
+    include_small: bool = False,
 ) -> tuple[AirportInfo, ...]:
     """The airports a destination choice draws from.
 
-    Explicit codes or countries choose from the whole snapshot; otherwise the
-    default region applies.
+    Small airports count only when named by code or when ``include_small`` is
+    set. Explicit codes or countries choose from the whole snapshot; otherwise
+    the default region applies.
     """
+    if not include_small:
+        named = {code.upper() for code in codes}
+        airports = tuple(
+            a for a in airports if a.type != SMALL_AIRPORT or a.iata in named
+        )
     if codes or countries:
         return airports
     return tuple(a for a in airports if in_default_region(a))
@@ -54,7 +63,7 @@ def select_destinations(
             if code not in known
         ]
         selected = filter_airports(
-            airports,
+            destination_pool(airports, choice.codes, (), choice.include_small),
             codes=tuple(code for code in choice.codes if code in known),
             exclude=choice.exclude_codes,
         )
@@ -62,7 +71,7 @@ def select_destinations(
 
     weekend = choice.region == "weekend"
     selected = filter_airports(
-        destination_pool(airports, (), choice.countries),
+        destination_pool(airports, (), choice.countries, choice.include_small),
         countries=choice.countries,
         max_distance_km=choice.max_distance_km if weekend else None,
         center=center,
