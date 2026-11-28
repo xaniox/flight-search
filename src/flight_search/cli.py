@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from collections.abc import Sequence
+from copy import copy
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from time import monotonic
+from typing import ClassVar
 
 from rich.console import Console
+from rich.markup import escape
 from rich.progress import (
     BarColumn,
     Progress,
@@ -18,6 +23,7 @@ from rich.progress import (
     TimeElapsedColumn,
 )
 from rich.table import Table
+from rich.text import Text
 
 from flight_search import fli_api
 from flight_search.airports import (
@@ -73,6 +79,36 @@ from flight_search.windows import (
     parse_clock,
 )
 
+logger = logging.getLogger(__name__)
+
+
+class _ConsoleLogHandler(logging.Handler):
+    """Print through the console shared with Rich progress."""
+
+    _labels: ClassVar[dict[str, str]] = {
+        "flight_search.cli": "Search",
+        "flight_search.search": "Search",
+        "flight_search.discover": "Discovery",
+        "flight_search.detail": "Confirmation",
+        "flight_search.detail.roundtrip": "Round-trip",
+        "flight_search.cache": "Cache",
+        "fli.search._tfs": "Transport",
+    }
+
+    def __init__(self, console: Console) -> None:
+        super().__init__()
+        self.console = console
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            record = copy(record)
+            record.name = self._labels.get(record.name, record.name)
+            if record.threadName and record.threadName.startswith("discovery_"):
+                record.name += f" [{record.threadName.removeprefix('discovery_')}]"
+            self.console.print(Text(self.format(record)), soft_wrap=True)
+        except Exception:  # noqa: BLE001 - report handler failures via logging
+            self.handleError(record)
+
 
 def _csv_tuple(value: str) -> tuple[str, ...]:
     return tuple(part.strip().upper() for part in value.split(",") if part.strip())
@@ -80,6 +116,35 @@ def _csv_tuple(value: str) -> tuple[str, ...]:
 
 def _csv_lower(value: str) -> tuple[str, ...]:
     return tuple(part.strip().lower() for part in value.split(",") if part.strip())
+
+
+class AirlineError(ValueError):
+    """An --airlines entry is not an IATA airline code."""
+
+
+def _airline_codes(value: str, *, source: str) -> frozenset[str]:
+    """The IATA codes of ``--airlines``: case-insensitive, blanks trimmed."""
+    codes = set()
+    for part in value.split(","):
+        entry = part.strip()
+        if not entry:
+            continue
+        if not (len(entry) == 2 and entry.isascii() and entry.isalnum()):
+            raise AirlineError(
+                f"{source} entry {entry!r} is not an airline code "
+                "(two letters or digits)."
+            )
+        codes.add(entry.upper())
+    return frozenset(codes)
+
+
+def _airline_line(airlines: frozenset[str], allow_codeshare: bool) -> str:
+    rule = (
+        "selling airline of every leg, codeshares allowed"
+        if allow_codeshare
+        else "selling and operating airline of every leg"
+    )
+    return f"airlines {', '.join(sorted(airlines))} ({rule})"
 
 
 def _weekday_label(days: frozenset[int]) -> str:
@@ -148,6 +213,14 @@ EXCLUDE_COUNTRIES_HELP = (
 INCLUDE_SMALL_HELP = (
     "Include small scheduled airports (more requests); airports named by "
     "{named} are always used, even when small."
+)
+AIRLINES_HELP = (
+    "Keep only itineraries where the selling and the operating airline of every "
+    "leg are in this list of IATA codes (comma-separated), e.g. A3,OA; "
+    "--allow-codeshare checks the selling airline only. A leg without a "
+    "reported operator counts as operated by its selling airline. The price "
+    "shown is the cheapest matching flight Google returned in a batch, so "
+    "cheaper matching flights or whole destinations can be missing."
 )
 MAX_DISTANCE_HELP = "Radius used by --region weekend (default: %(default)g)."
 
@@ -292,6 +365,18 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
         help="Latest return arrival at the home airport, local time (HH or HH:MM).",
     )
     weekend.add_argument(
+        "--airlines", action=_StoreGiven, default="", help=AIRLINES_HELP
+    )
+    weekend.add_argument(
+        "--allow-codeshare",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "With --airlines, check only the selling airline of every leg; "
+            "the operating airline may differ."
+        ),
+    )
+    weekend.add_argument(
         "--max-stops",
         default="ANY",
         help="ANY, 0/NON_STOP, 1/ONE_STOP or 2+ (default: %(default)s).",
@@ -331,7 +416,10 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
         "--compare-roundtrip",
         action=argparse.BooleanOptionalAction,
         default=False,
-        help="Price conventional same-airport round-trips for comparison.",
+        help=(
+            "Price conventional same-airport round-trips for comparison across "
+            "all airlines, even when --airlines filters the itinerary."
+        ),
     )
     weekend.add_argument(
         "--format",
@@ -376,7 +464,7 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
         "--max-requests",
         type=int,
         default=6000,
-        help="Hard ceiling on HTTP requests for the run (default: %(default)s).",
+        help="Search request budget before transport retries (default: %(default)s).",
     )
     weekend.add_argument(
         "--max-candidates",
@@ -394,7 +482,7 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
         "--batch-size",
         type=int,
         default=None,
-        help="Destination airports per phase-1 request (auto; max 14 minus home airports).",
+        help="Destination airports per discovery batch (max 10, and 14 airports total).",
     )
     weekend.add_argument(
         "--dry-run",
@@ -407,6 +495,12 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
         action=argparse.BooleanOptionalAction,
         default=False,
         help="Print full leg details.",
+    )
+    weekend.add_argument(
+        "--debug",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Log all search phases, cache activity and transport diagnostics to stderr.",
     )
     weekend.add_argument(
         "--quiet",
@@ -470,6 +564,7 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
             regions=settings.regions,
             given=frozenset(),
         )
+    weekend.set_defaults(airlines_config_path=settings.path)
     apply_defaults(settings, {"weekend": weekend, "airports": airports})
     return parser
 
@@ -541,9 +636,10 @@ def _build_settings(args) -> SearchSettings:
     )
 
 
-def _run_weekend(args) -> int:
+def _run_weekend(args, *, error_console: Console | None = None) -> int:
+    started = monotonic()
     console = Console()
-    error_console = Console(stderr=True)
+    error_console = error_console or Console(stderr=True)
     reporter = Reporter(console=error_console, quiet=args.quiet)
 
     try:
@@ -566,8 +662,17 @@ def _run_weekend(args) -> int:
             if args.return_arrive_before
             else None,
         )
-    except (DateError, TimeWindowError) as exc:
-        error_console.print(f"[bold red]Error:[/bold red] {exc}")
+        airline_source = (
+            f"{args.airlines_config_path}: 'airlines'"
+            if args.airlines_config_path is not None and "airlines" not in args.given
+            else "--airlines"
+        )
+        airlines = _airline_codes(args.airlines, source=airline_source)
+    except (DateError, TimeWindowError, AirlineError) as exc:
+        error_console.print(
+            f"[bold red]Error:[/bold red] {escape(str(exc))}",
+            soft_wrap=isinstance(exc, AirlineError),
+        )
         return 2
 
     if start < date.today():
@@ -623,7 +728,7 @@ def _run_weekend(args) -> int:
     cities = build_city_groups(destinations)
     depart_dates, return_dates = unique_dates(pairs)
     settings = _build_settings(args)
-    batch_size = max(1, args.batch_size) if args.batch_size else max(1, 14 - len(home))
+    batch_size = fli_api.destination_batch_size(len(home), args.batch_size)
     estimated = request_estimate(
         len(destinations),
         len(depart_dates),
@@ -631,6 +736,23 @@ def _run_weekend(args) -> int:
         home_airports=len(home),
         batch_size=batch_size,
         max_candidates=args.max_candidates,
+    )
+    carrier_label = ", ".join(sorted(airlines)) or "any airline"
+    if airlines and args.allow_codeshare:
+        carrier_label += " (codeshares allowed)"
+    logger.debug(
+        "%s: %s · %s to %s · %d date pairs, %d destinations · %d per batch · %s "
+        "· estimated requests: %d (budget: %d)",
+        "Dry run" if args.dry_run else "Plan",
+        ", ".join(home),
+        start,
+        end,
+        len(pairs),
+        len(destinations),
+        batch_size,
+        carrier_label,
+        estimated,
+        args.max_requests,
     )
 
     if args.format == "text":
@@ -641,6 +763,8 @@ def _run_weekend(args) -> int:
             f" · return {_weekday_label(return_days)} · {args.min_nights}–{args.max_nights} nights"
         )
         console.print(format_window_line(depart_window.label(), return_window.label()))
+        if airlines:
+            console.print(_airline_line(airlines, args.allow_codeshare))
         console.print(
             f"{len(destinations)} destination airports in {len(cities)} cities · "
             f"{len(pairs)} date pairs · up to ~{estimated} requests "
@@ -671,6 +795,9 @@ def _run_weekend(args) -> int:
         enabled=args.cache,
     )
     budget = RequestBudget(args.max_requests)
+    logger.debug(
+        "Cache: %s", f"enabled (TTL {args.cache_ttl})" if cache.active else "disabled"
+    )
 
     request = SearchRequest(
         home=home,
@@ -683,29 +810,46 @@ def _run_weekend(args) -> int:
         concurrency=max(1, args.concurrency),
         max_candidates=args.max_candidates,
         per_city=max(1, args.per_city),
+        airlines=airlines,
+        allow_codeshare=args.allow_codeshare,
     )
     try:
         result = run_search(request, cache=cache, budget=budget, progress=reporter)
     except DiscoveryAborted as exc:
-        error_console.print(f"[bold red]Error:[/bold red] {exc}")
+        error_console.print(f"[bold red]Error:[/bold red] {escape(str(exc))}")
         return 2
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
+        logger.debug("Search failed", exc_info=True)
         error_console.print(f"[bold red]Error:[/bold red] {type(exc).__name__}: {exc}")
         return 2
 
+    airline_filter = f"--airlines {','.join(sorted(airlines))}" if airlines else ""
     if not result.stats.candidates:
-        error_console.print(
-            "[bold red]No priced candidates.[/bold red] Google returned no rows for the "
-            "selected airports/dates. Try a wider date range or region."
+        explanation = (
+            f"No priced flights matched the search with {airline_filter}. "
+            "Try adjusting the airline filter or widening the date range or region."
+            if airlines
+            else "Google returned no rows for the selected airports/dates. "
+            "Try a wider date range or region."
         )
+        error_console.print(f"[bold red]No priced candidates.[/bold red] {explanation}")
         return 1
 
     pool_size = max(args.top, 100) if args.best_per_city else args.top
-    pool = result.itineraries()[:pool_size]
+    itineraries = result.itineraries()
+    pool = itineraries[:pool_size]
+    logger.debug(
+        "Ranked %d itineraries (kept %d for display)", len(itineraries), len(pool)
+    )
     if not pool:
+        explanation = (
+            f"No detailed results matched the search with {airline_filter}. "
+            "Try adjusting the airline filter or choosing another date range."
+            if airlines
+            else "Calendar prices did not reproduce in detailed searches; try another date range."
+        )
         error_console.print(
-            "[bold red]No itineraries confirmed.[/bold red] Calendar prices did not "
-            "reproduce in detailed searches; try another date range."
+            f"[bold red]No itineraries confirmed.[/bold red] {explanation}"
         )
         return 1
 
@@ -754,8 +898,13 @@ def _run_weekend(args) -> int:
         "region": "dest" if args.dest else args.region,
         "destinations": list(_csv_tuple(args.dest)) if args.dest else None,
         "countries": list(_csv_tuple(args.countries)) if args.countries else None,
+        "airlines": sorted(airlines),
+        "allow_codeshare": bool(airlines) and args.allow_codeshare,
         "settings": settings.cache_key(),
     }
+    compare_across_airlines = args.compare_roundtrip and bool(airlines)
+    if compare_across_airlines:
+        query["roundtrip_airlines"] = []
     windows = {
         "departure": depart_window.label(),
         "return": return_window.label(),
@@ -780,21 +929,37 @@ def _run_weekend(args) -> int:
     if args.format == "json":
         dump_json(payload, console)
     else:
+        query_lines = [
+            (
+                f"{len(destinations)} airports · {len(cities)} cities · "
+                f"{stats['requests']} requests · cache {stats['cache_hits']} hits"
+            ),
+        ]
+        if compare_across_airlines:
+            query_lines.append(
+                "vs RT uses a conventional round-trip across all airlines."
+            )
         render_results(
             displayed,
             console=console,
-            query_lines=[
-                (
-                    f"{len(destinations)} airports · {len(cities)} cities · "
-                    f"{stats['requests']} requests · cache {stats['cache_hits']} hits"
-                ),
-            ],
+            query_lines=query_lines,
             show_roundtrip=args.compare_roundtrip,
             verbose=args.verbose,
         )
         if args.best_per_city:
             render_best_per_city(pool, console=console)
 
+    logger.debug(
+        "Finished in %.0f ms · results shown: %d · requests: %d · cache: %d hits, "
+        "%d misses, %d writes · discovery failures: %d",
+        (monotonic() - started) * 1000,
+        len(displayed),
+        budget.used,
+        cache.stats.hits,
+        cache.stats.misses,
+        cache.stats.writes,
+        len(failures),
+    )
     return 0
 
 
@@ -862,7 +1027,32 @@ def main(argv: list[str] | None = None) -> int:
     if args.command in CONFIGURED_COMMANDS:
         _drop_file_selection(args)
     if args.command == "weekend":
-        return _run_weekend(args)
+        if not args.debug:
+            return _run_weekend(args)
+        error_console = Console(stderr=True)
+        handler = _ConsoleLogHandler(error_console)
+        handler.setFormatter(
+            logging.Formatter(
+                "%(asctime)s.%(msecs)03d %(levelname)-7s %(name)-13s | %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+        )
+        loggers = (
+            logging.getLogger("flight_search"),
+            logging.getLogger("fli.search._tfs"),
+        )
+        states = [(target, target.level, target.propagate) for target in loggers]
+        for target in loggers:
+            target.addHandler(handler)
+            target.setLevel(logging.DEBUG)
+            target.propagate = False
+        try:
+            return _run_weekend(args, error_console=error_console)
+        finally:
+            for target, level, propagate in states:
+                target.removeHandler(handler)
+                target.setLevel(level)
+                target.propagate = propagate
     if args.command == "airports":
         return _run_airports(args)
     if args.command == "refresh-airports":

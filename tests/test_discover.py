@@ -51,6 +51,7 @@ def test_batch_codes_respects_size():
 
 
 def test_airport_limit_leaves_room_for_home_airports():
+    assert max_destinations(1) == 10
     assert max_destinations(4) == 10
     assert max_destinations(6) == 8
     assert max_destinations(20) == 1

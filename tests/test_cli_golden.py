@@ -9,9 +9,15 @@ approved files under ``tests/golden/`` (``<case>.txt`` and
 
 from __future__ import annotations
 
+import io
+import json
+import logging
 import os
+import re
+import sys
 from datetime import date
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 from airport_factory import airport
@@ -20,6 +26,7 @@ from fake_flights import (
     failing_batch_detail_results,
     fake_detail_results,
 )
+from fli.search.exceptions import SearchHTTPError, SearchParseError
 
 from flight_search import cli, fli_api
 
@@ -122,3 +129,133 @@ def test_weekend_output_matches_golden(case, offline, capsys, monkeypatch):
         assert "no destination airports selected" in captured.err
     _check_golden(f"{case}.txt", captured.out)
     _check_golden(f"{case}.stderr.txt", captured.err)
+
+
+def test_discovery_abort_reports_the_causes(offline, capsys, monkeypatch):
+    def fail(origins, destinations, *args, **kwargs):
+        if destinations == ["GRO"]:
+            raise SearchParseError("Search page carried no ds:1 payload")
+        raise SearchHTTPError("Rate limited", status_code=429)
+
+    monkeypatch.setattr(fli_api, "detail_results", fail)
+    code = cli.main(
+        [
+            *BASE_ARGS,
+            "--cache-dir",
+            str(offline),
+            "--batch-size",
+            "1",
+            "--concurrency",
+            "1",
+            "--format",
+            "json",
+            "--quiet",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.out == ""
+    assert "8 of 8 processed discovery batches failed" in captured.err
+    assert "HTTP 429: 7" in captured.err
+    assert "SearchParseError: 1" in captured.err
+    assert "out 2027-03-05 GRO" in captured.err
+    assert "Search page carried no ds:1 payload" in captured.err
+
+
+def test_debug_logs_discovery_requests_and_cache_hits_to_stderr(offline, capsys):
+    args = [*BASE_ARGS, "--cache-dir", str(offline), "--format", "json", "--quiet"]
+    assert cli.main(args) == 0
+    first = capsys.readouterr()
+    assert first.err == ""
+
+    assert cli.main([*args, "--debug"]) == 0
+    second = capsys.readouterr()
+    assert '"results"' in second.out
+    assert "| Outbound 2027-03-05" not in second.out
+    assert re.search(
+        r"Discovery.* \| Outbound 2027-03-05 .* · cache in \d+ ms", second.err
+    )
+    assert re.search(r"options: \d+ → \d+ \(time\) → \d+ \(airline\)", second.err)
+
+    assert cli.main([*args, "--no-cache", "--debug"]) == 0
+    third = capsys.readouterr()
+    assert re.search(
+        r"Discovery.* \| Outbound 2027-03-05 .* · Google in \d+ ms", third.err
+    )
+
+
+def test_debug_logs_and_interactive_progress_use_separate_lines(
+    offline, capsys, monkeypatch
+):
+    class Terminal(io.StringIO):
+        def isatty(self):
+            return True
+
+    terminal = Terminal()
+    monkeypatch.setattr(sys, "stderr", terminal)
+    monkeypatch.setenv("TERM", "xterm")
+    monkeypatch.delenv("NO_COLOR")
+
+    assert (
+        cli.main(
+            [
+                *BASE_ARGS,
+                "--cache-dir",
+                str(offline),
+                "--format",
+                "json",
+                "--debug",
+                "--concurrency",
+                "1",
+            ]
+        )
+        == 0
+    )
+
+    assert json.loads(capsys.readouterr().out)["results"]
+    raw = terminal.getvalue()
+    assert "\x1b[2K" in raw
+    assert "Pricing destinations" in raw
+    plain = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", raw)
+    debug_lines = [line for line in plain.splitlines() if " DEBUG " in line]
+    assert any(re.search(r"Discovery +\| Starting", line) for line in debug_lines)
+    assert all(re.match(r"\d{4}-\d{2}-\d{2} ", line) for line in debug_lines)
+
+
+def test_debug_logs_confirmation_roundtrip_and_upstream_to_stderr(
+    offline, capsys, monkeypatch
+):
+    def log_detail_results(*args, **kwargs):
+        logging.getLogger("fli.search._tfs").debug("fli debug marker")
+        return fake_detail_results(*args, **kwargs)
+
+    monkeypatch.setattr(fli_api, "detail_results", log_detail_results)
+    args = [
+        *BASE_ARGS,
+        "--cache-dir",
+        str(offline),
+        "--format",
+        "json",
+        "--quiet",
+        "--debug",
+        "--compare-roundtrip",
+    ]
+
+    assert cli.main(args) == 0
+    cold = capsys.readouterr()
+    assert json.loads(cold.out)["results"]
+    assert re.search(r"Transport.* \| fli debug marker", cold.err)
+    assert re.search(r"Search +\| Finished", cold.err)
+    assert re.search(r"Confirmation +\| .* · Google in \d+ ms", cold.err)
+    assert re.search(r"Round-trip +\| .* · Google in \d+ ms", cold.err)
+
+    unexpected_request = Mock(side_effect=AssertionError("unexpected upstream request"))
+    monkeypatch.setattr(fli_api, "detail_results", unexpected_request)
+    assert cli.main(args) == 0
+    warm = capsys.readouterr()
+    unexpected_request.assert_not_called()
+    assert json.loads(warm.out)["results"]
+    assert re.search(r"Search +\| Finished", warm.err)
+    assert re.search(r"Confirmation +\| .* · cache in \d+ ms", warm.err)
+    assert re.search(r"Round-trip +\| .* · cache in \d+ ms", warm.err)

@@ -4,13 +4,23 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable
+from datetime import datetime
 from typing import Any
 
+from rich.cells import cell_len
 from rich.console import Console
+from rich.style import Style
 from rich.table import Table
 from rich.text import Text
 
 from flight_search.combine import FlightOption, Itinerary
+
+_WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+_AMBER = "#aa6d19"
+_COLUMN_GAP = "  "
+_LABEL_WIDTH = 3
+
+FlightColumns = tuple[Text, Text, Text, Text]
 
 SYMBOLS = {"EUR": "€", "USD": "$", "GBP": "£", "CHF": "CHF ", "JPY": "¥"}
 
@@ -24,37 +34,153 @@ def fmt_money(price: float, currency: str) -> str:
     return f"{symbol}{amount}" if symbol else f"{amount} {currency}"
 
 
-def fmt_duration(minutes: int) -> str:
-    hours, mins = divmod(int(minutes), 60)
-    if hours and mins:
-        return f"{hours}h{mins:02d}"
-    if hours:
-        return f"{hours}h"
-    return f"{mins}m"
+def _layover_time(minutes: int) -> str:
+    hours, mins = divmod(minutes, 60)
+    return f"[{hours}:{mins:02d} h]"
 
 
-def _stamp(value: str, fmt: str = "%a %d %b") -> str:
-    from datetime import datetime
+def _days_between(earlier: str, later: str) -> int:
+    return (
+        datetime.fromisoformat(later).date() - datetime.fromisoformat(earlier).date()
+    ).days
 
-    return datetime.fromisoformat(value).strftime(fmt)
+
+def _arrival_day_marker(departure: str, arrival: str) -> str:
+    days = _days_between(departure, arrival)
+    return f" +{days}" if days > 0 else ""
 
 
 def _route(option: FlightOption) -> str:
-    return f"{option.origin}→{option.destination}"
-
-
-def _timing(option: FlightOption) -> str:
-    return f"{_stamp(option.departure, '%H:%M')}–{_stamp(option.arrival, '%H:%M')}"
-
-
-def _leg_detail(option: FlightOption) -> str:
-    parts = []
+    """Show flight legs and mark any ground transfer between airports."""
+    if not option.legs:
+        return "→"
+    route = [option.origin]
     for leg in option.legs:
-        parts.append(
-            f"{leg.airline} {leg.flight_number} {leg.origin}→{leg.destination} "
-            f"{_stamp(leg.departure, '%H:%M')}–{_stamp(leg.arrival, '%H:%M')}"
+        if route[-1] != leg.origin:
+            route.extend((" ⇢ ", leg.origin))
+        route.extend(("→", leg.destination))
+    return "".join(route)
+
+
+def _flight_date(departure: datetime) -> str:
+    return f"{_WEEKDAYS[departure.weekday()]} {departure:%d.%m.}"
+
+
+def _flight_columns(
+    label: str, departure: str, arrival: str, route: Text, airline: str
+) -> FlightColumns:
+    depart_at = datetime.fromisoformat(departure)
+    arrive_at = datetime.fromisoformat(arrival)
+    when = Text(
+        f"{label:{_LABEL_WIDTH}}{_COLUMN_GAP}{_flight_date(depart_at)}", style="dim"
+    )
+    marker = _arrival_day_marker(departure, arrival)
+    times = Text(f"{depart_at:%H:%M} – {arrive_at:%H:%M}{marker}")
+    return when, route, times, Text.assemble((airline, _AMBER))
+
+
+def _direction_columns(label: str, option: FlightOption) -> FlightColumns:
+    route = Text(option.origin)
+    layovers = option.layovers
+    for index, leg in enumerate(option.legs):
+        if index:
+            airport, minutes = layovers[index - 1]
+            route.append(f" {_layover_time(minutes)}", style="dim")
+            if airport != leg.origin:
+                route.append(f" ⇢ {leg.origin}")
+        route.append(f" → {leg.destination}")
+
+    airlines = [leg.airline for leg in option.legs]
+    codes = airlines[0] if len(set(airlines)) == 1 else "/".join(airlines)
+    columns = _flight_columns(label, option.departure, option.arrival, route, codes)
+    if option.self_transfer:
+        columns[-1].append(f"{_COLUMN_GAP}self-transfer", style="dim")
+    return columns
+
+
+def _flight_line(
+    columns: tuple[Text, ...], widths: tuple[int, ...], indent: int, width: int
+) -> Text:
+    required = indent + len(_COLUMN_GAP) * (len(columns) - 1)
+    required += sum(
+        max(column.cell_len, preferred)
+        for column, preferred in zip(columns, widths, strict=True)
+    )
+    line = Text(" " * indent)
+    for index, column in enumerate(columns):
+        if index:
+            line.append(_COLUMN_GAP)
+        line.append(column)
+        if required <= width:
+            line.append(" " * max(0, widths[index] - column.cell_len))
+    return line
+
+
+def _detail_rows(label: str, option: FlightOption) -> list[FlightColumns | Text]:
+    """One row per leg, with connection notes between legs."""
+    layovers = option.layovers
+    rows: list[FlightColumns | Text] = []
+    continuation = " " * (_LABEL_WIDTH + len(_COLUMN_GAP))
+    for index, leg in enumerate(option.legs):
+        columns = _flight_columns(
+            "" if index else label,
+            leg.departure,
+            leg.arrival,
+            Text(f"{leg.origin} → {leg.destination}"),
+            f"{leg.airline} {leg.flight_number}",
         )
-    return " · ".join(parts)
+        if leg.operating_airline != leg.airline:
+            columns[-1].append("  operated by ", style="dim")
+            columns[-1].append(leg.operating_airline, style=_AMBER)
+        rows.append(columns)
+        if index < len(layovers):
+            airport, minutes = layovers[index]
+            following = option.legs[index + 1]
+            airport_change = airport != following.origin
+            connection = (
+                f"{airport} ⇢ {following.origin}" if airport_change else airport
+            )
+            note = f"{continuation}connection {connection} {_layover_time(minutes)}"
+            if airport_change:
+                note += " · airport change"
+            if _days_between(leg.arrival, following.departure) > 0:
+                note += " · overnight"
+            rows.append(Text(note, style="dim"))
+    if option.self_transfer:
+        rows.append(
+            Text(
+                f"{continuation}self-transfer: separate tickets, connections at your own risk",
+                style="dim",
+            )
+        )
+    return rows
+
+
+def _detail_links(itinerary: Itinerary, console: Console, indent: int) -> None:
+    links = [
+        (label, url)
+        for label, url in (
+            ("trip", itinerary.booking_url),
+            ("outbound", itinerary.outbound_url),
+            ("return", itinerary.return_url),
+        )
+        if url
+    ]
+    if not links:
+        return
+    if console.is_terminal:
+        line = Text(" " * indent)
+        line.append("Google Flights", style="dim")
+        for label, url in links:
+            line.append(" · ", style="dim")
+            line.append(label, style=Style(color="cyan", link=url))
+        console.print(line)
+    else:
+        for label, url in links:
+            console.print(
+                Text.assemble((" " * indent + f"{label} link: ", "dim"), url),
+                soft_wrap=True,
+            )
 
 
 def link_cell(url: str | None) -> str:
@@ -112,78 +238,83 @@ def render_results(
         console.print(Text("No itineraries matched.", style="bold red"))
         return
 
-    table = Table(box=None, pad_edge=False, show_edge=False)
-    table.add_column("#", justify="right", style="dim")
-    table.add_column("Total", justify="right", style="bold green")
-    table.add_column("City", style="cyan")
-    table.add_column("Outbound")
-    table.add_column("Return")
-    table.add_column("Nights", justify="right")
-    table.add_column("Stops", justify="right")
-    table.add_column("Open jaw", justify="center")
-    if show_roundtrip:
-        table.add_column("vs RT", justify="right")
-    table.add_column("Link", justify="center")
+    rank_width = len(str(len(itineraries)))
+    prices = [fmt_money(it.total, it.out.currency) for it in itineraries]
+    price_width = max(map(cell_len, prices))
+    place_width = max(cell_len(f"{it.city} ({it.country})") for it in itineraries)
+    indent = rank_width + price_width + 2 * len(_COLUMN_GAP)
+    result_rows = [
+        [*_detail_rows("out", it.out), *_detail_rows("in", it.ret)]
+        if verbose
+        else [_direction_columns("out", it.out), _direction_columns("in", it.ret)]
+        for it in itineraries
+    ]
+    available = console.width - indent - 3 * len(_COLUMN_GAP)
+    fitting = [
+        columns
+        for rows in result_rows
+        for columns in rows
+        if isinstance(columns, tuple)
+        and sum(column.cell_len for column in columns) <= available
+    ]
+    widths = (
+        tuple(max(column.cell_len for column in group) for group in zip(*fitting))
+        if fitting
+        else (0, 0, 0, 0)
+    )
+    # The final column has no trailing padding.
+    widths = (*widths[:-1], 0)
 
-    for rank, itinerary in enumerate(itineraries, 1):
-        out = itinerary.out
-        ret = itinerary.ret
-        outbound = (
-            f"{_stamp(out.departure, '%a %d %b')} · {_route(out)} · {_timing(out)}"
-        )
-        inbound = (
-            f"{_stamp(ret.departure, '%a %d %b')} · {_route(ret)} · {_timing(ret)}"
-        )
-        row: list[Any] = [
-            str(rank),
-            fmt_money(itinerary.total, out.currency),
-            f"{itinerary.city} ({itinerary.country})",
-            outbound,
-            inbound,
-            str(itinerary.nights),
-            f"{out.stops}/{ret.stops}",
-            itinerary.open_jaw_label or "—",
-        ]
-        if show_roundtrip:
-            if itinerary.roundtrip_delta is None:
-                row.append("n/a")
-            else:
-                delta = itinerary.roundtrip_delta
-                sign = "+" if delta >= 0 else "−"
-                row.append(f"{sign}{fmt_money(abs(delta), out.currency)}")
-        row.append(link_cell(itinerary.booking_url))
-        table.add_row(*row)
-
-    console.print(table)
-
-    if verbose:
-        console.print()
-        for rank, itinerary in enumerate(itineraries, 1):
-            console.print(
-                f"[bold]{rank}. {itinerary.city}[/bold] "
-                f"({itinerary.depart_date} → {itinerary.return_date})"
-            )
-            console.print(f"   out: {_leg_detail(itinerary.out)}")
-            console.print(f"   ret: {_leg_detail(itinerary.ret)}")
-            if itinerary.roundtrip_price is not None:
-                console.print(
-                    f"   conventional round-trip: "
-                    f"{fmt_money(itinerary.roundtrip_price, itinerary.out.currency)}"
-                )
-            if itinerary.booking_url:
-                console.print(
-                    f"   google flights: {itinerary.booking_url}", soft_wrap=True
-                )
-            if itinerary.outbound_url:
-                console.print(
-                    f"   outbound link:  {itinerary.outbound_url}", soft_wrap=True
-                )
-            if itinerary.return_url:
-                console.print(
-                    f"   return link:    {itinerary.return_url}", soft_wrap=True
-                )
+    for rank, (itinerary, price, rows) in enumerate(
+        zip(itineraries, prices, result_rows, strict=True), 1
+    ):
+        if rank > 1:
             console.print()
-    else:
+        segments = len(itinerary.out.legs) + len(itinerary.ret.legs)
+        nights = "night" if itinerary.nights == 1 else "nights"
+        segment_label = "segment" if segments == 1 else "segments"
+        head = Text.assemble(
+            (f"{rank:>{rank_width}}", "dim"),
+            _COLUMN_GAP + " " * (price_width - cell_len(price)),
+            (price, "bold green"),
+            _COLUMN_GAP,
+        )
+        head.append(itinerary.city, style="cyan")
+        country = f" ({itinerary.country})"
+        padding = place_width - cell_len(itinerary.city + country)
+        head.append(
+            f"{country}{' ' * padding} · {itinerary.nights} {nights}"
+            f" · {segments} {segment_label}",
+            style="dim",
+        )
+        if itinerary.open_jaw_label:
+            head.append(f" · Open jaw: {itinerary.open_jaw_label}", style="dim")
+        if show_roundtrip:
+            delta = itinerary.roundtrip_delta
+            comparison = "n/a"
+            if delta is not None:
+                sign = "+" if delta >= 0 else "−"
+                comparison = f"{sign}{fmt_money(abs(delta), itinerary.out.currency)}"
+            head.append(f" · vs RT {comparison}", style="dim")
+        if not verbose and console.is_terminal and itinerary.booking_url:
+            head.append(" · ", style="dim")
+            head.append("open", style=Style(color="cyan", link=itinerary.booking_url))
+
+        console.print(head)
+        for row in rows:
+            if isinstance(row, Text):
+                console.print(Text(" " * indent).append(row))
+            else:
+                console.print(_flight_line(row, widths, indent, console.width))
+        if verbose:
+            if itinerary.roundtrip_price is not None:
+                price = fmt_money(itinerary.roundtrip_price, itinerary.out.currency)
+                console.print(
+                    Text(f"{' ' * indent}conventional round-trip: {price}", style="dim")
+                )
+            _detail_links(itinerary, console, indent)
+
+    if not verbose:
         render_links(itineraries, console=console)
 
 

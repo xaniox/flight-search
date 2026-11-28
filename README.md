@@ -6,18 +6,28 @@ Karlsruhe area by default.
 
 Given a date range, a set of departure weekdays, a set of return weekdays and
 an airport region, it prices every matching weekend and returns the cheapest
-**two separate one-way tickets** — including open-jaw combinations such as
-outbound `SXB → MXP` and return `LIN → FRA`.
+**two separate one-way tickets**, including open-jaw combinations such as
+outbound `FRA → FCO` and return `CIA → FRA`.
 
 ```text
-Total  City             Outbound                          Return                            Nights  Stops  Open jaw  Link
-€49    Milan (IT)       Fri 20 Nov · SXB→MXP · 12:45–14:15  Sun 22 Nov · LIN→FRA · 17:50–19:55  2       0/0    both      open
-€76    Barcelona (ES)   Fri 13 Nov · SXB→BCN · 14:45–16:25  Mon 16 Nov · BCN→SXB · 05:50–07:45  3       0/0    —         open
+1  €135  Thessaloniki (GR) · 4 nights · 2 segments · open
+         out  Wed 10.02.  MUC → SKG                   10:20 – 13:20  A3
+         in   Sun 14.02.  SKG → MUC                   08:10 – 09:30  A3
+
+2  €163  Heraklion (GR)    · 4 nights · 4 segments · open
+         out  Wed 24.02.  MUC → ATH [2:15 h] → HER  11:05 – 17:45  A3
+         in   Sun 28.02.  HER → ATH [6:45 h] → MUC  08:10 – 17:25  A3
 ```
 
-`open` is a clickable Google Flights deep link for that exact itinerary. In
-terminals without OSC-8 hyperlink support (or when the output is piped), the
-full URLs are printed below the table; `--format json` always contains them.
+`out` and `in` show departure and arrival in local time. `segments`
+counts the flight legs in both directions combined. Layover times appear
+at the connecting airport. A route such as `MUC → LGW [3:00 h] ⇢ STN → ATH`
+uses `⇢` for the transfer between airports. Columns align across the
+displayed results when the terminal is wide enough.
+
+`open` is a clickable Google Flights deep link for that exact itinerary.
+With `--verbose`, the terminal shows labeled links for the trip, outbound
+and return. Redirected output and `--format json` include full URLs.
 
 ## Install
 
@@ -41,11 +51,9 @@ The examples below use `uv run flight-search`; a globally installed
 
 ### Windows
 
-Requires Python 3.12+, [Git for Windows](https://git-scm.com/download/win)
-(the pinned `fli` dependency is fetched from git), and uv:
+Requires Python 3.12+ and uv:
 
 ```powershell
-winget install --id Git.Git
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 uv sync
 uv run flight-search --help
@@ -121,19 +129,30 @@ uv run flight-search weekend ... --format json > results.json
 | `--depart-after`, `--depart-before` | Optional outbound departure window, local time (`17:30`, `21:15`). |
 | `--return-depart-after` | Optional earliest return departure from the destination, local time (`15:00`). |
 | `--return-arrive-before` | Optional latest return arrival at the home airport, local time. |
+| `--airlines`, `--allow-codeshare` | Keep only itineraries where the selling and the operating airline of every leg are listed, e.g. `--airlines A3,OA`; `--allow-codeshare` checks the selling airline only, and a leg without a reported operator counts as operated by its seller. The price is the cheapest matching flight Google returned in a batch, so cheaper matching flights or whole destinations can be missing. |
 | `--max-stops` | `ANY`, `0`/`NON_STOP`, `1`/`ONE_STOP`, `2+`. |
 | `--top`, `--best-per-city`, `--per-city` | Display count and city diversity in the confirmed shortlist. |
-| `--compare-roundtrip` | Also price a conventional same-airport round-trip for comparison. |
+| `--compare-roundtrip` | Also price a conventional same-airport round-trip across all airlines, even with `--airlines`. |
 | `--max-candidates` | How many city/date-pair candidates are confirmed exactly (default 60). |
 | `--cache-ttl`, `--cache`/`--no-cache` | Disk cache lifetime (default 12h) in `~/.cache/flight-search`; `--no-cache` bypasses it, `--cache` undoes `cache = false` from the config file. |
-| `--concurrency`, `--max-requests` | Parallelism and a hard request ceiling. |
+| `--concurrency`, `--max-requests` | Parallelism and a search request budget before transport retries. |
+| `--batch-size` | Discovery destinations per request, capped at 10 destinations and 14 airports total including the home airports. |
 | `--dry-run` | Print the plan and request estimate without network calls. |
+| `--debug` | Log the search plan, discovery, confirmation, round-trip comparison, and cache activity to stderr. |
 
 Every on/off option has a negative form that switches it off again, for
 example when the config file switches it on: `--no-include-small`,
-`--no-best-per-city`, `--no-compare-roundtrip`, `--no-dry-run`, `--no-verbose`
-and `--no-quiet`. `airports --help` and `weekend --help` show the defaults in
-effect, including those from the config file.
+`--no-allow-codeshare`, `--no-best-per-city`, `--no-compare-roundtrip`,
+`--no-dry-run`, `--no-verbose`, `--no-debug` and `--no-quiet`. `airports --help` and
+`weekend --help` show the defaults in effect, including those from the config file.
+
+If discovery aborts, stderr shows the counts by HTTP status or error type
+and sample batches. Add `--debug` to see how many discovery options pass the
+time window and airline filter, which lookups use the cache, and why `fli`
+retries or rejects a search page. Durations include retries. The request budget
+and result counters account for scheduled queries before transport retries.
+Use `--quiet --debug 2>flight-search.log` to capture the diagnostics without
+progress updates. JSON results are written to stdout.
 
 Time windows are optional; when omitted the whole day qualifies. That covers
 the outbound departure window (`--depart-after`/`--depart-before`), the return
@@ -157,6 +176,8 @@ An optional file `~/.config/flight-search/config.toml` (or
 home_airports = ["MUC"]          # like --from MUC
 currency = "EUR"
 exclude_countries = ["RU", "BY"]
+airlines = ["A3", "OA"]          # like --airlines A3,OA
+allow_codeshare = true           # like --allow-codeshare
 home = { lat = 48.354, lon = 11.786 }  # measure --region weekend and the km column from here
 
 [regions.levant]
@@ -182,13 +203,13 @@ a file that cannot be read or is not UTF-8, or a region named `europe` or
 
 ## How it works
 
-1. **Discovery.** The cheap calendar endpoint used by older `fli` releases is
-   gated, and Google's search page accepts at most **14 airports per request**
-   (verified: 4 home + 10 destinations works, 4 + 11 returns an empty page).
-   For each distinct departure date and return date, the tool searches batches
-   of 10 destination airports with all four home airports batched in, and keeps
-   the cheapest price per airport and date. This is where most requests go:
-   `(depart dates + return dates) × batches`.
+1. **Discovery.** For each distinct departure and return date, the tool queries
+   Google's search page in batches with all home airports, up to **10 destination
+   airports** and at most **14 airports in total**. These caps reflect live tests.
+   Both one and four home airports worked with 10 destinations. With one home
+   airport, batches of 11–13 destinations returned pages without flight data.
+   Discovery keeps the cheapest price per airport and date. Its request count
+   grows with `(depart dates + return dates) × batches`.
 2. **Shortlist.** Cities are ranked by cheapest observed outbound + cheapest
    observed return, with a per-city cap so one cheap city cannot fill the list.
 3. **Confirmation.** For each shortlisted city/date pair, complete searches
@@ -206,12 +227,25 @@ Prices are for the requested cabin and passenger count, in the requested
 currency, and are two **separate one-way tickets**: there is no
 missed-connection protection and no single-ticket open-jaw fare. Use
 `--compare-roundtrip` to see how the combination compares with a
-conventional round-trip.
+conventional round-trip. With `--airlines`, the `vs RT` reference price still
+covers all airlines. In that case, JSON reports an empty
+`query.roundtrip_airlines` list alongside the itinerary's `query.airlines`.
+
+In JSON, each `outbound` and `return` object contains `segments`, the number
+of flight legs, and `layovers`, a list of objects with `airport` (the arrival
+airport of the preceding leg) and `minutes` (time between legs). For direct
+flights, `layovers` is empty. Each direction also has a `self_transfer` flag,
+and each leg lists its `operating_airline` alongside its selling `airline`.
+
+`--verbose` shows individual legs with flight numbers in the same result
+layout.
+When a connection involves an airport change, it names both airports,
+for example `connection LGW ⇢ STN [3:00 h] · airport change`.
 
 ## Google Flights links
 
 Every confirmed itinerary gets a deterministic, offline-built
-`https://www.google.com/travel/flights/booking?tfs=…` link. The table shows a
+`https://www.google.com/travel/flights/booking?tfs=…` link. The result heading shows a
 clickable `open`; JSON carries three fields:
 
 | Field | Contents |
@@ -265,12 +299,8 @@ uv run flight-search airports --region weekend
 
 ## Dependency note
 
-`flights==0.9.0` on PyPI talks to `GetShoppingResults`/`GetCalendarGraph`,
-which Google now answers with an empty payload. The working page transport is
-only on the upstream `main` branch, so `pyproject.toml` pins the commit
-`881aee5ff4321e81ea2157cb44be94ce6a21dc1b` (version 0.10.0). Expect the exact
-transport to change again; `scripts/refresh_airports.py` and the discovery
-batch limit are the two places most likely to need adjusting.
+This project pins `flights==0.11.1` from PyPI. It fetches Google Flights prices
+from the search page.
 
 ## Development
 

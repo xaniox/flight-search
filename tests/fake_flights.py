@@ -25,6 +25,7 @@ BASE_PRICE = {
 }
 HOME_OFFSET = {"FRA": 0.0, "STR": 6.0}
 AIRLINES = (("LH", "Lufthansa"), ("FR", "Ryanair"), ("VY", "Vueling"))
+MISSING = object()
 
 
 class FakeAirport:
@@ -49,6 +50,30 @@ class FakeLeg:
         self.arrival_datetime = when + timedelta(minutes=minutes)
         self.duration = minutes
         self.aircraft = None
+
+
+class SegmentLeg(FakeLeg):
+    """A fli leg whose operator can be an airline, None or absent."""
+
+    def __init__(self, origin, destination, when, airline, operating=MISSING):
+        super().__init__(origin, destination, when, 120, airline, "100")
+        if operating is not MISSING:
+            self.operating_airline = (
+                None if operating is None else FakeAirline(*operating)
+            )
+
+
+class SegmentResult:
+    """A fli result whose self-transfer flag can be a bool, None or absent."""
+
+    def __init__(self, legs, price=50.0, self_transfer=MISSING):
+        self.legs = legs
+        self.price = price
+        self.currency = "EUR"
+        self.duration = sum(leg.duration for leg in legs)
+        self.stops = len(legs) - 1
+        if self_transfer is not MISSING:
+            self.self_transfer = self_transfer
 
 
 class FakeResult:

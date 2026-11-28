@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import tempfile
 import threading
@@ -11,6 +12,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -85,15 +88,21 @@ class Cache:
         path = self._path(key)
         try:
             raw = json.loads(path.read_text(encoding="utf-8"))
-        except (FileNotFoundError, json.JSONDecodeError, OSError):
-            self._miss()
-            return None
-        try:
             created = datetime.fromisoformat(raw["created"])
-        except (KeyError, ValueError):
+            age = datetime.now(UTC) - created
+        except FileNotFoundError:
             self._miss()
             return None
-        if datetime.now(UTC) - created > self.ttl:
+        except (OSError, KeyError, ValueError, TypeError) as exc:
+            logger.debug(
+                "Ignoring %s cache entry (%s) · %s",
+                key.get("phase", "unknown"),
+                type(exc).__name__,
+                path.name,
+            )
+            self._miss()
+            return None
+        if age > self.ttl:
             self._miss()
             return None
         self._hit()

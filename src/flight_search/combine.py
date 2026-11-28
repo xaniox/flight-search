@@ -22,6 +22,12 @@ class LegInfo:
     duration: int
     aircraft: str | None = None
     overnight: bool = False
+    operating_airline: str = ""
+    """IATA code of the operating airline; the selling ``airline`` when empty."""
+
+    def __post_init__(self) -> None:
+        if not self.operating_airline:
+            object.__setattr__(self, "operating_airline", self.airline)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -34,11 +40,15 @@ class LegInfo:
             "arrival": self.arrival,
             "duration": self.duration,
             "aircraft": self.aircraft,
+            "operating_airline": self.operating_airline,
             "overnight": self.overnight,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> LegInfo:
+        """Raises KeyError for a leg written before it carried its operator."""
+        if "operating_airline" not in data:
+            raise KeyError("operating_airline")
         return cls(**data)
 
 
@@ -53,6 +63,7 @@ class FlightOption:
     stops: int
     duration: int
     legs: tuple[LegInfo, ...] = field(default_factory=tuple)
+    self_transfer: bool = False
 
     @property
     def origin(self) -> str:
@@ -68,6 +79,23 @@ class FlightOption:
             f"{leg.airline}{leg.flight_number}@{leg.departure}" for leg in self.legs
         )
 
+    @property
+    def layovers(self) -> tuple[tuple[str, int], ...]:
+        """Airport and minutes of each connection between two consecutive legs."""
+        return tuple(
+            (
+                earlier.destination,
+                int(
+                    (
+                        datetime.fromisoformat(later.departure)
+                        - datetime.fromisoformat(earlier.arrival)
+                    ).total_seconds()
+                    // 60
+                ),
+            )
+            for earlier, later in zip(self.legs, self.legs[1:])
+        )
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "price": self.price,
@@ -76,11 +104,13 @@ class FlightOption:
             "arrival": self.arrival,
             "stops": self.stops,
             "duration": self.duration,
+            "self_transfer": self.self_transfer,
             "legs": [leg.to_dict() for leg in self.legs],
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> FlightOption:
+        """Raise KeyError for missing self-transfer or operating airline data."""
         return cls(
             price=float(data["price"]),
             currency=data["currency"],
@@ -89,11 +119,32 @@ class FlightOption:
             stops=int(data["stops"]),
             duration=int(data["duration"]),
             legs=tuple(LegInfo.from_dict(leg) for leg in data.get("legs", [])),
+            self_transfer=bool(data["self_transfer"]),
         )
+
+
+def options_from_cache(cached: Any) -> list[FlightOption] | None:
+    """The cached options, or None when the entry is absent or unreadable.
+
+    An entry written in an older shape is unreadable, so the caller fetches
+    afresh instead of using it.
+    """
+    if not isinstance(cached, list):
+        return None
+    try:
+        return [FlightOption.from_dict(item) for item in cached]
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return None
 
 
 def _clean_code(value: str) -> str:
     return value.removeprefix("_")
+
+
+def _operating_code(leg: Any) -> str:
+    """The operator's cleaned code, or "" when fli reports none."""
+    operator = getattr(leg, "operating_airline", None)
+    return _clean_code(operator.name) if operator is not None else ""
 
 
 def _option_from_result(result: Any) -> FlightOption | None:
@@ -118,6 +169,7 @@ def _option_from_result(result: Any) -> FlightOption | None:
                 duration=int(leg.duration),
                 aircraft=getattr(leg, "aircraft", None),
                 overnight=bool(getattr(leg, "overnight", False)),
+                operating_airline=_operating_code(leg),
             )
         )
     return FlightOption(
@@ -128,6 +180,7 @@ def _option_from_result(result: Any) -> FlightOption | None:
         stops=int(result.stops),
         duration=int(result.duration),
         legs=tuple(leg_infos),
+        self_transfer=bool(getattr(result, "self_transfer", False)),
     )
 
 
@@ -170,6 +223,30 @@ def filter_return_legs(
     ]
 
 
+def matches_airlines(
+    option: FlightOption, airlines: frozenset[str], allow_codeshare: bool
+) -> bool:
+    """Whether every leg is sold, and unless ``allow_codeshare`` also operated,
+    by one of ``airlines``; an empty ``airlines`` lets every option pass."""
+    if not airlines:
+        return True
+    return all(
+        leg.airline in airlines
+        and (allow_codeshare or leg.operating_airline in airlines)
+        for leg in option.legs
+    )
+
+
+def filter_airlines(
+    options: Iterable[FlightOption], airlines: frozenset[str], allow_codeshare: bool
+) -> list[FlightOption]:
+    return [
+        option
+        for option in options
+        if matches_airlines(option, airlines, allow_codeshare)
+    ]
+
+
 def reduce_best(options: Iterable[FlightOption]) -> dict[tuple[str, str], FlightOption]:
     """Cheapest option per (origin, destination) airport pair.
 
@@ -207,6 +284,16 @@ class Itinerary:
     @property
     def total(self) -> float:
         return self.out.price + self.ret.price
+
+    @property
+    def sort_key(self) -> tuple[float, int, date, date]:
+        """Total price, then the stops of both directions, then the dates."""
+        return (
+            self.total,
+            self.out.stops + self.ret.stops,
+            self.depart_date,
+            self.return_date,
+        )
 
     @property
     def nights(self) -> int:
@@ -250,14 +337,26 @@ class Itinerary:
                 "destination": self.open_jaw_destination,
                 "label": self.open_jaw_label,
             },
-            "outbound": self.out.to_dict(),
-            "return": self.ret.to_dict(),
+            "outbound": _direction_dict(self.out),
+            "return": _direction_dict(self.ret),
             "roundtrip_price": self.roundtrip_price,
             "roundtrip_delta": self.roundtrip_delta,
             "booking_url": self.booking_url,
             "outbound_url": self.outbound_url,
             "return_url": self.return_url,
         }
+
+
+def _direction_dict(option: FlightOption) -> dict[str, Any]:
+    """The option's dict plus its segment count and connections, before its legs."""
+    data = option.to_dict()
+    legs = data.pop("legs")
+    data["segments"] = len(option.legs)
+    data["layovers"] = [
+        {"airport": airport, "minutes": minutes} for airport, minutes in option.layovers
+    ]
+    data["legs"] = legs
+    return data
 
 
 def combine_itineraries(
@@ -296,5 +395,5 @@ def combine_itineraries(
                     ret=inbound,
                 )
             )
-    itineraries.sort(key=lambda item: (item.total, item.depart_date, item.return_date))
+    itineraries.sort(key=lambda item: item.sort_key)
     return itineraries
