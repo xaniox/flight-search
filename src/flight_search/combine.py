@@ -262,6 +262,16 @@ class Itinerary:
         return self.out.price + self.ret.price
 
     @property
+    def sort_key(self) -> tuple[float, int, date, date]:
+        """Total price, then the stops of both directions, then the dates."""
+        return (
+            self.total,
+            self.out.stops + self.ret.stops,
+            self.depart_date,
+            self.return_date,
+        )
+
+    @property
     def nights(self) -> int:
         return (self.return_date - self.depart_date).days
 
@@ -361,5 +371,5 @@ def combine_itineraries(
                     ret=inbound,
                 )
             )
-    itineraries.sort(key=lambda item: (item.total, item.depart_date, item.return_date))
+    itineraries.sort(key=lambda item: item.sort_key)
     return itineraries

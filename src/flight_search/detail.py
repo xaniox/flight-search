@@ -191,7 +191,7 @@ def rank_itineraries(
             seen.add(signature)
             results.append(itinerary)
 
-    results.sort(key=lambda item: (item.total, item.depart_date, item.return_date))
+    results.sort(key=lambda item: item.sort_key)
     return results
 
 
