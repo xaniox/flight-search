@@ -1,9 +1,25 @@
+function clearButton(label, className) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = className;
+  button.setAttribute('aria-label', label);
+  return button;
+}
+
 export function setupPicker(id,name,groups,defaults,placeholder) {
   const picker = document.querySelector(id);
   const summary = picker.querySelector('summary');
   const input = picker.querySelector('[type=search]');
   const options = picker.querySelector('.picker-options');
+  const filter = document.createElement('div');
+  filter.className = 'picker-filter';
+  const clearSearch = clearButton('Suchtext leeren', 'picker-search-clear');
+  clearSearch.hidden = !input.value;
+  input.before(filter);
+  filter.append(input, clearSearch);
+
   const selected = new Set(defaults);
+  const checkboxes = new Map();
   const optionGroups = [];
   const pageSize = 5;
   const choices = new Map(groups.flatMap(([,items]) => items.map(item => [item[0],item[2]])));
@@ -20,6 +36,7 @@ export function setupPicker(id,name,groups,defaults,placeholder) {
       checkbox.name = name;
       checkbox.value = value;
       checkbox.checked = selected.has(value);
+      checkboxes.set(value, checkbox);
       row.append(checkbox,shortCode ? caption + ' · ' + shortCode : caption);
       checkbox.addEventListener('change',() => {
         if (checkbox.checked) selected.add(value);
@@ -55,7 +72,22 @@ export function setupPicker(id,name,groups,defaults,placeholder) {
     for (const value of selected) {
       const chip = document.createElement('span');
       chip.className = 'selected-chip';
-      chip.textContent = choices.get(value) ?? value;
+      const label = choices.get(value) ?? value;
+      chip.textContent = label;
+      const remove = clearButton(`${label} entfernen`, 'chip-remove');
+      remove.addEventListener('click', event => {
+        event.preventDefault();
+        const restoreFocus = document.activeElement === remove;
+        const checkbox = checkboxes.get(value);
+        if (checkbox) {
+          checkbox.click();
+        } else {
+          selected.delete(value);
+          updateSummary();
+        }
+        if (restoreFocus) summary.focus();
+      });
+      chip.append(remove);
       summary.append(chip);
     }
   }
@@ -76,20 +108,31 @@ export function setupPicker(id,name,groups,defaults,placeholder) {
     empty.hidden = optionGroups.some(({group}) => !group.hidden);
   }
   input.addEventListener('input',() => {
+    clearSearch.hidden = !input.value;
     for (const optionGroup of optionGroups) optionGroup.limit = pageSize;
     filterOptions();
+  });
+  clearSearch.addEventListener('click', () => {
+    input.value = '';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.focus();
   });
   summary.addEventListener('click', event => {
     // A second click in a double click would undo the disclosure toggle.
     if (event.detail > 1) event.preventDefault();
   });
-  picker.addEventListener('toggle',() => { if (picker.open) input.focus(); });
+  picker.addEventListener('toggle', () => {
+    const active = document.activeElement;
+    if (picker.open && (active === summary || !picker.contains(active))) input.focus();
+  });
   picker.addEventListener('keydown',event => {
     if (event.key !== 'Escape' || !picker.open) return;
     picker.open = false;
     summary.focus();
   });
-  document.addEventListener('click',event => { if (!picker.contains(event.target)) picker.open = false; });
+  document.addEventListener('click', event => {
+    if (!event.composedPath().includes(picker)) picker.open = false;
+  });
   updateSummary();
   filterOptions();
 }
