@@ -18,8 +18,6 @@ class DestinationChoice:
 
     ``exclude_countries`` (upper-case ISO codes) leaves those countries out of
     region, country and radius selections, never out of explicit ``codes``.
-    ``radius_on_codes`` applies the ``weekend`` radius to explicit ``codes``
-    too, as the ``airports`` listing always did.
     """
 
     codes: tuple[str, ...] = ()
@@ -29,7 +27,6 @@ class DestinationChoice:
     exclude_codes: frozenset[str] = frozenset()
     include_small: bool = False
     exclude_countries: frozenset[str] = frozenset()
-    radius_on_codes: bool = False
 
 
 def _destination_pool(
@@ -76,12 +73,9 @@ def select_destinations(
         known_codes = tuple(code for code in choice.codes if code in known)
         if not known_codes:
             return (), warnings
-        radius = weekend and choice.radius_on_codes
         selected = filter_airports(
             _destination_pool(airports, choice.codes, (), choice.include_small),
             codes=known_codes,
-            max_distance_km=choice.max_distance_km if radius else None,
-            center=center,
             exclude=choice.exclude_codes,
         )
         return selected, warnings

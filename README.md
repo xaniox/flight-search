@@ -168,7 +168,7 @@ The keys are the option names with `_` instead of `-` (`--from` is
 and `output` means your home directory. The command line wins over the file,
 the file over the built-in default. `--dest` and `--countries` override
 `--region europe` and a named region; with `--region weekend` the radius
-still applies to `--countries`, and in `airports` also to `--dest`. Once the
+still applies to `--countries`, not to `--dest`. Once the
 command line names any of `--region`, `--countries` or `--dest`, the file's `countries` and `dest` no longer apply, so
 `countries = ["ES"]` in the file plus `--region levant` searches the Levant.
 A named region is used as `--region levant`: it selects the airports of its

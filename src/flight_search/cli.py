@@ -453,8 +453,8 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
         action=_StoreGiven,
         default=None,
         help=(
-            "Only show these codes (comma-separated); overrides --countries and "
-            "a named region, while --region weekend keeps its radius."
+            "Only show these codes (comma-separated); overrides --countries, "
+            "the region and the radius of --region weekend."
         ),
     )
 
@@ -805,11 +805,9 @@ def _run_airports(args) -> int:
     except AirportDataError as exc:
         console.print(f"[bold red]Error:[/bold red] {exc}")
         return 2
-    # The listing keeps its own behaviour on explicit codes: --region weekend
-    # still applies its radius, and unknown codes are left out without a
-    # warning (LOG-DECISION-42).
+    # The listing leaves unknown codes out without a warning.
     selected, _ = select_destinations(
-        _destination_choice(args, radius_on_codes=True),
+        _destination_choice(args),
         airports=airports,
         center=args.center,
     )

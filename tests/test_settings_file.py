@@ -799,10 +799,3 @@ def test_airports_builds_a_destination_choice_for_select_destinations(
     assert len(calls) == 1
     assert isinstance(calls[0], DestinationChoice)
     assert calls[0].codes == ("MUC",)
-
-
-def test_airports_keeps_the_weekend_radius_on_dest_codes(capsys):
-    rows = _listed(
-        capsys, "--region", "weekend", "--max-distance-km", "100", "--dest", "MUC,FKB"
-    )
-    assert set(rows) == {"FKB"}
