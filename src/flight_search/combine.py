@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from itertools import product
 from typing import Any
 
 from flight_search.windows import DepartureWindow, ReturnWindow
@@ -337,8 +338,8 @@ class Itinerary:
                 "destination": self.open_jaw_destination,
                 "label": self.open_jaw_label,
             },
-            "outbound": _direction_dict(self.out),
-            "return": _direction_dict(self.ret),
+            "outbound": direction_dict(self.out),
+            "return": direction_dict(self.ret),
             "roundtrip_price": self.roundtrip_price,
             "roundtrip_delta": self.roundtrip_delta,
             "booking_url": self.booking_url,
@@ -347,7 +348,7 @@ class Itinerary:
         }
 
 
-def _direction_dict(option: FlightOption) -> dict[str, Any]:
+def direction_dict(option: FlightOption) -> dict[str, Any]:
     """The option's dict plus its segment count and connections, before its legs."""
     data = option.to_dict()
     legs = data.pop("legs")
@@ -357,6 +358,32 @@ def _direction_dict(option: FlightOption) -> dict[str, Any]:
     ]
     data["legs"] = legs
     return data
+
+
+def _best_compatible_pairs(
+    outbound_options: Iterable[FlightOption],
+    return_options: Iterable[FlightOption],
+    compatible: Callable[[FlightOption, FlightOption], bool],
+) -> Iterable[tuple[FlightOption, FlightOption]]:
+    best: dict[tuple[str, str, str, str], tuple[FlightOption, FlightOption]] = {}
+
+    def rank(pair: tuple[FlightOption, FlightOption]) -> tuple:
+        out, back = pair
+        return (
+            out.price + back.price,
+            out.stops + back.stops,
+            out.duration + back.duration,
+            _rank(out),
+            _rank(back),
+        )
+
+    for out, back in product(outbound_options, return_options):
+        if compatible(out, back):
+            key = (out.origin, out.destination, back.origin, back.destination)
+            previous = best.get(key)
+            if previous is None or rank((out, back)) < rank(previous):
+                best[key] = (out, back)
+    return best.values()
 
 
 def combine_itineraries(
@@ -369,31 +396,43 @@ def combine_itineraries(
     return_date: date,
     outbound_options: Iterable[FlightOption],
     return_options: Iterable[FlightOption],
+    compatible: Callable[[FlightOption, FlightOption], bool] | None = None,
 ) -> list[Itinerary]:
-    out_best = reduce_best(outbound_options)
-    ret_best = reduce_best(return_options)
-    if not out_best or not ret_best:
-        return []
+    if compatible is None:
+        combinations = product(
+            reduce_best(outbound_options).values(), reduce_best(return_options).values()
+        )
+    else:
+        all_outbound, all_return = tuple(outbound_options), tuple(return_options)
+        best_pairs = tuple(
+            product(
+                reduce_best(all_outbound).values(), reduce_best(all_return).values()
+            )
+        )
+        combinations = (
+            best_pairs
+            if all(compatible(out, back) for out, back in best_pairs)
+            else _best_compatible_pairs(all_outbound, all_return, compatible)
+        )
 
     itineraries: list[Itinerary] = []
     seen: set[tuple[tuple[str, ...], tuple[str, ...]]] = set()
-    for outbound in out_best.values():
-        for inbound in ret_best.values():
-            signature = (outbound.signature, inbound.signature)
-            if signature in seen:
-                continue
-            seen.add(signature)
-            itineraries.append(
-                Itinerary(
-                    city_key=city_key,
-                    city=city,
-                    country=country,
-                    city_codes=city_codes,
-                    depart_date=depart_date,
-                    return_date=return_date,
-                    out=outbound,
-                    ret=inbound,
-                )
+    for outbound, inbound in combinations:
+        signature = (outbound.signature, inbound.signature)
+        if signature in seen:
+            continue
+        seen.add(signature)
+        itineraries.append(
+            Itinerary(
+                city_key=city_key,
+                city=city,
+                country=country,
+                city_codes=city_codes,
+                depart_date=depart_date,
+                return_date=return_date,
+                out=outbound,
+                ret=inbound,
             )
+        )
     itineraries.sort(key=lambda item: item.sort_key)
     return itineraries

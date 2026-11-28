@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Protocol
 
 from flight_search.airports import AirportInfo, build_city_groups
@@ -19,7 +19,12 @@ from flight_search.candidates import Candidate, build_candidates, select_candida
 from flight_search.combine import FlightOption, Itinerary
 from flight_search.config import SearchSettings
 from flight_search.dates import DatePair, unique_dates
-from flight_search.detail import OptionKey, confirm_options, rank_itineraries
+from flight_search.detail import (
+    OptionKey,
+    confirm_options,
+    fetch_options,
+    rank_itineraries,
+)
 from flight_search.discover import run_discovery
 from flight_search.fli_api import RequestBudget, destination_batch_size
 from flight_search.windows import DepartureWindow, ReturnWindow
@@ -32,6 +37,9 @@ __all__ = [
     "SearchRequest",
     "SearchResult",
     "SearchStats",
+    "confirm_more",
+    "missing_fetches",
+    "next_candidates",
     "run_search",
 ]
 
@@ -86,8 +94,12 @@ class SearchResult:
     options: Mapping[OptionKey, tuple[FlightOption, ...]]
     stats: SearchStats
     failures: tuple[str, ...]
+    candidates: tuple[Candidate, ...] = ()
+    """Every ranked phase-1 candidate; the shortlist is the confirmed part."""
 
-    def itineraries(self) -> list[Itinerary]:
+    def itineraries(
+        self, *, compatible: Callable[[FlightOption, FlightOption], bool] | None = None
+    ) -> list[Itinerary]:
         """Rank confirmed itineraries after applying the time and airline filters."""
         return rank_itineraries(
             self.shortlist,
@@ -96,6 +108,7 @@ class SearchResult:
             return_window=self.request.return_window,
             airlines=self.request.airlines,
             allow_codeshare=self.request.allow_codeshare,
+            compatible=compatible,
         )
 
 
@@ -196,4 +209,70 @@ def run_search(
         options=options,
         stats=stats,
         failures=failures,
+        candidates=tuple(candidates),
+    )
+
+
+def next_candidates(result: SearchResult, city_key: str, count: int) -> list[Candidate]:
+    """The next ``count`` unconfirmed candidates of one city, in rank order."""
+    confirmed = {(c.city.key, c.pair) for c in result.shortlist}
+    return [
+        c
+        for c in result.candidates
+        if c.city.key == city_key and (city_key, c.pair) not in confirmed
+    ][: max(0, count)]
+
+
+def missing_fetches(
+    result: SearchResult, candidates: Sequence[Candidate]
+) -> list[tuple[Candidate, OptionKey]]:
+    """Each (city, day, direction) the candidates need that is not confirmed yet."""
+    missing: dict[OptionKey, Candidate] = {}
+    for candidate in candidates:
+        for key in (
+            (candidate.city.key, candidate.pair.depart, "out"),
+            (candidate.city.key, candidate.pair.ret, "ret"),
+        ):
+            if key not in result.options:
+                missing.setdefault(key, candidate)
+    return [(candidate, key) for key, candidate in missing.items()]
+
+
+def confirm_more(
+    result: SearchResult,
+    city_key: str,
+    count: int,
+    *,
+    cache: Cache,
+    budget: RequestBudget,
+) -> SearchResult:
+    """Confirm the next ``count`` unconfirmed candidates of one city.
+
+    Only the days and directions that are not confirmed yet are fetched, each
+    once, so the cost matches ``missing_fetches`` with or without the cache.
+    """
+    following = next_candidates(result, city_key, count)
+    if not following:
+        return result
+    request = result.request
+    options = dict(result.options)
+    for candidate, key in missing_fetches(result, following):
+        _, day, direction = key
+        window = request.depart_window if direction == "out" else request.return_window
+        options[key] = tuple(
+            fetch_options(
+                home=request.home,
+                city_codes=candidate.city.codes,
+                day=day,
+                direction=direction,
+                restrictions=window.restrictions(),
+                settings=request.settings,
+                cache=cache,
+                budget=budget,
+            )
+        )
+    return replace(
+        result,
+        shortlist=(*result.shortlist, *following),
+        options=options,
     )

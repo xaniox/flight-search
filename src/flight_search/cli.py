@@ -5,10 +5,11 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from copy import copy
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from time import monotonic
 from typing import ClassVar
@@ -25,7 +26,6 @@ from rich.progress import (
 from rich.table import Table
 from rich.text import Text
 
-from flight_search import fli_api
 from flight_search.airports import (
     AirportDataError,
     AirportInfo,
@@ -34,8 +34,6 @@ from flight_search.airports import (
     distance_km,
     load_airports,
 )
-from flight_search.cache import Cache, default_cache_dir, parse_duration
-from flight_search.candidates import request_estimate
 from flight_search.config import (
     DEFAULT_COUNTRY,
     DEFAULT_CURRENCY,
@@ -44,17 +42,9 @@ from flight_search.config import (
     KARLSRUHE,
     SearchSettings,
 )
-from flight_search.dates import (
-    DateError,
-    expand_date_pairs,
-    parse_date,
-    parse_weekdays,
-    unique_dates,
-)
 from flight_search.destinations import DestinationChoice, select_destinations
 from flight_search.detail import add_roundtrip_comparison
 from flight_search.discover import DiscoveryAborted
-from flight_search.fli_api import RequestBudget
 from flight_search.links import attach_links
 from flight_search.refresh import refresh_airports
 from flight_search.render import (
@@ -64,7 +54,7 @@ from flight_search.render import (
     render_results,
     results_payload,
 )
-from flight_search.search import SearchRequest, run_search
+from flight_search.search import run_search
 from flight_search.settings_file import (
     BUILT_IN_REGIONS,
     ConfigError,
@@ -72,11 +62,13 @@ from flight_search.settings_file import (
     apply_defaults,
     load,
 )
-from flight_search.windows import (
-    DepartureWindow,
-    ReturnWindow,
-    TimeWindowError,
-    parse_clock,
+from flight_search.weekend import (
+    AirlineError,
+    WeekendBudgetError,
+    WeekendError,
+    WeekendQuery,
+    prepare_weekend,
+    resolve_weekend_destinations,
 )
 
 logger = logging.getLogger(__name__)
@@ -88,6 +80,7 @@ class _ConsoleLogHandler(logging.Handler):
     _labels: ClassVar[dict[str, str]] = {
         "flight_search.cli": "Search",
         "flight_search.search": "Search",
+        "flight_search.web": "Search",
         "flight_search.discover": "Discovery",
         "flight_search.detail": "Confirmation",
         "flight_search.detail.roundtrip": "Round-trip",
@@ -110,32 +103,44 @@ class _ConsoleLogHandler(logging.Handler):
             self.handleError(record)
 
 
+@contextmanager
+def _debug_logging(enabled: bool) -> Iterator[Console | None]:
+    if not enabled:
+        yield None
+        return
+
+    console = Console(stderr=True)
+    handler = _ConsoleLogHandler(console)
+    handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s.%(msecs)03d %(levelname)-7s %(name)-13s | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    )
+    loggers = (
+        logging.getLogger("flight_search"),
+        logging.getLogger("fli.search._tfs"),
+    )
+    states = [(target, target.level, target.propagate) for target in loggers]
+    for target in loggers:
+        target.addHandler(handler)
+        target.setLevel(logging.DEBUG)
+        target.propagate = False
+    try:
+        yield console
+    finally:
+        for target, level, propagate in states:
+            target.removeHandler(handler)
+            target.setLevel(level)
+            target.propagate = propagate
+
+
 def _csv_tuple(value: str) -> tuple[str, ...]:
     return tuple(part.strip().upper() for part in value.split(",") if part.strip())
 
 
 def _csv_lower(value: str) -> tuple[str, ...]:
     return tuple(part.strip().lower() for part in value.split(",") if part.strip())
-
-
-class AirlineError(ValueError):
-    """An --airlines entry is not an IATA airline code."""
-
-
-def _airline_codes(value: str, *, source: str) -> frozenset[str]:
-    """The IATA codes of ``--airlines``: case-insensitive, blanks trimmed."""
-    codes = set()
-    for part in value.split(","):
-        entry = part.strip()
-        if not entry:
-            continue
-        if not (len(entry) == 2 and entry.isascii() and entry.isalnum()):
-            raise AirlineError(
-                f"{source} entry {entry!r} is not an airline code "
-                "(two letters or digits)."
-            )
-        codes.add(entry.upper())
-    return frozenset(codes)
 
 
 def _airline_line(airlines: frozenset[str], allow_codeshare: bool) -> str:
@@ -552,6 +557,17 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
         ),
     )
 
+    web = subparsers.add_parser("web", help="Serve weekend search in a local browser.")
+    web.add_argument(
+        "--port", type=int, default=8765, help="Local port (default: %(default)s)."
+    )
+    web.add_argument(
+        "--debug",
+        action=argparse.BooleanOptionalAction,
+        default=settings.options.get("debug", True),
+        help="Log search phases and transport diagnostics to stderr (default: %(default)s).",
+    )
+
     refresh = subparsers.add_parser(
         "refresh-airports",
         help="Regenerate the vendored airport dataset from OurAirports.",
@@ -605,24 +621,13 @@ def _destination_choice(args, **extra) -> DestinationChoice:
 
 
 def _select_airports(args) -> tuple[tuple[AirportInfo, ...], list[str]]:
-    all_airports = load_airports(include_small=True)
-    home = _csv_tuple(args.home_airports)
-    known = {a.iata for a in all_airports}
-    warnings = [
-        f"Unknown or unsupported airport code: {code}"
-        for code in home
-        if code not in known
-    ]
-    if not home:
-        raise ValueError("At least one home airport is required")
-
-    choice = _destination_choice(
-        args, exclude_codes=frozenset(home) | frozenset(_csv_tuple(args.exclude))
+    return resolve_weekend_destinations(
+        _csv_tuple(args.home_airports),
+        _destination_choice(args, exclude_codes=frozenset(_csv_tuple(args.exclude))),
+        center=args.center,
+        airport_loader=load_airports,
+        warn_missing_home=True,
     )
-    destinations, destination_warnings = select_destinations(
-        choice, airports=all_airports, center=args.center
-    )
-    return destinations, warnings + destination_warnings
 
 
 def _build_settings(args) -> SearchSettings:
@@ -636,107 +641,81 @@ def _build_settings(args) -> SearchSettings:
     )
 
 
+def _weekend_query(args) -> WeekendQuery:
+    return WeekendQuery(
+        start=args.start,
+        end=args.end,
+        depart_days=(args.depart_days,),
+        return_days=(args.return_days,),
+        min_nights=args.min_nights,
+        max_nights=args.max_nights,
+        home=_csv_tuple(args.home_airports),
+        destination=_destination_choice(
+            args, exclude_codes=frozenset(_csv_tuple(args.exclude))
+        ),
+        center=args.center,
+        settings=_build_settings(args),
+        max_requests=args.max_requests,
+        depart_after=args.depart_after,
+        depart_before=args.depart_before,
+        return_depart_after=args.return_depart_after,
+        return_arrive_before=args.return_arrive_before,
+        airline_codes=tuple(args.airlines.split(",")),
+        allow_codeshare=args.allow_codeshare,
+        batch_size=args.batch_size,
+        max_candidates=args.max_candidates,
+        concurrency=args.concurrency,
+        per_city=args.per_city,
+    )
+
+
 def _run_weekend(args, *, error_console: Console | None = None) -> int:
     started = monotonic()
     console = Console()
     error_console = error_console or Console(stderr=True)
     reporter = Reporter(console=error_console, quiet=args.quiet)
 
+    airline_source = (
+        f"{args.airlines_config_path}: 'airlines'"
+        if args.airlines_config_path is not None and "airlines" not in args.given
+        else "--airlines"
+    )
+    query = _weekend_query(args)
     try:
-        start = parse_date(args.start)
-        end = parse_date(args.end)
-        depart_days = parse_weekdays([args.depart_days])
-        return_days = parse_weekdays([args.return_days])
-        pairs = expand_date_pairs(
-            start, end, depart_days, return_days, args.min_nights, args.max_nights
+        plan = prepare_weekend(
+            query,
+            today=date.today(),
+            destination_resolver=lambda: _select_airports(args),
+            airline_source=airline_source,
         )
-        depart_window = DepartureWindow(
-            after=parse_clock(args.depart_after) if args.depart_after else None,
-            before=parse_clock(args.depart_before) if args.depart_before else None,
-        )
-        return_window = ReturnWindow(
-            depart_after=parse_clock(args.return_depart_after)
-            if args.return_depart_after
-            else None,
-            arrive_before=parse_clock(args.return_arrive_before)
-            if args.return_arrive_before
-            else None,
-        )
-        airline_source = (
-            f"{args.airlines_config_path}: 'airlines'"
-            if args.airlines_config_path is not None and "airlines" not in args.given
-            else "--airlines"
-        )
-        airlines = _airline_codes(args.airlines, source=airline_source)
-    except (DateError, TimeWindowError, AirlineError) as exc:
+    except WeekendError as exc:
+        for warning in exc.warnings:
+            error_console.print(f"[yellow]warning:[/yellow] {warning}")
         error_console.print(
             f"[bold red]Error:[/bold red] {escape(str(exc))}",
             soft_wrap=isinstance(exc, AirlineError),
         )
         return 2
-
-    if start < date.today():
-        error_console.print(
-            f"[bold red]Error:[/bold red] start date {start} is in the past."
-        )
-        return 2
-
-    if not pairs:
-        error_console.print(
-            "[bold red]Error:[/bold red] no departure/return date pairs match the "
-            "weekday and night constraints inside the range."
-        )
-        return 2
-
-    home = _csv_tuple(args.home_airports)
-    if not home:
-        error_console.print(
-            "[bold red]Error:[/bold red] at least one home airport is required."
-        )
-        return 2
-    if len(home) > 8:
-        error_console.print(
-            "[bold red]Error:[/bold red] at most 8 home airports can be searched "
-            "at once (Google accepts 14 airports per request and large metros "
-            "use up to 6 destination airports)."
-        )
-        return 2
-    for code in home:
-        try:
-            fli_api.resolve_airport(code)
-        except ValueError:
-            error_console.print(
-                f"[bold red]Error:[/bold red] unknown home airport code {code!r}."
-            )
-            return 2
-
-    try:
-        destinations, warnings = _select_airports(args)
     except (AirportDataError, ValueError) as exc:
         error_console.print(f"[bold red]Error:[/bold red] {exc}")
         return 2
 
-    for warning in warnings:
+    for warning in plan.warnings:
         error_console.print(f"[yellow]warning:[/yellow] {warning}")
 
-    if not destinations:
-        error_console.print(
-            "[bold red]Error:[/bold red] no destination airports selected."
-        )
-        return 2
-
+    request = plan.request
+    home = request.home
+    destinations = request.destinations
+    pairs = request.pairs
+    start, end = plan.start, plan.end
+    depart_days, return_days = plan.depart_days, plan.return_days
+    depart_dates, return_dates = plan.depart_dates, plan.return_dates
+    depart_window, return_window = request.depart_window, request.return_window
+    settings = request.settings
+    airlines = request.airlines
+    batch_size = request.batch_size
+    estimated = plan.estimated_requests
     cities = build_city_groups(destinations)
-    depart_dates, return_dates = unique_dates(pairs)
-    settings = _build_settings(args)
-    batch_size = fli_api.destination_batch_size(len(home), args.batch_size)
-    estimated = request_estimate(
-        len(destinations),
-        len(depart_dates),
-        len(return_dates),
-        home_airports=len(home),
-        batch_size=batch_size,
-        max_candidates=args.max_candidates,
-    )
     carrier_label = ", ".join(sorted(airlines)) or "any airline"
     if airlines and args.allow_codeshare:
         carrier_label += " (codeshares allowed)"
@@ -781,38 +760,20 @@ def _run_weekend(args, *, error_console: Console | None = None) -> int:
             error_console.print(f"  … and {len(pairs) - 10} more date pairs")
         return 0
 
-    if estimated > args.max_requests:
+    try:
+        cache, budget = plan.create_resources(
+            cache_dir=args.cache_dir, cache_ttl=args.cache_ttl, cache_enabled=args.cache
+        )
+    except WeekendBudgetError as exc:
         error_console.print(
-            f"[bold red]Error:[/bold red] this run needs ~{estimated} requests, "
-            f"above --max-requests {args.max_requests}. Narrow the region or raise the limit."
+            f"[bold red]Error:[/bold red] this run needs ~{exc.estimated_requests} requests, "
+            f"above --max-requests {exc.max_requests}. Narrow the region or raise the limit."
         )
         return 2
-
-    ttl = parse_duration(args.cache_ttl)
-    cache = Cache(
-        directory=args.cache_dir or default_cache_dir(),
-        ttl=ttl,
-        enabled=args.cache,
-    )
-    budget = RequestBudget(args.max_requests)
     logger.debug(
         "Cache: %s", f"enabled (TTL {args.cache_ttl})" if cache.active else "disabled"
     )
 
-    request = SearchRequest(
-        home=home,
-        destinations=destinations,
-        pairs=tuple(pairs),
-        depart_window=depart_window,
-        return_window=return_window,
-        settings=settings,
-        batch_size=batch_size,
-        concurrency=max(1, args.concurrency),
-        max_candidates=args.max_candidates,
-        per_city=max(1, args.per_city),
-        airlines=airlines,
-        allow_codeshare=args.allow_codeshare,
-    )
     try:
         result = run_search(request, cache=cache, budget=budget, progress=reporter)
     except DiscoveryAborted as exc:
@@ -1009,7 +970,38 @@ def _run_refresh(args) -> int:
     return 0
 
 
-CONFIGURED_COMMANDS = ("weekend", "airports")
+CONFIGURED_COMMANDS = ("weekend", "airports", "web")
+
+
+def _run_web(parser: argparse.ArgumentParser, port: int) -> int:
+    from waitress import serve
+
+    from flight_search.web import create_app
+
+    if not 1 <= port <= 65535:
+        parser.error("--port must be between 1 and 65535")
+
+    today = date.today()
+    defaults = parser.parse_args(
+        [
+            "weekend",
+            "--start",
+            today.isoformat(),
+            "--end",
+            (today + timedelta(days=13)).isoformat(),
+        ]
+    )
+    app = create_app(
+        _weekend_query(defaults),
+        configured_regions=defaults.regions,
+        cache_dir=defaults.cache_dir,
+        cache_ttl=defaults.cache_ttl,
+        cache_enabled=defaults.cache,
+        rolling_dates=True,
+    )
+    Console().print(f"Open http://127.0.0.1:{port} in your browser.")
+    serve(app, host="127.0.0.1", port=port)
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1024,35 +1016,16 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigError as exc:
         _build_parser().error(str(exc))
     args = parser.parse_args(argv)
+    if args.command == "web":
+        with _debug_logging(args.debug):
+            return _run_web(parser, args.port)
     if args.command in CONFIGURED_COMMANDS:
         _drop_file_selection(args)
     if args.command == "weekend":
         if not args.debug:
             return _run_weekend(args)
-        error_console = Console(stderr=True)
-        handler = _ConsoleLogHandler(error_console)
-        handler.setFormatter(
-            logging.Formatter(
-                "%(asctime)s.%(msecs)03d %(levelname)-7s %(name)-13s | %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-            )
-        )
-        loggers = (
-            logging.getLogger("flight_search"),
-            logging.getLogger("fli.search._tfs"),
-        )
-        states = [(target, target.level, target.propagate) for target in loggers]
-        for target in loggers:
-            target.addHandler(handler)
-            target.setLevel(logging.DEBUG)
-            target.propagate = False
-        try:
+        with _debug_logging(args.debug) as error_console:
             return _run_weekend(args, error_console=error_console)
-        finally:
-            for target, level, propagate in states:
-                target.removeHandler(handler)
-                target.setLevel(level)
-                target.propagate = propagate
     if args.command == "airports":
         return _run_airports(args)
     if args.command == "refresh-airports":
