@@ -1,0 +1,6 @@
+
+Weekend getaways from FRA, STR
+Fri 05 Mar 2027 – Sun 21 Mar 2027 · depart fri · return sun · 1–4 nights
+depart 15:00–23:59 (local times)
+6 destination airports in 4 cities · 3 date pairs · up to ~126 requests (3 depart + 3 return dates × 1 batches)
+

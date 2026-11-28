@@ -105,3 +105,31 @@ def test_return_window_label():
     window = ReturnWindow(depart_after=time(15, 0), arrive_before=time(22, 0))
     assert window.label() == "depart ≥ 15:00 · arrive ≤ 22:00"
     assert ReturnWindow().label() == "any time"
+
+
+def test_restrictions_key_none_is_none():
+    from flight_search.windows import restrictions_key
+
+    assert restrictions_key(None) is None
+
+
+def test_restrictions_key_dumps_set_fields_only():
+    from flight_search.windows import restrictions_key
+
+    restrictions = DepartureWindow(
+        after=time(17, 30), before=time(21, 15)
+    ).restrictions()
+
+    assert restrictions_key(restrictions) == restrictions.model_dump(exclude_none=True)
+    assert restrictions_key(restrictions) == {
+        "earliest_departure": 17,
+        "latest_departure": 21,
+    }
+
+
+def test_restrictions_key_omits_unset_bounds():
+    from flight_search.windows import restrictions_key
+
+    restrictions = DepartureWindow(after=time(17, 0)).restrictions()
+
+    assert restrictions_key(restrictions) == {"earliest_departure": 17}

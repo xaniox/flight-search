@@ -16,10 +16,10 @@ from importlib import resources
 
 from flight_search.config import (
     INCLUDED_COUNTRIES,
-    KARLSRUHE_LAT,
-    KARLSRUHE_LON,
+    KARLSRUHE,
     MEDIUM_LARGE,
     WHOLE_COUNTRIES_IN_DEFAULT_REGION,
+    Coordinate,
 )
 
 DATA_PACKAGE = "flight_search.data"
@@ -59,12 +59,6 @@ class CityGroup:
     @property
     def codes(self) -> tuple[str, ...]:
         return tuple(a.iata for a in self.airports)
-
-    @property
-    def distance_km(self) -> float:
-        if not self.airports:
-            return float("inf")
-        return min(distance_from_karlsruhe(a) for a in self.airports)
 
 
 class AirportDataError(RuntimeError):
@@ -217,8 +211,9 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * radius * math.asin(math.sqrt(a))
 
 
-def distance_from_karlsruhe(airport: AirportInfo) -> float:
-    return haversine_km(KARLSRUHE_LAT, KARLSRUHE_LON, airport.lat, airport.lon)
+def distance_km(airport: AirportInfo, center: Coordinate = KARLSRUHE) -> float:
+    """The great-circle distance from ``center`` (Karlsruhe by default)."""
+    return haversine_km(center.lat, center.lon, airport.lat, airport.lon)
 
 
 def in_default_region(airport: AirportInfo) -> bool:
@@ -237,9 +232,10 @@ def filter_airports(
     codes: tuple[str, ...] = (),
     countries: frozenset[str] = frozenset(),
     max_distance_km: float | None = None,
+    center: Coordinate = KARLSRUHE,
     exclude: frozenset[str] = frozenset(),
 ) -> tuple[AirportInfo, ...]:
-    """Apply explicit code / country / distance filters."""
+    """Apply explicit code / country / distance filters; distances from ``center``."""
     selected = airports
     if codes:
         wanted = {c.upper() for c in codes}
@@ -248,7 +244,7 @@ def filter_airports(
         selected = tuple(a for a in selected if a.country in countries)
     if max_distance_km is not None:
         selected = tuple(
-            a for a in selected if distance_from_karlsruhe(a) <= max_distance_km
+            a for a in selected if distance_km(a, center) <= max_distance_km
         )
     if exclude:
         selected = tuple(a for a in selected if a.iata not in exclude)

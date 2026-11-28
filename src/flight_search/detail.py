@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import date
+from typing import Literal
 
 from flight_search import fli_api
 from flight_search.cache import Cache
@@ -18,13 +19,7 @@ from flight_search.combine import (
 )
 from flight_search.config import SearchSettings
 from flight_search.fli_api import RequestBudget
-from flight_search.windows import DepartureWindow, ReturnWindow
-
-
-def _restrictions_key(restrictions) -> dict | None:
-    if restrictions is None:
-        return None
-    return restrictions.model_dump(exclude_none=True)
+from flight_search.windows import DepartureWindow, ReturnWindow, restrictions_key
 
 
 def _detail_key(
@@ -41,7 +36,7 @@ def _detail_key(
         "city": list(city_codes),
         "date": day.isoformat(),
         "direction": direction,
-        "restrictions": _restrictions_key(restrictions),
+        "restrictions": restrictions_key(restrictions),
         "settings": settings.cache_key(),
     }
 
@@ -63,14 +58,9 @@ def fetch_options(
         return [FlightOption.from_dict(item) for item in cached]
 
     budget.acquire()
-    if direction == "out":
-        results = fli_api.detail_results(
-            list(home), list(city_codes), day, restrictions, settings
-        )
-    else:
-        results = fli_api.detail_results(
-            list(city_codes), list(home), day, restrictions, settings
-        )
+    results = fli_api.fetch_leg(
+        home, city_codes, day, direction, restrictions, settings
+    )
     options = options_from_results(results)
     cache.put(key, [option.to_dict() for option in options])
     return options
@@ -108,8 +98,12 @@ def _roundtrip(
     return price
 
 
-def evaluate_candidates(
-    candidates: list[Candidate],
+OptionKey = tuple[str, date, Literal["out", "ret"]]
+"""(city key, day, direction) of one phase-2 fetch."""
+
+
+def confirm_options(
+    candidates: Sequence[Candidate],
     *,
     home: tuple[str, ...],
     settings: SearchSettings,
@@ -117,11 +111,15 @@ def evaluate_candidates(
     budget: RequestBudget,
     depart_window: DepartureWindow,
     return_window: ReturnWindow,
-    pool_size: int,
-    max_candidates: int | None = None,
     progress: Callable[[int], None] | None = None,
-) -> list[Itinerary]:
-    """Confirm the shortlisted candidates with complete, per-city searches.
+) -> dict[OptionKey, tuple[FlightOption, ...]]:
+    """Fetch the complete, unfiltered options of every shortlisted candidate.
+
+    Each candidate costs one fetch per direction, in shortlist order, even when
+    an earlier candidate already asked for the same city, day and direction.
+    With the cache on, the cache answers the repeat, so request and cache
+    counts stay as before. With the cache off, the repeat is fetched again and
+    its answer overwrites the earlier entry for that city, day and direction.
 
     Phase 1 only returns the cheapest page rows, so its prices are an upper
     bound for each city, not a provable lower bound. We therefore confirm a
@@ -129,43 +127,60 @@ def evaluate_candidates(
     the result is the best of the shortlist rather than a globally proven
     optimum.
     """
-    if max_candidates is not None:
-        candidates = candidates[:max_candidates]
+    options: dict[OptionKey, tuple[FlightOption, ...]] = {}
+    for index, candidate in enumerate(candidates, 1):
+        city = candidate.city
+        for day, direction, window in (
+            (candidate.pair.depart, "out", depart_window),
+            (candidate.pair.ret, "ret", return_window),
+        ):
+            options[(city.key, day, direction)] = tuple(
+                fetch_options(
+                    home=home,
+                    city_codes=city.codes,
+                    day=day,
+                    direction=direction,
+                    restrictions=window.restrictions(),
+                    settings=settings,
+                    cache=cache,
+                    budget=budget,
+                )
+            )
+        if progress:
+            progress(index)
+    return options
 
+
+def rank_itineraries(
+    candidates: Iterable[Candidate],
+    options: Mapping[OptionKey, Sequence[FlightOption]],
+    *,
+    depart_window: DepartureWindow,
+    return_window: ReturnWindow,
+) -> list[Itinerary]:
+    """Combine each candidate's options inside the windows, cheapest first.
+
+    An itinerary whose (outbound, return) signature an earlier candidate
+    already produced is dropped. Every call builds new Itinerary objects.
+    """
     results: list[Itinerary] = []
     seen: set[tuple[tuple[str, ...], tuple[str, ...]]] = set()
-
-    for index, candidate in enumerate(candidates, 1):
-        city_codes = candidate.city.codes
-        out_options = fetch_options(
-            home=home,
-            city_codes=city_codes,
-            day=candidate.pair.depart,
-            direction="out",
-            restrictions=depart_window.restrictions(),
-            settings=settings,
-            cache=cache,
-            budget=budget,
+    for candidate in candidates:
+        city = candidate.city
+        depart, ret = candidate.pair.depart, candidate.pair.ret
+        out_options = filter_departures(
+            options.get((city.key, depart, "out"), ()), depart_window
         )
-        ret_options = fetch_options(
-            home=home,
-            city_codes=city_codes,
-            day=candidate.pair.ret,
-            direction="ret",
-            restrictions=return_window.restrictions(),
-            settings=settings,
-            cache=cache,
-            budget=budget,
+        ret_options = filter_return_legs(
+            options.get((city.key, ret, "ret"), ()), return_window, ret
         )
-        out_options = filter_departures(out_options, depart_window)
-        ret_options = filter_return_legs(ret_options, return_window, candidate.pair.ret)
         for itinerary in combine_itineraries(
-            city_key=candidate.city.key,
-            city=candidate.city.display,
-            country=candidate.city.country,
-            city_codes=candidate.city.codes,
-            depart_date=candidate.pair.depart,
-            return_date=candidate.pair.ret,
+            city_key=city.key,
+            city=city.display,
+            country=city.country,
+            city_codes=city.codes,
+            depart_date=depart,
+            return_date=ret,
             outbound_options=out_options,
             return_options=ret_options,
         ):
@@ -175,11 +190,8 @@ def evaluate_candidates(
             seen.add(signature)
             results.append(itinerary)
 
-        if progress:
-            progress(index)
-
     results.sort(key=lambda item: (item.total, item.depart_date, item.return_date))
-    return results[:pool_size]
+    return results
 
 
 def add_roundtrip_comparison(

@@ -18,6 +18,13 @@ from datetime import date, datetime, time
 from fli.models import TimeRestrictions
 
 
+def restrictions_key(restrictions: TimeRestrictions | None) -> dict | None:
+    """The cache-key form of a time restriction: only the bounds that are set."""
+    if restrictions is None:
+        return None
+    return restrictions.model_dump(exclude_none=True)
+
+
 class TimeWindowError(ValueError):
     """Invalid time window specification."""
 

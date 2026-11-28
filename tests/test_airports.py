@@ -4,7 +4,6 @@ from airport_factory import airport
 from flight_search.airports import (
     AirportInfo,
     build_city_groups,
-    distance_from_karlsruhe,
     filter_airports,
     load_airports,
 )
@@ -81,9 +80,11 @@ def test_name_overrides_fix_municipality_names(airports):
 
 
 def test_distance_and_region_filter(airports):
+    from flight_search.airports import distance_km
+
     lookup = {a.iata: a for a in airports}
-    assert distance_from_karlsruhe(lookup["FRA"]) < 200
-    assert 900 < distance_from_karlsruhe(lookup["BCN"]) < 1200
+    assert distance_km(lookup["FRA"]) < 200
+    assert 900 < distance_km(lookup["BCN"]) < 1200
     near = filter_airports(airports, max_distance_km=400)
     assert "FRA" in {a.iata for a in near}
     assert "BCN" not in {a.iata for a in near}

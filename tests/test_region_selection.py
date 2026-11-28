@@ -74,6 +74,10 @@ def test_airports_listing_weekend_region_applies_default_region_and_radius(capsy
     assert _listed_codes(capsys, "--region", "weekend") == {"FRA", "AMS", "IST"}
 
 
+def test_airports_listing_weekend_region_lists_a_dest_beyond_the_radius(capsys):
+    assert _listed_codes(capsys, "--region", "weekend", "--dest", "LIS") == {"LIS"}
+
+
 def test_airports_listing_countries_ignore_default_region(capsys):
     assert _listed_codes(capsys, "--countries", "IL,RU") == {"TLV", "LED"}
 

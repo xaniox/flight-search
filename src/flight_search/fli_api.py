@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from collections.abc import Iterable
 from datetime import date
 from typing import Any
 
@@ -122,6 +123,22 @@ def detail_results(
         )
         or []
     )
+
+
+def fetch_leg(
+    home: Iterable[str],
+    codes: Iterable[str],
+    day: date,
+    direction: str,
+    restrictions: TimeRestrictions | None,
+    settings: SearchSettings,
+) -> list[Any]:
+    """One-way results between home and codes: outbound for "out", inbound for "ret"."""
+    if direction == "out":
+        origins, destinations = list(home), list(codes)
+    else:
+        origins, destinations = list(codes), list(home)
+    return detail_results(origins, destinations, day, restrictions, settings)
 
 
 def roundtrip_price(

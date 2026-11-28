@@ -1,0 +1,3 @@
+warning: Unknown or unsupported destination code: ZZZ
+Pricing destinations: 6/6
+Confirming candidates: 3/3
