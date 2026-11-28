@@ -48,11 +48,9 @@ The examples below use `uv run flight-search`; a globally installed
 
 ### Windows
 
-Requires Python 3.12+, [Git for Windows](https://git-scm.com/download/win)
-(the pinned `fli` dependency is fetched from git), and uv:
+Requires Python 3.12+ and uv:
 
 ```powershell
-winget install --id Git.Git
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 uv sync
 uv run flight-search --help
@@ -286,12 +284,8 @@ uv run flight-search airports --region weekend
 
 ## Dependency note
 
-`flights==0.9.0` on PyPI talks to `GetShoppingResults`/`GetCalendarGraph`,
-which Google now answers with an empty payload. The working page transport is
-only on the upstream `main` branch, so `pyproject.toml` pins the commit
-`881aee5ff4321e81ea2157cb44be94ce6a21dc1b` (version 0.10.0). Expect the exact
-transport to change again; `scripts/refresh_airports.py` and the discovery
-batch limit are the two places most likely to need adjusting.
+This project pins `flights==0.11.1` from PyPI. It fetches Google Flights prices
+from the search page.
 
 ## Development
 
