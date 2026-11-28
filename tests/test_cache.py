@@ -26,6 +26,17 @@ def test_cache_expiry(tmp_path):
     assert cache.get(key) is None
 
 
+def test_cache_treats_null_created_as_a_miss(tmp_path):
+    cache = Cache(directory=tmp_path, ttl=timedelta(hours=1))
+    key = {"a": 1}
+    cache.put(key, "value")
+    record = next(tmp_path.glob("*.json"))
+    record.write_text('{"created": null, "payload": "value"}', encoding="utf-8")
+
+    assert cache.get(key) is None
+    assert cache.stats.misses == 1
+
+
 def test_cache_disabled(tmp_path):
     cache = Cache(directory=tmp_path, ttl=timedelta(hours=1), enabled=False)
     cache.put({"a": 1}, "value")
