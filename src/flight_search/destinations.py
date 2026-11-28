@@ -73,9 +73,12 @@ def select_destinations(
             for code in choice.codes
             if code not in known
         ]
+        known_codes = tuple(code for code in choice.codes if code in known)
+        if not known_codes:
+            return (), warnings
         selected = filter_airports(
             destination_pool(airports, choice.codes, (), choice.include_small),
-            codes=tuple(code for code in choice.codes if code in known),
+            codes=known_codes,
             exclude=choice.exclude_codes,
         )
         return selected, warnings
