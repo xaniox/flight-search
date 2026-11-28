@@ -9,6 +9,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/33/75/36ee89db39bb3620d1e46fe1f6ec77d6000d30ff45345699e51b4c850e83/actionlint_py-1.7.12.25.tar.gz", hash = "sha256:83f83be4cd317c79b15cbb7022787513a6994f00bfb2dd8da02fa4e62b4f640d", size = 12438, upload-time = "2026-09-22T16:24:42.477Z" }
 
 [[package]]
+name = "airportsdata"
+version = "20261126"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/93/2066124e7da894d02948891a8ffa01dd1e94b70fd1e3be6f6fc5c9c5d3c0/airportsdata-20261126.tar.gz", hash = "sha256:bffb15311f0b0de3612d991fd4ed1153c6216bced46970428b89caf00a44c3e8", size = 950296, upload-time = "2026-11-26T06:22:38.355Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/06/35/28fb45cd3f023835416145ae6158e71d47b74ede2e40b236b14796f0fec4/airportsdata-20261126-py3-none-any.whl", hash = "sha256:e2ff963f4612a1bd56eb4dc059da35f2e9cfd6678a0812e4e611c12b8226abe0", size = 937930, upload-time = "2026-11-26T06:22:36.602Z" },
+]
+
+[[package]]
 name = "annotated-doc"
 version = "0.0.5"
 source = { registry = "https://pypi.org/simple" }
@@ -233,9 +242,11 @@ name = "flight-search"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "airportsdata" },
     { name = "flask" },
     { name = "flights" },
     { name = "rich" },
+    { name = "tzdata" },
     { name = "waitress" },
 ]
 
@@ -248,9 +259,11 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "airportsdata", specifier = ">=20261126" },
     { name = "flask", specifier = ">=3.1" },
     { name = "flights", specifier = "==0.11.1" },
     { name = "rich", specifier = ">=13.7" },
+    { name = "tzdata", specifier = ">=2026.6" },
     { name = "waitress", specifier = ">=3.0" },
 ]
 
@@ -782,6 +795,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ff/50/0195198eb1d75bab716bb0a813abea4cc394bfa17a92a189f021a34859af/typing_inspection-0.4.5.tar.gz", hash = "sha256:7f16c411e7930dc79596d42ab44672a3fe5f60eb34b781a1647e7872363120c7", size = 81194, upload-time = "2026-11-04T14:13:23.774Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/de/0c/ea2544850a7c135e15033a5c7a8e7211136184b7ae63e2239d557c2b3019/typing_inspection-0.4.5-py3-none-any.whl", hash = "sha256:bc210535442b39e1bf2805e0c7a17dfd6a4ace760c84c7f7d16245d23a6b1c39", size = 14874, upload-time = "2026-11-04T14:13:22.616Z" },
+]
+
+[[package]]
+name = "tzdata"
+version = "2026.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7a/29/6a1391d31cd00ff9e927215a224a880e1e84e826b64ba80a499e51c074d8/tzdata-2026.6.tar.gz", hash = "sha256:85d2cd9c09f81f0bb29db27759fc83af4f1e620efb814f8c5bf8b4cc4feece6d", size = 201017, upload-time = "2026-10-28T09:57:09.137Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0a/66/9a06c2227fedfd4919f0eaaa8b94377d9730882a7e4f95823c9a331ab5e1/tzdata-2026.6-py2.py3-none-any.whl", hash = "sha256:0a10eec6e13ef16b627fabed9a5f2ba61a62b1c67f327305f4e7e412a70b4aec", size = 348210, upload-time = "2026-10-28T09:57:07.276Z" },
 ]
 
 [[package]]

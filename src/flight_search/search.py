@@ -87,7 +87,9 @@ class SearchResult:
     stats: SearchStats
     failures: tuple[str, ...]
 
-    def itineraries(self) -> list[Itinerary]:
+    def itineraries(
+        self, *, compatible: Callable[[FlightOption, FlightOption], bool] | None = None
+    ) -> list[Itinerary]:
         """Rank confirmed itineraries after applying the time and airline filters."""
         return rank_itineraries(
             self.shortlist,
@@ -96,6 +98,7 @@ class SearchResult:
             return_window=self.request.return_window,
             airlines=self.request.airlines,
             allow_codeshare=self.request.allow_codeshare,
+            compatible=compatible,
         )
 
 

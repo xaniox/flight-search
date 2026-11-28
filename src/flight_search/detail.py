@@ -223,6 +223,7 @@ def rank_itineraries(
     return_window: ReturnWindow,
     airlines: frozenset[str] = frozenset(),
     allow_codeshare: bool = False,
+    compatible: Callable[[FlightOption, FlightOption], bool] | None = None,
 ) -> list[Itinerary]:
     """Combine each candidate's options inside the windows that pass the
     airline check, cheapest first.
@@ -255,6 +256,7 @@ def rank_itineraries(
             return_date=ret,
             outbound_options=out_options,
             return_options=ret_options,
+            compatible=compatible,
         ):
             signature = (itinerary.out.signature, itinerary.ret.signature)
             if signature in seen:

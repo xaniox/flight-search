@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from functools import cache
 from uuid import uuid4
 
+from flight_search.airport_timezones import arrival_utc, departure_utc, stay_minutes
 from flight_search.combine import FlightOption, direction_dict
 from flight_search.config import SearchSettings
 from flight_search.detail import OptionKey, eligible_options
@@ -16,10 +17,32 @@ from flight_search.search import SearchResult
 logger = logging.getLogger(__name__)
 
 
+def _compatible_instants(arrival: int | None, departure: int | None) -> bool:
+    return arrival is None or departure is None or departure >= arrival
+
+
 def pair_results(result: SearchResult, settings: SearchSettings, top: int) -> dict:
-    pairs = result.itineraries()[:top]
+    outbound_arrival = cache(arrival_utc)
+    inbound_departure = cache(departure_utc)
+
+    def compatible(outbound: FlightOption, inbound: FlightOption) -> bool:
+        return _compatible_instants(
+            outbound_arrival(outbound), inbound_departure(inbound)
+        )
+
+    itineraries = (
+        result.itineraries(compatible=compatible)
+        if isinstance(result, SearchResult)
+        else result.itineraries()
+    )
+    pairs = itineraries[:top]
     attach_links(pairs, settings)
-    return {"pairs": [pair.to_dict() for pair in pairs]}
+    return {
+        "pairs": [
+            {**pair.to_dict(), "stay_minutes": stay_minutes(pair.out, pair.ret)}
+            for pair in pairs
+        ]
+    }
 
 
 @dataclass(slots=True)
@@ -38,7 +61,9 @@ class OutboundProjection:
             "return_groups": self.return_groups,
         }
 
-    def add_options(self, flights: list[FlightOption]) -> list[str]:
+    def add_options(self, flights: list[FlightOption], *, outbound: bool) -> list[str]:
+        timestamp_field = "arrival_utc" if outbound else "departure_utc"
+        flight_timestamp = arrival_utc if outbound else departure_utc
         ids = []
         for flight in flights:
             option_id = uuid4().hex
@@ -52,6 +77,7 @@ class OutboundProjection:
             self.options[option_id] = {
                 **direction_dict(flight),
                 "booking_url": url,
+                timestamp_field: flight_timestamp(flight),
             }
         return ids
 
@@ -63,6 +89,11 @@ class OutboundProjection:
     def booking_url(self, outbound_id: str, return_id: str) -> str | None:
         for group_id in self._returns_by_outbound.get(outbound_id, ()):
             if return_id in self.return_groups[group_id]["options"]:
+                if not _compatible_instants(
+                    self.options[outbound_id]["arrival_utc"],
+                    self.options[return_id]["departure_utc"],
+                ):
+                    return None
                 return itinerary_url(
                     self._flights[outbound_id], self._flights[return_id], self.settings
                 )
@@ -101,14 +132,14 @@ def project_outbound_choices(result: SearchResult) -> OutboundProjection:
             return_ids[return_key] = group_id
             projection.return_groups[group_id] = {
                 "date": ret.isoformat(),
-                "options": projection.add_options(inbound),
+                "options": projection.add_options(inbound, outbound=False),
             }
         if out_key not in out_groups:
             group = {
                 "city": city.display,
                 "country": city.country,
                 "date": depart.isoformat(),
-                "options": projection.add_options(outbound),
+                "options": projection.add_options(outbound, outbound=True),
                 "return_groups": [],
             }
             out_groups[out_key] = group

@@ -4,9 +4,11 @@ version = "0.1.0"
 description = "Weekend-getaway / open-jaw flight search on top of the fli (Google Flights) library"
 requires-python = ">=3.12"
 dependencies = [
+    "airportsdata>=20261126",
     "flask>=3.1",
     "flights==0.11.1",
     "rich>=13.7",
+    "tzdata>=2026.6",
     "waitress>=3.0",
 ]
 

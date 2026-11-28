@@ -13,6 +13,19 @@ function duration(minutes) {
   return `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')} min`;
 }
 
+function tripMetrics(stay, travel) {
+  const row = element('p', undefined, 'metrics');
+  let label = 'Aufenthaltszeit unbekannt';
+  if (Number.isInteger(stay) && stay >= 0) {
+    const days = Math.floor(stay / 1440);
+    const hours = Math.floor((stay % 1440) / 60);
+    const minutes = stay % 60;
+    label = `${days ? days + ' d ' : ''}${hours} h ${minutes} min am Ziel`;
+  }
+  row.append(element('span', label), element('span', `${duration(travel)} Reisezeit gesamt`));
+  return row;
+}
+
 function localTime(timestamp) {
   return timestamp.slice(11, 16);
 }
@@ -80,7 +93,7 @@ function pairCard(pair) {
     heading,
     direction('Hinflug', pair.outbound),
     direction('Rückflug', pair.return),
-    element('p', `${duration(travelTime(pair.outbound, pair.return))} Reisezeit gesamt`, 'metrics'),
+    tripMetrics(pair.stay_minutes, travelTime(pair.outbound, pair.return)),
   );
 
   const details = element('div', undefined, 'detail-body');
@@ -134,11 +147,10 @@ function returnCard(outbound, inbound, date, total, travel, combinedUrl) {
   const chevron = element('span', '⌄', 'chevron');
   chevron.setAttribute('aria-hidden', 'true');
   heading.append(chevron);
-  summary.append(
-    heading,
-    direction('Rückflug', inbound),
-    element('p', `${duration(travel)} Reisezeit gesamt`, 'metrics'),
-  );
+  const stay = Number.isInteger(outbound.arrival_utc) && Number.isInteger(inbound.departure_utc)
+    ? Math.floor((inbound.departure_utc - outbound.arrival_utc) / 60)
+    : null;
+  summary.append(heading, direction('Rückflug', inbound), tripMetrics(stay, travel));
   const details = element('div', undefined, 'detail-body');
   const links = element('div', undefined, 'actions');
   links.append(...[
@@ -153,9 +165,16 @@ function returnCard(outbound, inbound, date, total, travel, combinedUrl) {
   return card;
 }
 
+function canCombine(outbound, inbound) {
+  return !Number.isFinite(outbound.arrival_utc)
+    || !Number.isFinite(inbound.departure_utc)
+    || inbound.departure_utc >= outbound.arrival_utc;
+}
+
 function showReturns(row) {
   const { id, outbound } = row;
-  const entries = row.returnGroups.flatMap(group => group.options.map(({ id, option }) => ({
+  const entries = row.returnGroups.flatMap(group => group.options
+    .filter(({ option }) => canCombine(outbound, option)).map(({ id, option }) => ({
     id,
     option,
     date: group.date,
@@ -259,21 +278,28 @@ export function showResults(result, url) {
     return [id, {
       date: group.date,
       options: entries,
-      lowestPrice: Math.min(...entries.map(entry => entry.option.price)),
-      shortestTime: Math.min(...entries.map(entry => entry.option.duration)),
     }];
   }));
   outboundRows = outbound_groups.flatMap(group => {
     const returnGroups = group.return_groups.map(id => returns.get(id));
-    const lowestPrice = Math.min(...returnGroups.map(group => group.lowestPrice));
-    const shortestTime = Math.min(...returnGroups.map(group => group.shortestTime));
-    return group.options.map(id => {
+    return group.options.flatMap(id => {
       const outbound = options[id];
-      return {
+      let lowestPrice = Infinity;
+      let shortestTime = Infinity;
+      for (const { options: inbound } of returnGroups) {
+        for (const { option } of inbound) {
+          if (canCombine(outbound, option)) {
+            lowestPrice = Math.min(lowestPrice, option.price);
+            shortestTime = Math.min(shortestTime, option.duration);
+          }
+        }
+      }
+      if (!Number.isFinite(lowestPrice)) return [];
+      return [{
         id, outbound, returnGroups, city: group.city, date: group.date,
         price: outbound.price + lowestPrice,
         travel: outbound.duration + shortestTime,
-      };
+      }];
     });
   });
   renderPairs();
