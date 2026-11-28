@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field, replace
 
 from flight_search.airports import (
     AirportInfo,
@@ -23,6 +24,19 @@ class DestinationChoice:
     codes: tuple[str, ...] = ()
     countries: frozenset[str] = frozenset()
     region: str = "europe"
+    max_distance_km: float | None = None
+    exclude_codes: frozenset[str] = frozenset()
+    include_small: bool = False
+    exclude_countries: frozenset[str] = frozenset()
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class BrowserDestinationChoice:
+    """The union of selected regions and countries in the browser."""
+
+    regions: tuple[str, ...] = ()
+    countries: frozenset[str] = frozenset()
+    configured_regions: Mapping[str, frozenset[str]] = field(default_factory=dict)
     max_distance_km: float | None = None
     exclude_codes: frozenset[str] = frozenset()
     include_small: bool = False
@@ -56,12 +70,17 @@ def _destination_pool(
 
 
 def select_destinations(
-    choice: DestinationChoice,
+    choice: DestinationChoice | BrowserDestinationChoice,
     *,
     airports: tuple[AirportInfo, ...],
     center: Coordinate,
 ) -> tuple[tuple[AirportInfo, ...], list[str]]:
     """The selected airports and the warnings about unknown codes."""
+    if isinstance(choice, BrowserDestinationChoice):
+        return _select_browser_destinations(
+            choice, airports=airports, center=center
+        ), []
+
     weekend = choice.region == "weekend"
     if choice.codes:
         known = {a.iata for a in airports}
@@ -94,3 +113,35 @@ def select_destinations(
         exclude=choice.exclude_codes,
     )
     return selected, []
+
+
+def _select_browser_destinations(
+    choice: BrowserDestinationChoice,
+    *,
+    airports: tuple[AirportInfo, ...],
+    center: Coordinate,
+) -> tuple[AirportInfo, ...]:
+    common = DestinationChoice(
+        max_distance_km=choice.max_distance_km,
+        exclude_codes=choice.exclude_codes,
+        include_small=choice.include_small,
+        exclude_countries=choice.exclude_countries,
+    )
+    subsets = []
+    if choice.countries:
+        subsets.append(replace(common, countries=choice.countries))
+    for region in choice.regions:
+        if region in ("europe", "weekend"):
+            subsets.append(replace(common, region=region))
+        elif region in choice.configured_regions:
+            countries = choice.configured_regions[region]
+            if countries:
+                subsets.append(replace(common, countries=countries))
+        else:
+            raise ValueError(f"Unknown destination region: {region!r}")
+
+    by_code: dict[str, AirportInfo] = {}
+    for subset in subsets:
+        selected, _ = select_destinations(subset, airports=airports, center=center)
+        by_code.update((airport.iata, airport) for airport in selected)
+    return tuple(by_code[code] for code in sorted(by_code))

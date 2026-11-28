@@ -19,7 +19,11 @@ from flight_search.dates import (
     parse_weekdays,
     unique_dates,
 )
-from flight_search.destinations import DestinationChoice, select_destinations
+from flight_search.destinations import (
+    BrowserDestinationChoice,
+    DestinationChoice,
+    select_destinations,
+)
 from flight_search.fli_api import RequestBudget, destination_batch_size, resolve_airport
 from flight_search.search import SearchRequest
 from flight_search.windows import (
@@ -66,7 +70,7 @@ class WeekendQuery:
     min_nights: int
     max_nights: int
     home: tuple[str, ...]
-    destination: DestinationChoice
+    destination: DestinationChoice | BrowserDestinationChoice
     center: Coordinate
     settings: SearchSettings
     max_requests: int
@@ -127,7 +131,7 @@ def _airline_codes(values: tuple[str, ...], *, source: str) -> frozenset[str]:
 
 def resolve_weekend_destinations(
     home: tuple[str, ...],
-    choice: DestinationChoice,
+    choice: DestinationChoice | BrowserDestinationChoice,
     *,
     center: Coordinate,
     airport_loader: AirportLoader,
