@@ -1,8 +1,9 @@
 """The search core: discovery, candidate selection and confirmation.
 
 Free of argparse and rich, so the command line and later front ends share it.
-The result keeps the unfiltered phase-2 options; ``SearchResult.itineraries()``
-applies the windows and ranks them, and cutting to a top N is the caller's.
+The result keeps the unfiltered phase-2 options. ``SearchResult.itineraries()``
+applies the time windows and airline filter, then ranks the itineraries.
+The caller can limit how many to return.
 """
 
 from __future__ import annotations
@@ -56,6 +57,10 @@ class SearchRequest:
     concurrency: int
     max_candidates: int
     per_city: int
+    airlines: frozenset[str] = frozenset()
+    """IATA codes every leg must be sold and operated by; empty means any."""
+    allow_codeshare: bool = False
+    """Check only the selling airline of each leg against ``airlines``."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,12 +85,14 @@ class SearchResult:
     failures: tuple[str, ...]
 
     def itineraries(self) -> list[Itinerary]:
-        """All confirmed itineraries inside the windows, cheapest first."""
+        """Rank confirmed itineraries after applying the time and airline filters."""
         return rank_itineraries(
             self.shortlist,
             self.options,
             depart_window=self.request.depart_window,
             return_window=self.request.return_window,
+            airlines=self.request.airlines,
+            allow_codeshare=self.request.allow_codeshare,
         )
 
 
@@ -125,6 +132,8 @@ def run_search(
             batch_size=request.batch_size,
             concurrency=request.concurrency,
             progress=update,
+            airlines=request.airlines,
+            allow_codeshare=request.allow_codeshare,
         )
     finally:
         if progress:

@@ -223,6 +223,30 @@ def filter_return_legs(
     ]
 
 
+def matches_airlines(
+    option: FlightOption, airlines: frozenset[str], allow_codeshare: bool
+) -> bool:
+    """Whether every leg is sold, and unless ``allow_codeshare`` also operated,
+    by one of ``airlines``; an empty ``airlines`` lets every option pass."""
+    if not airlines:
+        return True
+    return all(
+        leg.airline in airlines
+        and (allow_codeshare or leg.operating_airline in airlines)
+        for leg in option.legs
+    )
+
+
+def filter_airlines(
+    options: Iterable[FlightOption], airlines: frozenset[str], allow_codeshare: bool
+) -> list[FlightOption]:
+    return [
+        option
+        for option in options
+        if matches_airlines(option, airlines, allow_codeshare)
+    ]
+
+
 def reduce_best(options: Iterable[FlightOption]) -> dict[tuple[str, str], FlightOption]:
     """Cheapest option per (origin, destination) airport pair.
 

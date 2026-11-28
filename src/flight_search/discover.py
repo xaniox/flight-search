@@ -17,6 +17,7 @@ from datetime import date
 from flight_search import fli_api
 from flight_search.cache import Cache
 from flight_search.combine import (
+    filter_airlines,
     filter_departures,
     filter_return_legs,
     options_from_cache,
@@ -100,8 +101,14 @@ def run_discovery(
     progress: Callable[[int], None] | None = None,
     failure_ratio: float = 0.1,
     min_consecutive_failures: int = 8,
+    airlines: frozenset[str] = frozenset(),
+    allow_codeshare: bool = False,
 ) -> DiscoveryResult:
-    """Price all destination airports for every distinct departure/return date."""
+    """Price all destination airports for every distinct departure/return date.
+
+    Only options that pass the airline check give a price; the cache keeps the
+    unchecked options, so every airline list shares the same entries.
+    """
     per_request = batch_size or fli_api.max_destinations(len(home))
     per_request = max(1, min(per_request, fli_api.max_destinations(len(home))))
     batches = batch_codes(sorted(destinations), per_request)
@@ -140,6 +147,7 @@ def run_discovery(
                 options = filter_departures(options, depart_window)
             else:
                 options = filter_return_legs(options, return_window, day)
+            options = filter_airlines(options, airlines, allow_codeshare)
             wanted = set(batch)
             prices: dict[str, float] = {}
             for option in options:

@@ -17,6 +17,8 @@
     "region": "europe",
     "destinations": null,
     "countries": null,
+    "airlines": [],
+    "allow_codeshare": false,
     "settings": {
       "cabin": "ECONOMY",
       "max_stops": "ANY",

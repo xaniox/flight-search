@@ -128,9 +128,10 @@ uv run flight-search weekend ... --format json > results.json
 | `--depart-after`, `--depart-before` | Optional outbound departure window, local time (`17:30`, `21:15`). |
 | `--return-depart-after` | Optional earliest return departure from the destination, local time (`15:00`). |
 | `--return-arrive-before` | Optional latest return arrival at the home airport, local time. |
+| `--airlines`, `--allow-codeshare` | Keep only itineraries where the selling and the operating airline of every leg are listed, e.g. `--airlines A3,OA`; `--allow-codeshare` checks the selling airline only, and a leg without a reported operator counts as operated by its seller. The price is the cheapest matching flight Google returned in a batch, so cheaper matching flights or whole destinations can be missing. |
 | `--max-stops` | `ANY`, `0`/`NON_STOP`, `1`/`ONE_STOP`, `2+`. |
 | `--top`, `--best-per-city`, `--per-city` | Display count and city diversity in the confirmed shortlist. |
-| `--compare-roundtrip` | Also price a conventional same-airport round-trip for comparison. |
+| `--compare-roundtrip` | Also price a conventional same-airport round-trip across all airlines, even with `--airlines`. |
 | `--max-candidates` | How many city/date-pair candidates are confirmed exactly (default 60). |
 | `--cache-ttl`, `--cache`/`--no-cache` | Disk cache lifetime (default 12h) in `~/.cache/flight-search`; `--no-cache` bypasses it, `--cache` undoes `cache = false` from the config file. |
 | `--concurrency`, `--max-requests` | Parallelism and a hard request ceiling. |
@@ -138,9 +139,9 @@ uv run flight-search weekend ... --format json > results.json
 
 Every on/off option has a negative form that switches it off again, for
 example when the config file switches it on: `--no-include-small`,
-`--no-best-per-city`, `--no-compare-roundtrip`, `--no-dry-run`, `--no-verbose`
-and `--no-quiet`. `airports --help` and `weekend --help` show the defaults in
-effect, including those from the config file.
+`--no-allow-codeshare`, `--no-best-per-city`, `--no-compare-roundtrip`,
+`--no-dry-run`, `--no-verbose` and `--no-quiet`. `airports --help` and
+`weekend --help` show the defaults in effect, including those from the config file.
 
 Time windows are optional; when omitted the whole day qualifies. That covers
 the outbound departure window (`--depart-after`/`--depart-before`), the return
@@ -164,6 +165,8 @@ An optional file `~/.config/flight-search/config.toml` (or
 home_airports = ["MUC"]          # like --from MUC
 currency = "EUR"
 exclude_countries = ["RU", "BY"]
+airlines = ["A3", "OA"]          # like --airlines A3,OA
+allow_codeshare = true           # like --allow-codeshare
 home = { lat = 48.354, lon = 11.786 }  # measure --region weekend and the km column from here
 
 [regions.levant]
@@ -213,7 +216,9 @@ Prices are for the requested cabin and passenger count, in the requested
 currency, and are two **separate one-way tickets**: there is no
 missed-connection protection and no single-ticket open-jaw fare. Use
 `--compare-roundtrip` to see how the combination compares with a
-conventional round-trip.
+conventional round-trip. With `--airlines`, the `vs RT` reference price still
+covers all airlines. In that case, JSON reports an empty
+`query.roundtrip_airlines` list alongside the itinerary's `query.airlines`.
 
 In JSON, each `outbound` and `return` object contains `segments`, the number
 of flight legs, and `layovers`, a list of objects with `airport` (the arrival

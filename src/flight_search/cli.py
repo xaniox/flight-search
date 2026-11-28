@@ -10,6 +10,7 @@ from datetime import date
 from pathlib import Path
 
 from rich.console import Console
+from rich.markup import escape
 from rich.progress import (
     BarColumn,
     Progress,
@@ -82,6 +83,35 @@ def _csv_lower(value: str) -> tuple[str, ...]:
     return tuple(part.strip().lower() for part in value.split(",") if part.strip())
 
 
+class AirlineError(ValueError):
+    """An --airlines entry is not an IATA airline code."""
+
+
+def _airline_codes(value: str, *, source: str) -> frozenset[str]:
+    """The IATA codes of ``--airlines``: case-insensitive, blanks trimmed."""
+    codes = set()
+    for part in value.split(","):
+        entry = part.strip()
+        if not entry:
+            continue
+        if not (len(entry) == 2 and entry.isascii() and entry.isalnum()):
+            raise AirlineError(
+                f"{source} entry {entry!r} is not an airline code "
+                "(two letters or digits)."
+            )
+        codes.add(entry.upper())
+    return frozenset(codes)
+
+
+def _airline_line(airlines: frozenset[str], allow_codeshare: bool) -> str:
+    rule = (
+        "selling airline of every leg, codeshares allowed"
+        if allow_codeshare
+        else "selling and operating airline of every leg"
+    )
+    return f"airlines {', '.join(sorted(airlines))} ({rule})"
+
+
 def _weekday_label(days: frozenset[int]) -> str:
     names = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
     return ", ".join(names[day] for day in sorted(days))
@@ -148,6 +178,14 @@ EXCLUDE_COUNTRIES_HELP = (
 INCLUDE_SMALL_HELP = (
     "Include small scheduled airports (more requests); airports named by "
     "{named} are always used, even when small."
+)
+AIRLINES_HELP = (
+    "Keep only itineraries where the selling and the operating airline of every "
+    "leg are in this list of IATA codes (comma-separated), e.g. A3,OA; "
+    "--allow-codeshare checks the selling airline only. A leg without a "
+    "reported operator counts as operated by its selling airline. The price "
+    "shown is the cheapest matching flight Google returned in a batch, so "
+    "cheaper matching flights or whole destinations can be missing."
 )
 MAX_DISTANCE_HELP = "Radius used by --region weekend (default: %(default)g)."
 
@@ -292,6 +330,18 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
         help="Latest return arrival at the home airport, local time (HH or HH:MM).",
     )
     weekend.add_argument(
+        "--airlines", action=_StoreGiven, default="", help=AIRLINES_HELP
+    )
+    weekend.add_argument(
+        "--allow-codeshare",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "With --airlines, check only the selling airline of every leg; "
+            "the operating airline may differ."
+        ),
+    )
+    weekend.add_argument(
         "--max-stops",
         default="ANY",
         help="ANY, 0/NON_STOP, 1/ONE_STOP or 2+ (default: %(default)s).",
@@ -331,7 +381,10 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
         "--compare-roundtrip",
         action=argparse.BooleanOptionalAction,
         default=False,
-        help="Price conventional same-airport round-trips for comparison.",
+        help=(
+            "Price conventional same-airport round-trips for comparison across "
+            "all airlines, even when --airlines filters the itinerary."
+        ),
     )
     weekend.add_argument(
         "--format",
@@ -470,6 +523,7 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
             regions=settings.regions,
             given=frozenset(),
         )
+    weekend.set_defaults(airlines_config_path=settings.path)
     apply_defaults(settings, {"weekend": weekend, "airports": airports})
     return parser
 
@@ -566,8 +620,17 @@ def _run_weekend(args) -> int:
             if args.return_arrive_before
             else None,
         )
-    except (DateError, TimeWindowError) as exc:
-        error_console.print(f"[bold red]Error:[/bold red] {exc}")
+        airline_source = (
+            f"{args.airlines_config_path}: 'airlines'"
+            if args.airlines_config_path is not None and "airlines" not in args.given
+            else "--airlines"
+        )
+        airlines = _airline_codes(args.airlines, source=airline_source)
+    except (DateError, TimeWindowError, AirlineError) as exc:
+        error_console.print(
+            f"[bold red]Error:[/bold red] {escape(str(exc))}",
+            soft_wrap=isinstance(exc, AirlineError),
+        )
         return 2
 
     if start < date.today():
@@ -641,6 +704,8 @@ def _run_weekend(args) -> int:
             f" · return {_weekday_label(return_days)} · {args.min_nights}–{args.max_nights} nights"
         )
         console.print(format_window_line(depart_window.label(), return_window.label()))
+        if airlines:
+            console.print(_airline_line(airlines, args.allow_codeshare))
         console.print(
             f"{len(destinations)} destination airports in {len(cities)} cities · "
             f"{len(pairs)} date pairs · up to ~{estimated} requests "
@@ -683,6 +748,8 @@ def _run_weekend(args) -> int:
         concurrency=max(1, args.concurrency),
         max_candidates=args.max_candidates,
         per_city=max(1, args.per_city),
+        airlines=airlines,
+        allow_codeshare=args.allow_codeshare,
     )
     try:
         result = run_search(request, cache=cache, budget=budget, progress=reporter)
@@ -693,19 +760,29 @@ def _run_weekend(args) -> int:
         error_console.print(f"[bold red]Error:[/bold red] {type(exc).__name__}: {exc}")
         return 2
 
+    airline_filter = f"--airlines {','.join(sorted(airlines))}" if airlines else ""
     if not result.stats.candidates:
-        error_console.print(
-            "[bold red]No priced candidates.[/bold red] Google returned no rows for the "
-            "selected airports/dates. Try a wider date range or region."
+        explanation = (
+            f"No priced flights matched the search with {airline_filter}. "
+            "Try adjusting the airline filter or widening the date range or region."
+            if airlines
+            else "Google returned no rows for the selected airports/dates. "
+            "Try a wider date range or region."
         )
+        error_console.print(f"[bold red]No priced candidates.[/bold red] {explanation}")
         return 1
 
     pool_size = max(args.top, 100) if args.best_per_city else args.top
     pool = result.itineraries()[:pool_size]
     if not pool:
+        explanation = (
+            f"No detailed results matched the search with {airline_filter}. "
+            "Try adjusting the airline filter or choosing another date range."
+            if airlines
+            else "Calendar prices did not reproduce in detailed searches; try another date range."
+        )
         error_console.print(
-            "[bold red]No itineraries confirmed.[/bold red] Calendar prices did not "
-            "reproduce in detailed searches; try another date range."
+            f"[bold red]No itineraries confirmed.[/bold red] {explanation}"
         )
         return 1
 
@@ -754,8 +831,13 @@ def _run_weekend(args) -> int:
         "region": "dest" if args.dest else args.region,
         "destinations": list(_csv_tuple(args.dest)) if args.dest else None,
         "countries": list(_csv_tuple(args.countries)) if args.countries else None,
+        "airlines": sorted(airlines),
+        "allow_codeshare": bool(airlines) and args.allow_codeshare,
         "settings": settings.cache_key(),
     }
+    compare_across_airlines = args.compare_roundtrip and bool(airlines)
+    if compare_across_airlines:
+        query["roundtrip_airlines"] = []
     windows = {
         "departure": depart_window.label(),
         "return": return_window.label(),
@@ -780,15 +862,20 @@ def _run_weekend(args) -> int:
     if args.format == "json":
         dump_json(payload, console)
     else:
+        query_lines = [
+            (
+                f"{len(destinations)} airports · {len(cities)} cities · "
+                f"{stats['requests']} requests · cache {stats['cache_hits']} hits"
+            ),
+        ]
+        if compare_across_airlines:
+            query_lines.append(
+                "vs RT uses a conventional round-trip across all airlines."
+            )
         render_results(
             displayed,
             console=console,
-            query_lines=[
-                (
-                    f"{len(destinations)} airports · {len(cities)} cities · "
-                    f"{stats['requests']} requests · cache {stats['cache_hits']} hits"
-                ),
-            ],
+            query_lines=query_lines,
             show_roundtrip=args.compare_roundtrip,
             verbose=args.verbose,
         )
