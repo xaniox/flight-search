@@ -190,6 +190,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Additional destination airport codes to exclude (comma-separated).",
     )
     weekend.add_argument(
+        "--exclude-countries",
+        default="",
+        help=(
+            "Leave out whole countries by ISO code (comma-separated), e.g. RU,BY; "
+            "explicit --dest codes are kept."
+        ),
+    )
+    weekend.add_argument(
         "--include-small",
         action="store_true",
         help="Include small scheduled airports (more requests).",
@@ -330,6 +338,14 @@ def _build_parser() -> argparse.ArgumentParser:
 
     airports = subparsers.add_parser("airports", help="List the airport dataset.")
     airports.add_argument("--countries", default="")
+    airports.add_argument(
+        "--exclude-countries",
+        default="",
+        help=(
+            "Leave out whole countries by ISO code (comma-separated), e.g. RU,BY; "
+            "explicit --dest codes are kept."
+        ),
+    )
     airports.add_argument("--include-small", action="store_true")
     airports.add_argument(
         "--region",
@@ -372,6 +388,7 @@ def _select_airports(args) -> tuple[tuple[AirportInfo, ...], list[str]]:
         max_distance_km=args.max_distance_km,
         exclude_codes=frozenset(home) | frozenset(_csv_tuple(args.exclude)),
         include_small=args.include_small,
+        exclude_countries=frozenset(_csv_tuple(args.exclude_countries)),
     )
     destinations, destination_warnings = select_destinations(
         choice, airports=all_airports, center=KARLSRUHE
@@ -658,7 +675,13 @@ def _run_airports(args) -> int:
     codes = _csv_tuple(args.dest) if args.dest else ()
     countries = frozenset(_csv_tuple(args.countries)) if args.countries else frozenset()
     selected = filter_airports(
-        destination_pool(airports, codes, countries, args.include_small),
+        destination_pool(
+            airports,
+            codes,
+            countries,
+            args.include_small,
+            frozenset(_csv_tuple(args.exclude_countries)),
+        ),
         codes=codes,
         countries=countries,
         max_distance_km=max_distance,

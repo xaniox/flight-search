@@ -114,6 +114,7 @@ uv run flight-search weekend ... --format json > results.json
 | `--from` | Home airports, default `FKB,STR,SXB,FRA`. All are searched at once. |
 | `--region europe\|weekend` | `europe` = every scheduled airport in Europe including Cyprus, the Greek islands and the Canaries, plus North Africa, Turkey and the Caucasus (658); `weekend` = the same, within `--max-distance-km` of Karlsruhe. |
 | `--countries`, `--dest`, `--exclude`, `--include-small` | Override or narrow the destination set. `--countries` and `--dest` choose from the worldwide dataset, e.g. `--countries IL` or `--dest TLV`. |
+| `--exclude-countries` | Leave out whole countries, e.g. `RU,BY`; explicit `--dest` codes are kept. |
 | `--depart-days`, `--return-days` | Weekday sets, e.g. `thu,fri` and `sun,mon`. |
 | `--start`, `--end` | Date range; both legs must fall inside it. |
 | `--min-nights`, `--max-nights` | Trip length constraint. |

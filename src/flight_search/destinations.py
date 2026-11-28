@@ -16,7 +16,11 @@ SMALL_AIRPORT = "small_airport"
 
 @dataclass(frozen=True, slots=True)
 class DestinationChoice:
-    """What the user asked for; ``codes`` override everything else."""
+    """What the user asked for; ``codes`` override everything else.
+
+    ``exclude_countries`` (upper-case ISO codes) leaves those countries out of
+    region, country and radius selections, never out of explicit ``codes``.
+    """
 
     codes: tuple[str, ...] = ()
     countries: frozenset[str] = frozenset()
@@ -24,6 +28,7 @@ class DestinationChoice:
     max_distance_km: float | None = None
     exclude_codes: frozenset[str] = frozenset()
     include_small: bool = False
+    exclude_countries: frozenset[str] = frozenset()
 
 
 def destination_pool(
@@ -31,19 +36,25 @@ def destination_pool(
     codes: tuple[str, ...],
     countries: frozenset[str],
     include_small: bool = False,
+    exclude_countries: frozenset[str] = frozenset(),
 ) -> tuple[AirportInfo, ...]:
     """The airports a destination choice draws from.
 
     Small airports count only when named by code or when ``include_small`` is
     set. Explicit codes or countries choose from the whole snapshot; otherwise
-    the default region applies.
+    the default region applies. ``exclude_countries`` applies only when no
+    codes are given, so explicit codes are always kept.
     """
     if not include_small:
         named = {code.upper() for code in codes}
         airports = tuple(
             a for a in airports if a.type != SMALL_AIRPORT or a.iata in named
         )
-    if codes or countries:
+    if codes:
+        return airports
+    if exclude_countries:
+        airports = tuple(a for a in airports if a.country not in exclude_countries)
+    if countries:
         return airports
     return tuple(a for a in airports if in_default_region(a))
 
@@ -71,7 +82,13 @@ def select_destinations(
 
     weekend = choice.region == "weekend"
     selected = filter_airports(
-        destination_pool(airports, (), choice.countries, choice.include_small),
+        destination_pool(
+            airports,
+            (),
+            choice.countries,
+            choice.include_small,
+            choice.exclude_countries,
+        ),
         countries=choice.countries,
         max_distance_km=choice.max_distance_km if weekend else None,
         center=center,
