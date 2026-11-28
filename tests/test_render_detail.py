@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import io
 import json
+import re
+from dataclasses import replace
 
 import pytest
 from rich.console import Console
@@ -43,7 +45,7 @@ def leg(airline, number, origin, destination, departure, arrival, *, operating="
 
 
 def outbound(*, self_transfer=False, second_departure="2026-06-12T11:05:00"):
-    """MUC→ATH→LCA on Fri 12 Jun 2026; 1h20 at ATH with the default departure."""
+    """MUC→ATH→LCA on Fri 12.06. 2026; 1h20 at ATH with the default departure."""
     return option(
         leg("A3", "901", "MUC", "ATH", "2026-06-12T06:15:00", "2026-06-12T09:45:00"),
         leg("A3", "902", "ATH", "LCA", second_departure, "2026-06-12T13:00:00"),
@@ -97,7 +99,9 @@ def render_verbose(itineraries, *, width=200):
 def detail_block(text, rank=1):
     """The lines of the ``--verbose`` block of itinerary ``rank``, header first."""
     lines = text.splitlines()
-    start = next(i for i, line in enumerate(lines) if line.startswith(f"{rank}. "))
+    start = next(
+        i for i, line in enumerate(lines) if line.lstrip().startswith(f"{rank}  ")
+    )
     block = []
     for line in lines[start:]:
         if not line.strip():
@@ -130,10 +134,10 @@ def test_verbose_shows_one_line_per_leg_with_date_flight_and_times():
 
     first = line_with(block, "A3 901")
     second = line_with(block, "A3 902")
-    assert_in_order(first, "Fri 12 Jun", "A3 901", "MUC 06:15 → ATH 09:45")
-    assert_in_order(second, "Fri 12 Jun", "A3 902", "ATH 11:05 → LCA 13:00")
+    assert_in_order(first, "Fri 12.06.", "MUC → ATH", "06:15 – 09:45", "A3 901")
+    assert_in_order(second, "Fri 12.06.", "ATH → LCA", "11:05 – 13:00", "A3 902")
     assert first.split()[0] == "out"
-    assert line_with(block, "OA 601").split()[0] == "ret"
+    assert line_with(block, "OA 601").split()[0] == "in"
     # The legs all on one line under ``out:`` and ``ret:`` are gone.
     assert not [line for line in block if line.strip().startswith(("out:", "ret:"))]
 
@@ -142,14 +146,14 @@ def test_following_legs_are_indented_to_the_column_of_the_first():
     block = detail_block(render_verbose([itinerary(outbound(), inbound())]))
 
     for first_flight, next_flight, date in (
-        ("A3 901", "A3 902", "Fri 12 Jun"),
-        ("OA 601", "A3 603", "Mon 22 Jun"),
+        ("A3 901", "A3 902", "Fri 12.06."),
+        ("OA 601", "A3 603", "Mon 22.06."),
     ):
         first = line_with(block, first_flight)
         following = line_with(block, next_flight)
         column = following.index(date)
         assert following[:column].strip() == "", following
-        assert first.split()[0] in ("out", "ret")
+        assert first.split()[0] in ("out", "in")
         start_of_first = first.index(first.split()[1])
         assert column == start_of_first, (first, following)
 
@@ -161,32 +165,59 @@ def test_a_leg_arriving_on_a_later_day_is_marked_plus_n():
     )
     block = detail_block(render_verbose([itinerary(late, direct_back())]))
 
-    assert line_with(block, "A3 911").rstrip().endswith("MUC 22:00 → ATH 01:30 +1")
-    assert line_with(block, "A3 912").rstrip().endswith("ATH 05:20 → LCA 07:05")
-    assert "Sat 13 Jun" in line_with(block, "A3 912")
+    assert line_with(block, "A3 911").rstrip().endswith("01:30 +1  A3 911")
+    assert line_with(block, "A3 912").rstrip().endswith("07:05     A3 912")
+    assert "Sat 13.06." in line_with(block, "A3 912")
 
 
 def test_the_other_lines_of_the_verbose_block_stay():
-    trip = itinerary(outbound(), inbound(), roundtrip_price=200.0)
-    trip = type(trip)(
-        **{
-            **{name: getattr(trip, name) for name in trip.__dataclass_fields__},
-            "booking_url": "https://example.test/book",
-            "outbound_url": "https://example.test/out",
-            "return_url": "https://example.test/ret",
-        }
+    trip = replace(
+        itinerary(outbound(), inbound(), roundtrip_price=200.0),
+        booking_url="https://example.test/book",
+        outbound_url="https://example.test/out",
+        return_url="https://example.test/ret",
     )
     block = detail_block(render_verbose([trip]))
 
-    assert block[0] == "1. Larnaca (2026-06-12 → 2026-06-21)"
+    assert block[0] == "1  €215  Larnaca (CY) · 9 nights · 4 segments · Open jaw: dest"
     # Four leg lines and two connection lines, then the lines that stay.
     assert len(block) == 1 + 6 + 4, "\n".join(block)
-    assert block[-4:] == [
-        "   conventional round-trip: €200",
-        "   google flights: https://example.test/book",
-        "   outbound link:  https://example.test/out",
-        "   return link:    https://example.test/ret",
+    assert [line.strip() for line in block[-4:]] == [
+        "conventional round-trip: €200",
+        "trip link: https://example.test/book",
+        "outbound link: https://example.test/out",
+        "return link: https://example.test/ret",
     ]
+
+
+def test_verbose_terminal_reuses_result_colors_and_labels_booking_links():
+    trip = replace(
+        itinerary(outbound(), inbound()),
+        booking_url="https://example.test/book",
+        outbound_url="https://example.test/out",
+        return_url="https://example.test/ret",
+    )
+    output = io.StringIO()
+    console = Console(
+        file=output,
+        width=80,
+        force_terminal=True,
+        color_system="truecolor",
+        no_color=False,
+    )
+
+    render_results([trip], console=console, query_lines=[], verbose=True)
+
+    styled = output.getvalue()
+    assert "\x1b[1;32m€215" in styled
+    assert "\x1b[36mLarnaca" in styled
+    assert "\x1b[38;2;170;109;25mA3 901" in styled
+    for url in (trip.booking_url, trip.outbound_url, trip.return_url):
+        assert f";{url}\x1b\\" in styled
+    plain = re.sub(r"\x1b\]8;.*?\x1b\\|\x1b\[[\d;]*m", "", styled)
+    assert plain.count("Larnaca") == 1
+    assert "Google Flights · trip · outbound · return" in plain
+    assert "https://" not in plain
 
 
 # --- PRTHREE-CRITERION-15 ---------------------------------------------------
@@ -199,18 +230,18 @@ def test_a_connection_line_stands_between_two_legs():
     connection = index_of(block, line_with(block, "connection"))
     second = index_of(block, line_with(block, "A3 902"))
     assert (first, second) == (connection - 1, connection + 1)
-    assert block[connection].strip() == "connection ATH 1h20"
+    assert block[connection].strip() == "connection ATH [1:20 h]"
 
 
 @pytest.mark.parametrize(
     ("departure", "written"),
     [
-        ("2026-06-12T10:30:00", "45m"),
-        ("2026-06-12T11:45:00", "2h"),
-        ("2026-06-12T11:05:00", "1h20"),
+        ("2026-06-12T10:30:00", "[0:45 h]"),
+        ("2026-06-12T11:45:00", "[2:00 h]"),
+        ("2026-06-12T11:05:00", "[1:20 h]"),
     ],
 )
-def test_the_connection_time_is_written_like_fmt_duration(departure, written):
+def test_the_connection_time_uses_hours_and_minutes(departure, written):
     out = outbound(second_departure=departure)
     block = detail_block(render_verbose([itinerary(out, direct_back())]))
 
@@ -227,8 +258,8 @@ def test_a_direct_flight_has_no_connection_line():
     block = detail_block(render_verbose([itinerary(direct, back, city="Palma")]))
 
     assert not [line for line in block if "connection" in line]
-    assert "LH 1" in line_with(block, "FRA 18:40 → PMI 20:42")
-    assert "LH 2" in line_with(block, "PMI 20:05 → FRA 22:07")
+    assert "LH 1" in line_with(block, "FRA → PMI", "18:40 – 20:42")
+    assert "LH 2" in line_with(block, "PMI → FRA", "20:05 – 22:07")
 
 
 # --- PRTHREE-CRITERION-16 ---------------------------------------------------
@@ -239,8 +270,8 @@ def test_an_overnight_connection_is_marked():
 
     connections = [line.strip() for line in block if "connection" in line]
     assert connections == [
-        "connection ATH 1h20",
-        "connection ATH 13h10 · overnight",
+        "connection ATH [1:20 h]",
+        "connection ATH [13:10 h] · overnight",
     ]
 
 
@@ -252,7 +283,7 @@ def test_a_different_operating_airline_is_named_at_its_leg():
 
     operated = line_with(block, "A3 603")
     assert operated.rstrip().endswith("operated by OA")
-    assert_in_order(operated, "ATH 08:45 → MUC 10:20", "operated by OA")
+    assert_in_order(operated, "ATH → MUC", "08:45 – 10:20", "A3 603", "operated by OA")
     others = [line for line in block if "operated by" in line]
     assert others == [operated]
 
@@ -283,7 +314,7 @@ def test_no_self_transfer_adds_no_note():
     text = render_verbose([itinerary(outbound(), inbound())])
 
     assert "self-transfer" not in text
-    assert line_with(detail_block(text), "A3 902", "ATH 11:05 → LCA 13:00")
+    assert line_with(detail_block(text), "A3 902", "ATH → LCA", "11:05 – 13:00")
 
 
 # --- PRTHREE-CRITERION-19 ---------------------------------------------------
@@ -363,5 +394,5 @@ def test_detail_shows_the_airport_change_and_keeps_the_json_layover():
     ] == [("MUC", "LGW"), ("STN", "ATH")]
     assert (
         line_with(block, "connection").strip()
-        == "connection LGW→STN 3h · airport change"
+        == "connection LGW ⇢ STN [3:00 h] · airport change"
     )

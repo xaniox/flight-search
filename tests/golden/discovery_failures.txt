@@ -7,19 +7,29 @@ depart 15:00–23:59 (local times)
 
 6 airports · 4 cities · 38 requests · cache 0 hits
 
-#  Total  City        Flights                                    Nights  Seg  Open jaw  Link
-1   €101  Rome (IT)   out  Fri 19 Mar  FRA→FCO  FR  18:40–20:28       2    2    dest    open
-                      ret  Sun 21 Mar  CIA→FRA  VY  20:05–21:42                             
-2   €104  Rome (IT)   out  Fri 05 Mar  FRA→CIA  VY  18:40–20:17       2    2     —      open
-                      ret  Sun 07 Mar  CIA→FRA  VY  20:05–21:42                             
-3   €106  Palma (ES)  out  Fri 05 Mar  FRA→PMI  LH  18:40–20:42       2    2     —      open
-                      ret  Sun 07 Mar  PMI→FRA  LH  20:05–22:07                             
-4   €107  Rome (IT)   out  Fri 19 Mar  FRA→FCO  FR  18:40–20:28       2    2    both    open
-                      ret  Sun 21 Mar  CIA→STR  FR  20:05–22:14                             
-5   €107  Rome (IT)   out  Fri 19 Mar  STR→FCO  LH  18:40–21:00       2    2    both    open
-                      ret  Sun 21 Mar  CIA→FRA  VY  20:05–21:42                             
-6   €110  Rome (IT)   out  Fri 05 Mar  FRA→CIA  VY  18:40–20:17       2    2    home    open
-                      ret  Sun 07 Mar  CIA→STR  FR  20:05–22:14                             
+1  €101  Rome (IT)  · 2 nights · 2 segments · Open jaw: dest
+         out  Fri 19.03.  FRA → FCO  18:40 – 20:28  FR
+         in   Sun 21.03.  CIA → FRA  20:05 – 21:42  VY
+
+2  €104  Rome (IT)  · 2 nights · 2 segments
+         out  Fri 05.03.  FRA → CIA  18:40 – 20:17  VY
+         in   Sun 07.03.  CIA → FRA  20:05 – 21:42  VY
+
+3  €106  Palma (ES) · 2 nights · 2 segments
+         out  Fri 05.03.  FRA → PMI  18:40 – 20:42  LH
+         in   Sun 07.03.  PMI → FRA  20:05 – 22:07  LH
+
+4  €107  Rome (IT)  · 2 nights · 2 segments · Open jaw: both
+         out  Fri 19.03.  FRA → FCO  18:40 – 20:28  FR
+         in   Sun 21.03.  CIA → STR  20:05 – 22:14  FR
+
+5  €107  Rome (IT)  · 2 nights · 2 segments · Open jaw: both
+         out  Fri 19.03.  STR → FCO  18:40 – 21:00  LH
+         in   Sun 21.03.  CIA → FRA  20:05 – 21:42  VY
+
+6  €110  Rome (IT)  · 2 nights · 2 segments · Open jaw: home
+         out  Fri 05.03.  FRA → CIA  18:40 – 20:17  VY
+         in   Sun 07.03.  CIA → STR  20:05 – 22:14  FR
 
 Google Flights links:
 1. https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTE5Ih8KA0ZSQRIKMjAyNy0wMy0xORoDRkNPKgJGUjIDNTM0agcIARIDRlJBcgcIARIDRkNPGj8SCjIwMjctMDMtMjEiHwoDQ0lBEgoyMDI3LTAzLTIxGgNGUkEqAlZZMgM1MjNqBwgBEgNDSUFyBwgBEgNGUkFAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE

@@ -10,21 +10,24 @@ an airport region, it prices every matching weekend and returns the cheapest
 outbound `FRA → FCO` and return `CIA → FRA`.
 
 ```text
-#  Total  City        Flights                                    Nights  Seg  Open jaw  Link
-1   €101  Rome (IT)   out  Fri 19 Mar  FRA→FCO  FR  18:40–20:28       2    2    dest    open
-                      ret  Sun 21 Mar  CIA→FRA  VY  20:05–21:42
-2   €104  Rome (IT)   out  Fri 05 Mar  FRA→CIA  VY  18:40–20:17       2    2     —      open
-                      ret  Sun 07 Mar  CIA→FRA  VY  20:05–21:42
+1  €135  Thessaloniki (GR) · 4 nights · 2 segments · open
+         out  Wed 10.02.  MUC → SKG                   10:20 – 13:20  A3
+         in   Sun 14.02.  SKG → MUC                   08:10 – 09:30  A3
+
+2  €163  Heraklion (GR)    · 4 nights · 4 segments · open
+         out  Wed 24.02.  MUC → ATH [2:15 h] → HER  11:05 – 17:45  A3
+         in   Sun 28.02.  HER → ATH [6:45 h] → MUC  08:10 – 17:25  A3
 ```
 
-`Flights` shows the outbound and return separately. `Seg` counts the flight
-segments in both directions combined. A route such as `MUC→LGW ⇢ STN→ATH`
-uses `⇢` for the transfer between airports. `--best-per-city` uses the same
-route format.
+`out` and `in` show departure and arrival in local time. `segments`
+counts the flight legs in both directions combined. Layover times appear
+at the connecting airport. A route such as `MUC → LGW [3:00 h] ⇢ STN → ATH`
+uses `⇢` for the transfer between airports. Columns align across the
+displayed results when the terminal is wide enough.
 
-`open` is a clickable Google Flights deep link for that exact itinerary. In
-terminals without OSC-8 hyperlink support (or when the output is piped), the
-full URLs are printed below the table; `--format json` always contains them.
+`open` is a clickable Google Flights deep link for that exact itinerary.
+With `--verbose`, the terminal shows labeled links for the trip, outbound
+and return. Redirected output and `--format json` include full URLs.
 
 ## Install
 
@@ -234,13 +237,15 @@ airport of the preceding leg) and `minutes` (time between legs). For direct
 flights, `layovers` is empty. Each direction also has a `self_transfer` flag,
 and each leg lists its `operating_airline` alongside its selling `airline`.
 
-When a connection involves an airport change, `--verbose` names both
-airports, for example `connection LGW→STN 3h · airport change`.
+`--verbose` shows individual legs with flight numbers in the same result
+layout.
+When a connection involves an airport change, it names both airports,
+for example `connection LGW ⇢ STN [3:00 h] · airport change`.
 
 ## Google Flights links
 
 Every confirmed itinerary gets a deterministic, offline-built
-`https://www.google.com/travel/flights/booking?tfs=…` link. The table shows a
+`https://www.google.com/travel/flights/booking?tfs=…` link. The result heading shows a
 clickable `open`; JSON carries three fields:
 
 | Field | Contents |

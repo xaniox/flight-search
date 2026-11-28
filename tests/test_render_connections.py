@@ -1,14 +1,4 @@
-"""Compact results table of PR 3, commit C2: connections per direction.
-
-One column ``Flights`` holds the outbound and the return as two lines, each
-with date, route through every stop, the selling airline of every segment and
-the times with a ``+N`` day marker and a self-transfer flag; ``Seg`` replaces
-``Stops``, the best-per-city table shows the stops in its routes, and the table
-stays readable at 120 and 80 columns (PRTHREE-CRITERION-06 to -12).
-
-The render functions run directly on hand-built itineraries, because the fake
-of ``fake_flights.py`` only makes direct flights.
-"""
+"""Compact weekend output for direct flights and connections."""
 
 from __future__ import annotations
 
@@ -20,8 +10,7 @@ from rich.console import Console
 from flight_search.combine import FlightOption, Itinerary, LegInfo
 from flight_search.render import render_best_per_city, render_results
 
-OUT_LINE = "out  Fri 12 Jun  MUC→ATH→LCA  A3/A3  06:15–13:00"
-RET_LINE = "ret  Sun 21 Jun  RHO→ATH→MUC  OA/A3  18:40–10:20 +1"
+RET_LINE = "in   Sun 21.06.  RHO → ATH [11:25 h] → MUC  18:40 – 10:20 +1  OA/A3"
 
 
 def leg(airline, origin, destination, departure, arrival, *, operating=""):
@@ -114,157 +103,54 @@ def render(itineraries, *, width=200, show_roundtrip=False):
     return console.file.getvalue().replace(" ", " ")
 
 
-def table_lines(text, rows):
-    """The header line and the two lines (out, ret) of each of ``rows`` rows."""
-    lines = text.splitlines()
-    start = next(i for i, line in enumerate(lines) if line.lstrip().startswith("#"))
-    body = []
-    for line in lines[start:]:
-        if not line.strip():
-            break
-        body.append(line)
-    assert len(body) == 1 + 2 * rows, f"expected two lines per row:\n{text}"
-    return body
+def test_compact_results_align_directions_and_show_layovers_at_80_columns():
+    trip = itinerary(outbound(), inbound(), roundtrip_price=200.0)
+    head, out, ret = render([trip], width=80, show_roundtrip=True).strip().splitlines()
+
+    assert (
+        head
+        == "1  €215  Larnaca (CY) · 9 nights · 4 segments · Open jaw: dest · vs RT +€15"
+    )
+    indent = " " * head.index("Larnaca")
+    assert (
+        out
+        == f"{indent}out  Fri 12.06.  MUC → ATH [1:35 h] → LCA   06:15 – 13:00     A3"
+    )
+    assert ret == f"{indent}{RET_LINE}"
+
+
+def test_direct_trip_has_no_layover_and_keeps_price_nights_and_segment_count():
+    out = option(
+        leg("LH", "FRA", "PMI", "2026-06-12T18:40", "2026-06-12T20:42"), price=60.5
+    )
+    ret = option(
+        leg("LH", "PMI", "FRA", "2026-06-13T20:05", "2026-06-13T22:07"), price=55.25
+    )
+    head, out_line, ret_line = (
+        render([itinerary(out, ret, city="Palma", country="ES")]).strip().splitlines()
+    )
+
+    assert head == "1  €115.75  Palma (ES) · 1 night · 2 segments"
+    indent = " " * head.index("Palma")
+    assert out_line == f"{indent}out  Fri 12.06.  FRA → PMI  18:40 – 20:42  LH"
+    assert ret_line == f"{indent}in   Sat 13.06.  PMI → FRA  20:05 – 22:07  LH"
+
+
+def test_later_arrival_and_self_transfer_are_marked_on_the_affected_direction():
+    overnight = option(
+        leg("A3", "MUC", "ATH", "2026-06-12T22:00:00", "2026-06-13T01:30:00"),
+        leg("A3", "ATH", "LCA", "2026-06-14T05:20:00", "2026-06-14T07:05:00"),
+        self_transfer=True,
+    )
+    _, out, ret = render([itinerary(overnight, inbound())]).strip().splitlines()
+    assert out.rstrip().endswith("22:00 – 07:05 +2  A3  self-transfer")
+    assert ret.rstrip().endswith(RET_LINE)
 
 
 def cell_under(header, row, title):
     """The value of a right-justified column: the last word ending under it."""
     end = header.index(title) + len(title)
     return row[:end].split()[-1]
-
-
-def test_each_direction_is_one_line_in_one_flights_column():
-    text = render([itinerary(outbound(), inbound())])
-    header, first, second = table_lines(text, 1)
-
-    assert "Flights" in header
-    assert "Outbound" not in header
-    assert "Return" not in header
-    assert OUT_LINE in first
-    assert RET_LINE in second
-    # The other columns stand on the first line of the row only.
-    assert first.split()[:4] == ["1", "€215", "Larnaca", "(CY)"]
-    assert cell_under(header, first, "Nights") == "9"
-    # Open jaw at the destination: out to LCA, back from RHO.
-    assert first[header.index("Open jaw") :].split()[0] == "dest"
-    assert second.split()[:1] == ["ret"]
-
-
-def test_every_column_but_the_flights_keeps_its_content():
-    roundtrip = itinerary(outbound(), inbound(), roundtrip_price=200.0)
-    text = render([roundtrip], show_roundtrip=True)
-    header, first, second = table_lines(text, 1)
-
-    titles = ["#", "Total", "City", "Flights", "Nights", "Seg", "Open jaw", "vs RT"]
-    positions = [header.index(title) for title in titles]
-    assert positions == sorted(positions)
-    assert header.rstrip().endswith("Link")
-    assert cell_under(header, first, "vs RT") == "+€15"
-    # Open jaw at the destination: out to LCA, back from RHO.
-    assert first[header.index("Open jaw") :].split()[0] == "dest"
-    assert first.rstrip().endswith("—")
-    assert second.strip().startswith("ret")
-    assert second.rstrip().endswith("+1")
-
-
-def test_route_lists_every_stop_and_airlines_every_segment():
-    direct = option(
-        leg("LH", "FRA", "PMI", "2026-06-12T18:40:00", "2026-06-12T20:42:00"),
-        price=60.0,
-    )
-    back = option(
-        leg("LH", "PMI", "FRA", "2026-06-14T20:05:00", "2026-06-14T22:07:00"),
-        price=55.0,
-    )
-    text = render(
-        [
-            itinerary(outbound(), inbound()),
-            itinerary(direct, back, city="Palma", country="ES"),
-        ]
-    )
-    lines = table_lines(text, 2)
-
-    assert "MUC→ATH→LCA  A3/A3" in lines[1]
-    # Selling codes in leg order, not the operator OA of ATH→MUC.
-    assert "RHO→ATH→MUC  OA/A3" in lines[2]
-    assert "out  Fri 12 Jun  FRA→PMI  LH  18:40–20:42" in lines[3]
-    assert "ret  Sun 14 Jun  PMI→FRA  LH  20:05–22:07" in lines[4]
-
-
-def test_total_and_nights_are_unchanged_for_connections():
-    text = render([itinerary(outbound(price=120.5), inbound(price=95.25))])
-    header, first, _ = table_lines(text, 1)
-
-    assert OUT_LINE in first
-    assert cell_under(header, first, "Total") == "€215.75"
-    assert cell_under(header, first, "Nights") == "9"
-
-
-def test_a_later_arrival_day_is_marked_plus_n():
-    overnight = option(
-        leg("A3", "MUC", "ATH", "2026-06-12T22:00:00", "2026-06-13T01:30:00"),
-        leg("A3", "ATH", "LCA", "2026-06-14T05:20:00", "2026-06-14T07:05:00"),
-    )
-    text = render([itinerary(overnight, inbound())])
-    lines = table_lines(text, 1)
-
-    assert "MUC→ATH→LCA  A3/A3  22:00–07:05 +2" in lines[1]
-    assert "RHO→ATH→MUC  OA/A3  18:40–10:20 +1" in lines[2]
-
-
-def test_a_same_day_arrival_gets_no_marker():
-    text = render([itinerary(outbound(), inbound())])
-    first = table_lines(text, 1)[1]
-
-    assert OUT_LINE in first
-    assert "06:15–13:00 +" not in first
-
-
-def test_a_self_transfer_is_marked_at_the_end_of_its_line():
-    text = render([itinerary(outbound(self_transfer=True), inbound())])
-    lines = table_lines(text, 1)
-
-    assert f"{OUT_LINE}  self-transfer" in lines[1]
-    assert "self-transfer" not in lines[2]
-
-
-def test_a_self_transfer_return_line_ends_with_the_marker():
-    text = render([itinerary(outbound(), inbound(self_transfer=True))])
-    lines = table_lines(text, 1)
-
-    assert lines[2].rstrip().endswith(f"{RET_LINE}  self-transfer")
-    assert "self-transfer" not in lines[1]
-
-
-def test_no_self_transfer_appends_nothing():
-    text = render([itinerary(outbound(), inbound())])
-
-    assert "self-transfer" not in text
-    assert table_lines(text, 1)[2].rstrip().endswith(RET_LINE)
-
-
-def test_seg_counts_the_legs_of_both_directions():
-    direct = option(
-        leg("LH", "FRA", "PMI", "2026-06-12T18:40:00", "2026-06-12T20:42:00")
-    )
-    back = option(leg("LH", "PMI", "FRA", "2026-06-14T20:05:00", "2026-06-14T22:07:00"))
-    text = render(
-        [
-            itinerary(outbound(), inbound()),
-            itinerary(direct, back, city="Palma", country="ES"),
-            itinerary(outbound(), back, city="Mixed", country="XX"),
-        ]
-    )
-    lines = table_lines(text, 3)
-    header = lines[0]
-
-    assert "Seg" in header
-    assert "Stops" not in header
-    assert cell_under(header, lines[1], "Seg") == "4"
-    assert cell_under(header, lines[3], "Seg") == "2"
-    assert cell_under(header, lines[5], "Seg") == "3"
-    assert "1/1" not in text
-    assert "0/0" not in text
 
 
 def render_best(itineraries, *, width=200):
@@ -309,66 +195,16 @@ def test_best_per_city_route_shows_every_stop():
     assert palma.split()[0] == "€115"
 
 
-def test_each_direction_with_one_stop_fits_one_line_at_120_columns():
-    rows = [
-        itinerary(outbound(), inbound(), roundtrip_price=200.0),
-        itinerary(
-            outbound(),
-            inbound(),
-            city="Thessaloniki",
-            country="GR",
-            roundtrip_price=180.0,
-        ),
-    ]
-    text = render(rows, width=120, show_roundtrip=True)
-    # Header plus exactly two lines per row: out and ret, nothing wrapped.
-    lines = table_lines(text, len(rows))
-    for first, second in zip(lines[1::2], lines[2::2], strict=True):
-        assert OUT_LINE in first
-        assert RET_LINE in second
-    assert all(len(line.rstrip()) <= 120 for line in lines)
+def test_long_result_fits_narrow_terminal_without_losing_data():
+    row = itinerary(outbound(self_transfer=True), inbound(), roundtrip_price=200.0)
+    lines = render([row], width=61, show_roundtrip=True).splitlines()
 
-
-def test_no_token_is_split_at_80_columns():
-    rows = [
-        itinerary(outbound(self_transfer=True), inbound(), roundtrip_price=200.0),
-        itinerary(
-            outbound(),
-            inbound(self_transfer=True),
-            city="Thessaloniki",
-            country="GR",
-            roundtrip_price=180.0,
-        ),
-    ]
-    text = render(rows, width=80, show_roundtrip=True)
-    lines = text.splitlines()
-
-    assert all(len(line.rstrip()) <= 80 for line in lines)
-    for token in (
-        "MUC→ATH→LCA",
-        "RHO→ATH→MUC",
-        "A3/A3",
-        "OA/A3",
-        "06:15–13:00",
-        "18:40–10:20 +1",
-        "Fri 12 Jun",
-        "Sun 21 Jun",
-    ):
-        holding = [line for line in lines if token in line]
-        assert len(holding) == len(rows), (token, text)
-
-
-def test_an_oversized_route_is_visibly_shortened_at_61_columns():
-    row = itinerary(outbound(), inbound(), roundtrip_price=200.0)
-    text = render([row], width=61, show_roundtrip=True)
-
-    route = "MUC→ATH→LCA"
-    shortened_routes = {
-        route[:length] + ellipsis
-        for length in range(3, len(route))
-        for ellipsis in ("…", "...")
-    }
-    assert {route, *shortened_routes}.intersection(text.split()), text
+    assert all(len(line) <= 61 for line in lines)
+    text = " ".join(" ".join(lines).split())
+    assert "MUC → ATH [1:35 h] → LCA" in text
+    assert "RHO → ATH [11:25 h] → MUC" in text
+    assert "self-transfer" in text
+    assert "vs RT +€15" in text
 
 
 def test_compact_tables_show_both_airports_of_a_transfer():
@@ -377,12 +213,34 @@ def test_compact_tables_show_both_airports_of_a_transfer():
         leg("FR", "STN", "ATH", "2026-06-12T11:00:00", "2026-06-12T14:30:00"),
     )
     rows = [itinerary(airport_change, inbound(), city="Athens", country="GR")]
-    _, out, ret = table_lines(render(rows), 1)
+    _, out, ret = render(rows).strip().splitlines()
     best = next(
         line for line in render_best(rows).splitlines() if "Athens (GR)" in line
     )
 
-    assert "RHO→ATH→MUC" in ret
+    assert "RHO → ATH [11:25 h] → MUC" in ret
     assert "RHO→ATH→MUC" in best
-    route = "MUC→LGW ⇢ STN→ATH"
-    assert [route in out, route in best] == [True, True], (out, best)
+    assert "MUC → LGW [3:00 h] ⇢ STN → ATH" in out
+    assert "MUC→LGW ⇢ STN→ATH" in best
+
+
+def test_results_align_columns_across_rank_price_city_and_route_widths():
+    outbound_direct = option(
+        leg("A3", "MUC", "ATH", "2026-06-12T06:15", "2026-06-12T09:45"),
+        price=15,
+    )
+    cheap = itinerary(outbound_direct, inbound(), city="Athens")
+    expensive = itinerary(outbound(price=1200), inbound(), city="Thessaloniki")
+    rows = [cheap] * 9 + [expensive]
+    lines = [line for line in render(rows, width=80).splitlines() if line.strip()]
+    first, direct, direct_return = lines[:3]
+    tenth, connection, connection_return = lines[-3:]
+
+    assert first.startswith(" 1") and tenth.startswith("10")
+    assert first.index("  Athens") == tenth.index("  Thessaloniki")
+    assert first.index("·") == tenth.index("·")
+    assert direct.index("out") == connection.index("out") == first.index("Athens")
+    assert direct.index("06:15") == connection.index("06:15")
+    assert direct.rindex("A3") == connection.rindex("A3")
+    assert direct_return.index("in") == connection_return.index("in")
+    assert all(len(line) <= 80 for line in lines)
