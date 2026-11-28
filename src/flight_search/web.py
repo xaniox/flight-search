@@ -1,0 +1,312 @@
+"""Local browser adapter for the weekend search."""
+
+from __future__ import annotations
+
+import logging
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import replace
+from datetime import date
+from pathlib import Path
+from threading import Lock, Thread
+from uuid import uuid4
+
+from flask import Flask, jsonify, request
+from werkzeug.exceptions import RequestEntityTooLarge, SecurityError
+
+from flight_search.airports import AirportDataError, load_airports
+from flight_search.destinations import BrowserDestinationChoice, DestinationChoice
+from flight_search.search import run_search
+from flight_search.settings_file import BUILT_IN_REGIONS
+from flight_search.web_results import pair_results
+from flight_search.weekend import WeekendQuery, prepare_weekend
+
+logger = logging.getLogger(__name__)
+
+_LIST_FIELDS = frozenset({"home", "depart_days", "return_days", "airline_codes"})
+_TIME_FIELDS = frozenset(
+    {"depart_after", "depart_before", "return_depart_after", "return_arrive_before"}
+)
+_INT_FIELDS = frozenset({"min_nights", "max_nights", "max_requests"})
+
+
+class _SearchRun:
+    """Thread-safe progress and terminal outcome for one search."""
+
+    def __init__(self) -> None:
+        self._lock = Lock()
+        self._state = {"status": "running", "phase": "Preparing", "done": 0, "total": 0}
+
+    def start(self, description: str, total: int) -> Callable[[int], None]:
+        with self._lock:
+            self._state.update(phase=description, done=0, total=total)
+
+        def update(done: int) -> None:
+            with self._lock:
+                self._state["done"] = done
+
+        return update
+
+    def stop(self) -> None:
+        pass
+
+    def discovered(self, failures: Sequence[str]) -> None:
+        if failures:
+            with self._lock:
+                self._state["discovery_failures"] = len(failures)
+
+    def finish(self, **state) -> None:
+        with self._lock:
+            self._state = state
+
+    def snapshot(self) -> dict:
+        with self._lock:
+            return self._state.copy()
+
+
+def _json_defaults(
+    defaults: WeekendQuery, configured_regions: Mapping[str, frozenset[str]]
+) -> dict:
+    fields = {
+        name: getattr(defaults, name)
+        for name in _TIME_FIELDS | _INT_FIELDS | {"start", "end", "allow_codeshare"}
+    }
+    for name in _LIST_FIELDS:
+        fields[name] = [
+            token
+            for value in getattr(defaults, name)
+            for token in value.replace(",", " ").split()
+        ]
+    fields["airline_codes"] = [code.upper() for code in fields["airline_codes"]]
+
+    choice = defaults.destination
+    regions = []
+    countries = sorted(choice.countries)
+    preset = None
+    if isinstance(choice, BrowserDestinationChoice):
+        regions = list(choice.regions)
+    elif choice.codes or (choice.region == "weekend" and countries):
+        preset_id = "@configured"
+        while preset_id in configured_regions:
+            preset_id += "@"
+        caption = (
+            ", ".join(choice.codes)
+            if choice.codes
+            else (f"Wochenendumkreis · {', '.join(countries)}")
+        )
+        preset = {"id": preset_id, "label": f"Voreinstellung · {caption}"}
+        regions = [preset_id]
+        countries = []
+    elif configured_regions.get(choice.region) == choice.countries:
+        regions = [choice.region]
+        countries = []
+    elif choice.region == "weekend" or not countries:
+        regions = [choice.region]
+    return {
+        **fields,
+        "regions": regions,
+        "countries": countries,
+        "configured_destination": preset,
+    }
+
+
+def _parse_fields(
+    fields: dict,
+    defaults: WeekendQuery,
+    configured_regions: Mapping[str, frozenset[str]],
+    default_fields: dict,
+) -> WeekendQuery:
+    changes = {}
+    for name, value in fields.items():
+        if name in _LIST_FIELDS or name in {"regions", "countries"}:
+            if not isinstance(value, list) or not all(
+                isinstance(item, str) and item.strip() for item in value
+            ):
+                raise ValueError(f"{name} must be a list of non-empty strings.")
+            changes[name] = tuple(item.strip() for item in value)
+        elif name in {"start", "end"}:
+            if not isinstance(value, str) or not value:
+                raise ValueError(f"{name} must be a date string.")
+            changes[name] = value
+        elif name in _TIME_FIELDS:
+            if value is not None and not isinstance(value, str):
+                raise ValueError(f"{name} must be a time string or null.")
+            changes[name] = value
+        elif name in _INT_FIELDS:
+            if type(value) is not int or value < 0:
+                raise ValueError(f"{name} must be a non-negative integer.")
+            changes[name] = value
+        elif name == "allow_codeshare":
+            if not isinstance(value, bool):
+                raise ValueError(f"{name} must be true or false.")
+            changes[name] = value
+        else:
+            raise ValueError(f"Unknown search field: {name}.")
+
+    if "home" in changes:
+        changes["home"] = tuple(dict.fromkeys(code.upper() for code in changes["home"]))
+    if {"regions", "countries"} & changes.keys():
+        source = defaults.destination
+        regions = changes.pop("regions", default_fields["regions"])
+        preset = default_fields["configured_destination"]
+        preset_id = preset["id"] if preset else None
+        changes["destination"] = BrowserDestinationChoice(
+            regions=tuple(region for region in regions if region != preset_id),
+            configured_default=source
+            if isinstance(source, DestinationChoice) and preset_id in regions
+            else None,
+            countries=frozenset(
+                code.upper()
+                for code in changes.pop("countries", default_fields["countries"])
+            ),
+            configured_regions=configured_regions,
+            max_distance_km=source.max_distance_km,
+            include_small=source.include_small,
+            exclude_codes=source.exclude_codes,
+            exclude_countries=source.exclude_countries,
+        )
+    return replace(defaults, **changes)
+
+
+def create_app(
+    defaults: WeekendQuery,
+    *,
+    configured_regions: Mapping[str, frozenset[str]],
+    search_runner=run_search,
+    airport_loader=load_airports,
+    cache_dir: Path | None = None,
+    cache_ttl: str = "12h",
+    cache_enabled: bool = True,
+    top: int = 20,
+    rolling_dates: bool = False,
+) -> Flask:
+    """Create the loopback application and its in-process search registry."""
+    app = Flask(__name__, static_folder="web_assets", static_url_path="/assets")
+    app.config.update(
+        MAX_CONTENT_LENGTH=16 * 1024, TRUSTED_HOSTS=["localhost", "127.0.0.1"]
+    )
+    configured_regions = dict(configured_regions)
+    default_fields = _json_defaults(defaults, configured_regions)
+    runs: dict[str, _SearchRun] = {}
+    runs_lock = Lock()
+    if rolling_dates:
+        window = date.fromisoformat(defaults.end) - date.fromisoformat(defaults.start)
+
+    def current_defaults(today: date) -> WeekendQuery:
+        if not rolling_dates:
+            return defaults
+        return replace(
+            defaults,
+            start=today.isoformat(),
+            end=(today + window).isoformat(),
+        )
+
+    @app.errorhandler(RequestEntityTooLarge)
+    def oversized_request(_error):
+        return jsonify(error="Search request is too large."), 413
+
+    @app.errorhandler(SecurityError)
+    def untrusted_host(_error):
+        return jsonify(error="Use the local flight-search address."), 400
+
+    @app.get("/")
+    def index():
+        return app.send_static_file("index.html")
+
+    @app.get("/api/catalogs")
+    def catalogs():
+        from fli.models import Airline
+
+        try:
+            airports = airport_loader(include_small=True)
+        except AirportDataError as exc:
+            return jsonify(error=str(exc)), 500
+
+        query_defaults = current_defaults(date.today())
+        region_ids = [*BUILT_IN_REGIONS, *configured_regions]
+        if preset := default_fields["configured_destination"]:
+            region_ids.insert(0, preset["id"])
+        return jsonify(
+            airports=[
+                {"code": a.iata, "name": a.name, "city": a.city, "country": a.country}
+                for a in airports
+            ],
+            regions=region_ids,
+            countries=sorted({airport.country for airport in airports}),
+            airlines=[
+                {"code": item.name.removeprefix("_"), "name": item.value}
+                for item in Airline
+            ],
+            defaults={
+                **default_fields,
+                "start": query_defaults.start,
+                "end": query_defaults.end,
+            },
+        )
+
+    @app.post("/api/searches")
+    def start_search():
+        origin = request.headers.get("Origin")
+        if origin is not None and origin != request.host_url.rstrip("/"):
+            return jsonify(
+                error="Searches must start from the local flight-search page."
+            ), 403
+
+        fields = request.get_json(silent=True)
+        if not isinstance(fields, dict):
+            return jsonify(error="Send a JSON object with search fields."), 400
+        try:
+            today = date.today()
+            query = _parse_fields(
+                fields, current_defaults(today), configured_regions, default_fields
+            )
+            plan = prepare_weekend(
+                query,
+                today=today,
+                airport_loader=airport_loader,
+                enforce_budget=True,
+            )
+            cache, budget = plan.create_resources(
+                cache_dir=cache_dir, cache_ttl=cache_ttl, cache_enabled=cache_enabled
+            )
+        except ValueError as exc:
+            return jsonify(error=str(exc)), 400
+        except AirportDataError as exc:
+            return jsonify(error=str(exc)), 500
+
+        search_id = uuid4().hex
+        run = _SearchRun()
+        with runs_lock:
+            runs[search_id] = run
+
+        def execute() -> None:
+            try:
+                result = search_runner(
+                    plan.request, cache=cache, budget=budget, progress=run
+                )
+                warnings = plan.warnings
+                failures = run.snapshot().get("discovery_failures", 0)
+                if failures:
+                    warnings += (
+                        f"{failures} discovery requests failed. Results may be incomplete.",
+                    )
+                run.finish(
+                    status="done",
+                    result=pair_results(result, plan.request.settings, top),
+                    warnings=warnings,
+                )
+            except Exception as exc:
+                logger.exception("Browser search failed")
+                run.finish(status="error", error=str(exc) or type(exc).__name__)
+
+        Thread(target=execute, name=f"search-{search_id[:8]}", daemon=True).start()
+        return jsonify(id=search_id), 202
+
+    @app.get("/api/searches/<search_id>")
+    def search_state(search_id: str):
+        with runs_lock:
+            run = runs.get(search_id)
+        if run is None:
+            return jsonify(error="Search not found."), 404
+        return jsonify(run.snapshot())
+
+    return app

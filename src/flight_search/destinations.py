@@ -37,6 +37,7 @@ class BrowserDestinationChoice:
     regions: tuple[str, ...] = ()
     countries: frozenset[str] = frozenset()
     configured_regions: Mapping[str, frozenset[str]] = field(default_factory=dict)
+    configured_default: DestinationChoice | None = None
     max_distance_km: float | None = None
     exclude_codes: frozenset[str] = frozenset()
     include_small: bool = False
@@ -77,9 +78,7 @@ def select_destinations(
 ) -> tuple[tuple[AirportInfo, ...], list[str]]:
     """The selected airports and the warnings about unknown codes."""
     if isinstance(choice, BrowserDestinationChoice):
-        return _select_browser_destinations(
-            choice, airports=airports, center=center
-        ), []
+        return _select_browser_destinations(choice, airports=airports, center=center)
 
     weekend = choice.region == "weekend"
     if choice.codes:
@@ -120,7 +119,7 @@ def _select_browser_destinations(
     *,
     airports: tuple[AirportInfo, ...],
     center: Coordinate,
-) -> tuple[AirportInfo, ...]:
+) -> tuple[tuple[AirportInfo, ...], list[str]]:
     common = DestinationChoice(
         max_distance_km=choice.max_distance_km,
         exclude_codes=choice.exclude_codes,
@@ -128,6 +127,14 @@ def _select_browser_destinations(
         exclude_countries=choice.exclude_countries,
     )
     subsets = []
+    if choice.configured_default is not None:
+        subsets.append(
+            replace(
+                choice.configured_default,
+                exclude_codes=choice.exclude_codes
+                | choice.configured_default.exclude_codes,
+            )
+        )
     if choice.countries:
         subsets.append(replace(common, countries=choice.countries))
     for region in choice.regions:
@@ -141,7 +148,11 @@ def _select_browser_destinations(
             raise ValueError(f"Unknown destination region: {region!r}")
 
     by_code: dict[str, AirportInfo] = {}
+    warnings = []
     for subset in subsets:
-        selected, _ = select_destinations(subset, airports=airports, center=center)
+        selected, subset_warnings = select_destinations(
+            subset, airports=airports, center=center
+        )
         by_code.update((airport.iata, airport) for airport in selected)
-    return tuple(by_code[code] for code in sorted(by_code))
+        warnings.extend(subset_warnings)
+    return tuple(by_code[code] for code in sorted(by_code)), warnings

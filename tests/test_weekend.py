@@ -114,3 +114,32 @@ def test_weekend_resources_apply_the_preview_estimate_at_the_budget_boundary(tmp
         over_limit.create_resources(
             cache_dir=cache_dir, cache_ttl="30m", cache_enabled=False
         )
+
+
+def test_prepare_weekend_rejects_too_many_date_pairs_even_without_budget(monkeypatch):
+    from flight_search import weekend
+    from flight_search.weekend import WeekendDatePairError, prepare_weekend
+
+    def unexpected_expansion(*args, **kwargs):
+        pytest.fail("expanded date pairs before the pair limit check")
+
+    monkeypatch.setattr(weekend, "expand_date_pairs", unexpected_expansion)
+    query = replace(
+        weekend_query(max_requests=1_000_000),
+        start="2027-01-01",
+        end="2035-01-01",
+        depart_days=("mon", "tue", "wed", "thu", "fri", "sat", "sun"),
+        return_days=("mon", "tue", "wed", "thu", "fri", "sat", "sun"),
+        min_nights=0,
+        max_nights=3000,
+    )
+    airport_loader = Mock(return_value=(LISBON,))
+
+    with pytest.raises(WeekendDatePairError) as raised:
+        prepare_weekend(
+            query, today=TODAY, airport_loader=airport_loader, enforce_budget=False
+        )
+
+    assert raised.value.date_pairs == 4_273_426
+    assert raised.value.max_date_pairs == weekend.MAX_DATE_PAIRS == 100_000
+    assert "Date pairs (4273426) exceed the limit (100000)" in str(raised.value)

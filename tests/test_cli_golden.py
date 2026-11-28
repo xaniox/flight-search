@@ -259,3 +259,42 @@ def test_debug_logs_confirmation_roundtrip_and_upstream_to_stderr(
     assert re.search(r"Search +\| Finished", warm.err)
     assert re.search(r"Confirmation +\| .* · cache in \d+ ms", warm.err)
     assert re.search(r"Round-trip +\| .* · cache in \d+ ms", warm.err)
+
+
+def test_too_many_date_pairs_exit_2_without_expanding_them(
+    offline, capsys, monkeypatch
+):
+    from flight_search import weekend
+
+    def unexpected_expansion(*args, **kwargs):
+        pytest.fail("CLI expanded date pairs before the pair limit check")
+
+    monkeypatch.setattr(weekend, "expand_date_pairs", unexpected_expansion)
+    code = cli.main(
+        [
+            "weekend",
+            "--from",
+            "FRA",
+            "--start",
+            "2027-03-05",
+            "--end",
+            "2035-03-05",
+            "--depart-days",
+            "mon,tue,wed,thu,fri,sat,sun",
+            "--return-days",
+            "mon,tue,wed,thu,fri,sat,sun",
+            "--min-nights",
+            "0",
+            "--max-nights",
+            "3000",
+            "--max-requests",
+            "100000000",
+            "--cache-dir",
+            str(offline),
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert code == 2
+    assert "exceed the limit" in (captured.out + captured.err)
+    assert "date pairs" in (captured.out + captured.err).lower()

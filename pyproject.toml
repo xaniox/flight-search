@@ -4,8 +4,10 @@ version = "0.1.0"
 description = "Weekend-getaway / open-jaw flight search on top of the fli (Google Flights) library"
 requires-python = ">=3.12"
 dependencies = [
+    "flask>=3.1",
     "flights==0.11.1",
     "rich>=13.7",
+    "waitress>=3.0",
 ]
 
 [project.scripts]

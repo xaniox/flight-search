@@ -8,7 +8,7 @@ import sys
 from collections.abc import Sequence
 from copy import copy
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from time import monotonic
 from typing import ClassVar
@@ -523,6 +523,11 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
         ),
     )
 
+    web = subparsers.add_parser("web", help="Serve weekend search in a local browser.")
+    web.add_argument(
+        "--port", type=int, default=8765, help="Local port (default: %(default)s)."
+    )
+
     refresh = subparsers.add_parser(
         "refresh-airports",
         help="Regenerate the vendored airport dataset from OurAirports.",
@@ -596,18 +601,8 @@ def _build_settings(args) -> SearchSettings:
     )
 
 
-def _run_weekend(args, *, error_console: Console | None = None) -> int:
-    started = monotonic()
-    console = Console()
-    error_console = error_console or Console(stderr=True)
-    reporter = Reporter(console=error_console, quiet=args.quiet)
-
-    airline_source = (
-        f"{args.airlines_config_path}: 'airlines'"
-        if args.airlines_config_path is not None and "airlines" not in args.given
-        else "--airlines"
-    )
-    query = WeekendQuery(
+def _weekend_query(args) -> WeekendQuery:
+    return WeekendQuery(
         start=args.start,
         end=args.end,
         depart_days=(args.depart_days,),
@@ -632,6 +627,20 @@ def _run_weekend(args, *, error_console: Console | None = None) -> int:
         concurrency=args.concurrency,
         per_city=args.per_city,
     )
+
+
+def _run_weekend(args, *, error_console: Console | None = None) -> int:
+    started = monotonic()
+    console = Console()
+    error_console = error_console or Console(stderr=True)
+    reporter = Reporter(console=error_console, quiet=args.quiet)
+
+    airline_source = (
+        f"{args.airlines_config_path}: 'airlines'"
+        if args.airlines_config_path is not None and "airlines" not in args.given
+        else "--airlines"
+    )
+    query = _weekend_query(args)
     try:
         plan = prepare_weekend(
             query,
@@ -921,7 +930,39 @@ def _run_refresh(args) -> int:
     return 0
 
 
-CONFIGURED_COMMANDS = ("weekend", "airports")
+CONFIGURED_COMMANDS = ("weekend", "airports", "web")
+
+
+def _run_web(parser: argparse.ArgumentParser, port: int) -> int:
+    from waitress import serve
+
+    from flight_search.web import create_app
+
+    if not 1 <= port <= 65535:
+        parser.error("--port must be between 1 and 65535")
+
+    today = date.today()
+    defaults = parser.parse_args(
+        [
+            "weekend",
+            "--start",
+            today.isoformat(),
+            "--end",
+            (today + timedelta(days=13)).isoformat(),
+        ]
+    )
+    app = create_app(
+        _weekend_query(defaults),
+        configured_regions=defaults.regions,
+        cache_dir=defaults.cache_dir,
+        cache_ttl=defaults.cache_ttl,
+        cache_enabled=defaults.cache,
+        top=defaults.top,
+        rolling_dates=True,
+    )
+    Console().print(f"Open http://127.0.0.1:{port} in your browser.")
+    serve(app, host="127.0.0.1", port=port)
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -936,6 +977,8 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigError as exc:
         _build_parser().error(str(exc))
     args = parser.parse_args(argv)
+    if args.command == "web":
+        return _run_web(parser, args.port)
     if args.command in CONFIGURED_COMMANDS:
         _drop_file_selection(args)
     if args.command == "weekend":

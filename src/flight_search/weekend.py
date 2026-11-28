@@ -14,6 +14,8 @@ from flight_search.candidates import request_estimate
 from flight_search.config import Coordinate, SearchSettings
 from flight_search.dates import (
     DateError,
+    count_date_pairs,
+    count_feasible_dates,
     expand_date_pairs,
     parse_date,
     parse_weekdays,
@@ -55,6 +57,21 @@ class WeekendBudgetError(WeekendError):
         )
         self.estimated_requests = estimated_requests
         self.max_requests = max_requests
+
+
+MAX_DATE_PAIRS = 100_000
+
+
+class WeekendDatePairError(WeekendError):
+    """The date range and nights allow more date pairs than one search builds."""
+
+    def __init__(self, date_pairs: int, max_date_pairs: int) -> None:
+        super().__init__(
+            f"Date pairs ({date_pairs}) exceed the limit ({max_date_pairs}). "
+            "Narrow the date range or the nights."
+        )
+        self.date_pairs = date_pairs
+        self.max_date_pairs = max_date_pairs
 
 
 class AirportLoader(Protocol):
@@ -164,6 +181,7 @@ def prepare_weekend(
     destination_resolver: Callable[[], tuple[tuple[AirportInfo, ...], list[str]]]
     | None = None,
     airline_source: str = "airline_codes",
+    enforce_budget: bool = False,
 ) -> WeekendPlan:
     """Resolve inputs and estimate a search without creating resources or running it."""
     try:
@@ -171,7 +189,7 @@ def prepare_weekend(
         end = parse_date(query.end)
         depart_days = parse_weekdays(query.depart_days)
         return_days = parse_weekdays(query.return_days)
-        pairs = expand_date_pairs(
+        depart_count, return_count = count_feasible_dates(
             start, end, depart_days, return_days, query.min_nights, query.max_nights
         )
         depart_window = DepartureWindow(
@@ -192,7 +210,7 @@ def prepare_weekend(
 
     if start < today:
         raise WeekendError(f"start date {start} is in the past.")
-    if not pairs:
+    if not depart_count:
         raise WeekendError(
             "no departure/return date pairs match the "
             "weekday and night constraints inside the range."
@@ -223,16 +241,26 @@ def prepare_weekend(
             "no destination airports selected.", warnings=tuple(warnings)
         )
 
-    depart_dates, return_dates = unique_dates(pairs)
     batch_size = destination_batch_size(len(home), query.batch_size)
     estimated_requests = request_estimate(
         len(destinations),
-        len(depart_dates),
-        len(return_dates),
+        depart_count,
+        return_count,
         home_airports=len(home),
         batch_size=batch_size,
         max_candidates=query.max_candidates,
     )
+    if enforce_budget and estimated_requests > query.max_requests:
+        raise WeekendBudgetError(estimated_requests, query.max_requests)
+    date_pairs = count_date_pairs(
+        start, end, depart_days, return_days, query.min_nights, query.max_nights
+    )
+    if date_pairs > MAX_DATE_PAIRS:
+        raise WeekendDatePairError(date_pairs, MAX_DATE_PAIRS)
+    pairs = expand_date_pairs(
+        start, end, depart_days, return_days, query.min_nights, query.max_nights
+    )
+    depart_dates, return_dates = unique_dates(pairs)
     request = SearchRequest(
         home=home,
         destinations=destinations,

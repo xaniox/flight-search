@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wochenendsuche · flight-search</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script type="module" src="/assets/app.js"></script>
+</head>
+<body>
+  <header><div class="shell"><div class="brand"><span class="brand-mark" aria-hidden="true"></span>flight-search</div></div></header>
+  <main class="shell">
+    <h1>Wochenendsuche</h1>
+    <form id="search" aria-label="Wochenendsuche">
+      <div class="fields">
+        <div>
+          <span class="picker-label" id="home-label">Abflughäfen</span>
+          <details class="field-picker" id="home-picker" aria-labelledby="home-label">
+            <summary></summary>
+            <div class="picker-popover">
+              <input type="search" aria-label="Flughäfen suchen" placeholder="Name oder IATA-Code">
+              <div class="picker-options"></div>
+            </div>
+          </details>
+        </div>
+        <label>Von<input name="start" type="date" required></label>
+        <label>Bis<input name="end" type="date" required></label>
+        <div class="destination-field">
+          <span class="picker-label" id="destination-label">Ziele</span>
+          <details class="field-picker" id="destination-picker" aria-labelledby="destination-label">
+            <summary></summary>
+            <div class="picker-popover">
+              <input type="search" aria-label="Zielregionen und Länder suchen" placeholder="Region oder Land">
+              <div class="picker-options"></div>
+            </div>
+          </details>
+        </div>
+        <div class="airline-field">
+          <span class="picker-label" id="airline-label">Airlines</span>
+          <details class="field-picker" id="airline-picker" aria-labelledby="airline-label">
+            <summary></summary>
+            <div class="picker-popover">
+              <input type="search" aria-label="Airlines suchen" placeholder="Name oder Airline-Code">
+              <div class="picker-options"></div>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div class="form-footer">
+        <details>
+          <summary>Weitere Suchfilter</summary>
+          <div class="fields advanced-fields">
+            <fieldset class="weekdays"><legend>Hinflugtage</legend><div class="day-options" id="departure-days"></div></fieldset>
+            <fieldset class="weekdays"><legend>Rückflugtage</legend><div class="day-options" id="return-days"></div></fieldset>
+            <label>Mind. Nächte<input name="min_nights" type="number" min="0" required></label>
+            <label>Max. Nächte<input name="max_nights" type="number" min="0" required></label>
+            <label>Hinflug ab<input name="depart_after" type="time"></label>
+            <label>Hinflug bis<input name="depart_before" type="time"></label>
+            <label>Rückflug ab<input name="return_depart_after" type="time"></label>
+            <label>Rückkehr bis<input name="return_arrive_before" type="time"></label>
+            <label>Max. Anfragen<input name="max_requests" type="number" min="0" required></label>
+            <label class="check"><input name="allow_codeshare" type="checkbox">Codeshares erlauben</label>
+          </div>
+        </details>
+        <button class="primary" type="submit" disabled>Flüge suchen</button>
+      </div>
+    </form>
+    <div id="status" class="status" role="status" hidden>
+      <strong id="status-title"></strong>
+      <p id="status-note" class="muted"></p>
+      <progress id="progress" aria-label="Suchfortschritt" hidden></progress>
+    </div>
+    <section id="results" aria-labelledby="results-title" hidden>
+      <div class="results-header">
+        <div><h2 id="results-title">Fertige Paare</h2><p class="context muted" id="context"></p></div>
+      </div>
+      <div id="pairs"></div>
+    </section>
+  </main>
+</body>
+</html>

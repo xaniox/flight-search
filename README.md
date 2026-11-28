@@ -65,6 +65,17 @@ uv run flight-search --help
 links, and `--output results.json` avoids PowerShell 5.1's UTF-16 `>`
 redirection.
 
+## Local browser
+
+```sh
+uv run flight-search web
+```
+
+Open `http://127.0.0.1:8765` to choose departure airports, destinations and
+dates, follow search progress and open the confirmed pairs in Google Flights.
+Use `--port` to pick another local port. The browser uses the existing search
+defaults, configuration and disk cache.
+
 ## Quick start
 
 Cheapest weekend across Europe including Cyprus, the Greek islands and the
@@ -125,7 +136,7 @@ uv run flight-search weekend ... --format json > results.json
 | `--exclude-countries` | Leave out whole countries, e.g. `RU,BY`; explicit `--dest` codes are kept. |
 | `--depart-days`, `--return-days` | Weekday sets, e.g. `thu,fri` and `sun,mon`. |
 | `--start`, `--end` | Date range; both legs must fall inside it. |
-| `--min-nights`, `--max-nights` | Trip length constraint. |
+| `--min-nights`, `--max-nights` | Trip length constraint. A search builds at most 100,000 departure/return date pairs. |
 | `--depart-after`, `--depart-before` | Optional outbound departure window, local time (`17:30`, `21:15`). |
 | `--return-depart-after` | Optional earliest return departure from the destination, local time (`15:00`). |
 | `--return-arrive-before` | Optional latest return arrival at the home airport, local time. |
@@ -170,7 +181,7 @@ locally on the decoded itineraries. `--return-depart-after 15` and
 
 An optional file `~/.config/flight-search/config.toml` (or
 `$XDG_CONFIG_HOME/flight-search/config.toml`) sets your own defaults for
-`weekend` and `airports`:
+`weekend`, `airports`, and the browser server (`web`).
 
 ```toml
 home_airports = ["MUC"]          # like --from MUC
@@ -195,11 +206,10 @@ command line names any of `--region`, `--countries` or `--dest`, the file's `cou
 A named region is used as `--region levant`: it selects the airports of its
 countries worldwide, like `--countries IL,LB,JO`, and has no radius;
 `--countries` and `--dest` override it. Without `home` distances are measured
-from Karlsruhe. The file is read only by `weekend` and `airports`. An unknown
-key (also inside `home` or a region, and `start`/`end`, which belong on the
-command line), a value of the wrong type, a `home` outside -90..90 / -180..180,
-a file that cannot be read or is not UTF-8, or a region named `europe` or
-`weekend` stops the run with exit code 2.
+from Karlsruhe. An unknown key (also inside `home` or a region, and
+`start`/`end`, which are set per search), a value of the wrong type, a `home`
+outside -90..90 / -180..180, a file that cannot be read or is not UTF-8, or a
+region named `europe` or `weekend` stops the run with exit code 2.
 
 ## How it works
 
