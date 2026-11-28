@@ -40,6 +40,17 @@ def _stamp(value: str, fmt: str = "%a %d %b") -> str:
     return datetime.fromisoformat(value).strftime(fmt)
 
 
+def _days_between(earlier: str, later: str) -> int:
+    return (
+        datetime.fromisoformat(later).date() - datetime.fromisoformat(earlier).date()
+    ).days
+
+
+def _arrival_day_marker(departure: str, arrival: str) -> str:
+    days = _days_between(departure, arrival)
+    return f" +{days}" if days > 0 else ""
+
+
 def _route(option: FlightOption) -> str:
     """Show flight legs and mark any ground transfer between airports."""
     if not option.legs:
@@ -58,11 +69,7 @@ def _airlines(option: FlightOption) -> str:
 
 def _timing(option: FlightOption) -> str:
     timing = f"{_stamp(option.departure, '%H:%M')}–{_stamp(option.arrival, '%H:%M')}"
-    days = (
-        datetime.fromisoformat(option.arrival).date()
-        - datetime.fromisoformat(option.departure).date()
-    ).days
-    return f"{timing} +{days}" if days > 0 else timing
+    return timing + _arrival_day_marker(option.departure, option.arrival)
 
 
 def _flight_tokens(label: str, option: FlightOption) -> list[str]:
@@ -120,14 +127,37 @@ class _FlightsCell:
         yield Text("\n".join(rows), no_wrap=True, overflow="ellipsis")
 
 
-def _leg_detail(option: FlightOption) -> str:
-    parts = []
-    for leg in option.legs:
-        parts.append(
-            f"{leg.airline} {leg.flight_number} {leg.origin}→{leg.destination} "
-            f"{_stamp(leg.departure, '%H:%M')}–{_stamp(leg.arrival, '%H:%M')}"
+def _detail_lines(label: str, option: FlightOption) -> list[str]:
+    """One line per leg of a direction, a connection line between two legs."""
+    layovers = option.layovers
+    lines = []
+    for index, leg in enumerate(option.legs):
+        line = (
+            f"{_stamp(leg.departure)}  {leg.airline} {leg.flight_number}  "
+            f"{leg.origin} {_stamp(leg.departure, '%H:%M')} → "
+            f"{leg.destination} {_stamp(leg.arrival, '%H:%M')}"
         )
-    return " · ".join(parts)
+        line += _arrival_day_marker(leg.departure, leg.arrival)
+        if leg.operating_airline != leg.airline:
+            line += f"  operated by {leg.operating_airline}"
+        lines.append(line)
+        if index < len(layovers):
+            airport, minutes = layovers[index]
+            following = option.legs[index + 1]
+            airport_change = airport != following.origin
+            connection = f"{airport}→{following.origin}" if airport_change else airport
+            line = f"connection {connection} {fmt_duration(minutes)}"
+            if airport_change:
+                line += " · airport change"
+            if _days_between(leg.arrival, following.departure) > 0:
+                line += " · overnight"
+            lines.append(line)
+    if option.self_transfer:
+        lines.append("self-transfer: separate tickets, connections at your own risk")
+    indent = " " * len(label)
+    return [
+        f"{indent if number else label} {line}" for number, line in enumerate(lines)
+    ]
 
 
 def link_cell(url: str | None) -> str:
@@ -228,8 +258,9 @@ def render_results(
                 f"[bold]{rank}. {itinerary.city}[/bold] "
                 f"({itinerary.depart_date} → {itinerary.return_date})"
             )
-            console.print(f"   out: {_leg_detail(itinerary.out)}")
-            console.print(f"   ret: {_leg_detail(itinerary.ret)}")
+            for label, option in (("out", itinerary.out), ("ret", itinerary.ret)):
+                for line in _detail_lines(label, option):
+                    console.print(Text(f"   {line}"))
             if itinerary.roundtrip_price is not None:
                 console.print(
                     f"   conventional round-trip: "

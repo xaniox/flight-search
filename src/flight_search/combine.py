@@ -79,6 +79,23 @@ class FlightOption:
             f"{leg.airline}{leg.flight_number}@{leg.departure}" for leg in self.legs
         )
 
+    @property
+    def layovers(self) -> tuple[tuple[str, int], ...]:
+        """Airport and minutes of each connection between two consecutive legs."""
+        return tuple(
+            (
+                earlier.destination,
+                int(
+                    (
+                        datetime.fromisoformat(later.departure)
+                        - datetime.fromisoformat(earlier.arrival)
+                    ).total_seconds()
+                    // 60
+                ),
+            )
+            for earlier, later in zip(self.legs, self.legs[1:])
+        )
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "price": self.price,
@@ -286,14 +303,26 @@ class Itinerary:
                 "destination": self.open_jaw_destination,
                 "label": self.open_jaw_label,
             },
-            "outbound": self.out.to_dict(),
-            "return": self.ret.to_dict(),
+            "outbound": _direction_dict(self.out),
+            "return": _direction_dict(self.ret),
             "roundtrip_price": self.roundtrip_price,
             "roundtrip_delta": self.roundtrip_delta,
             "booking_url": self.booking_url,
             "outbound_url": self.outbound_url,
             "return_url": self.return_url,
         }
+
+
+def _direction_dict(option: FlightOption) -> dict[str, Any]:
+    """The option's dict plus its segment count and connections, before its legs."""
+    data = option.to_dict()
+    legs = data.pop("legs")
+    data["segments"] = len(option.legs)
+    data["layovers"] = [
+        {"airport": airport, "minutes": minutes} for airport, minutes in option.layovers
+    ]
+    data["legs"] = legs
+    return data
 
 
 def combine_itineraries(

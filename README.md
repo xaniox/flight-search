@@ -215,6 +215,15 @@ missed-connection protection and no single-ticket open-jaw fare. Use
 `--compare-roundtrip` to see how the combination compares with a
 conventional round-trip.
 
+In JSON, each `outbound` and `return` object contains `segments`, the number
+of flight legs, and `layovers`, a list of objects with `airport` (the arrival
+airport of the preceding leg) and `minutes` (time between legs). For direct
+flights, `layovers` is empty. Each direction also has a `self_transfer` flag,
+and each leg lists its `operating_airline` alongside its selling `airline`.
+
+When a connection involves an airport change, `--verbose` names both
+airports, for example `connection LGW→STN 3h · airport change`.
+
 ## Google Flights links
 
 Every confirmed itinerary gets a deterministic, offline-built

@@ -69,6 +69,8 @@
         "stops": 0,
         "duration": 108,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "FR",
@@ -93,6 +95,8 @@
         "stops": 0,
         "duration": 97,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "VY",
@@ -136,6 +140,8 @@
         "stops": 0,
         "duration": 97,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "VY",
@@ -160,6 +166,8 @@
         "stops": 0,
         "duration": 97,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "VY",
@@ -203,6 +211,8 @@
         "stops": 0,
         "duration": 122,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "LH",
@@ -227,6 +237,8 @@
         "stops": 0,
         "duration": 122,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "LH",
@@ -270,6 +282,8 @@
         "stops": 0,
         "duration": 108,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "FR",
@@ -294,6 +308,8 @@
         "stops": 0,
         "duration": 129,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "FR",
@@ -337,6 +353,8 @@
         "stops": 0,
         "duration": 140,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "LH",
@@ -361,6 +379,8 @@
         "stops": 0,
         "duration": 97,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "VY",
@@ -404,6 +424,8 @@
         "stops": 0,
         "duration": 97,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "VY",
@@ -428,6 +450,8 @@
         "stops": 0,
         "duration": 129,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "FR",
@@ -473,6 +497,8 @@
         "stops": 0,
         "duration": 108,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "FR",
@@ -497,6 +523,8 @@
         "stops": 0,
         "duration": 97,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "VY",
@@ -540,6 +568,8 @@
         "stops": 0,
         "duration": 122,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "LH",
@@ -564,6 +594,8 @@
         "stops": 0,
         "duration": 122,
         "self_transfer": false,
+        "segments": 1,
+        "layovers": [],
         "legs": [
           {
             "airline": "LH",
