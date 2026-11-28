@@ -133,6 +133,7 @@ uv run flight-search weekend ... --format json > results.json
 | `--max-candidates` | How many city/date-pair candidates are confirmed exactly (default 60). |
 | `--cache-ttl`, `--cache`/`--no-cache` | Disk cache lifetime (default 12h) in `~/.cache/flight-search`; `--no-cache` bypasses it, `--cache` undoes `cache = false` from the config file. |
 | `--concurrency`, `--max-requests` | Parallelism and a hard request ceiling. |
+| `--batch-size` | Discovery destinations per request, capped at 10 destinations and 14 airports total including the home airports. |
 | `--dry-run` | Print the plan and request estimate without network calls. |
 
 Every on/off option has a negative form that switches it off again, for
@@ -190,13 +191,13 @@ a file that cannot be read or is not UTF-8, or a region named `europe` or
 
 ## How it works
 
-1. **Discovery.** The cheap calendar endpoint used by older `fli` releases is
-   gated, and Google's search page accepts at most **14 airports per request**
-   (verified: 4 home + 10 destinations works, 4 + 11 returns an empty page).
-   For each distinct departure date and return date, the tool searches batches
-   of 10 destination airports with all four home airports batched in, and keeps
-   the cheapest price per airport and date. This is where most requests go:
-   `(depart dates + return dates) × batches`.
+1. **Discovery.** For each distinct departure and return date, the tool queries
+   Google's search page in batches with all home airports, up to **10 destination
+   airports** and at most **14 airports in total**. These caps reflect live tests.
+   Both one and four home airports worked with 10 destinations. With one home
+   airport, batches of 11–13 destinations returned pages without flight data.
+   Discovery keeps the cheapest price per airport and date. Its request count
+   grows with `(depart dates + return dates) × batches`.
 2. **Shortlist.** Cities are ranked by cheapest observed outbound + cheapest
    observed return, with a per-city cap so one cheap city cannot fill the list.
 3. **Confirmation.** For each shortlisted city/date pair, complete searches

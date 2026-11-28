@@ -24,11 +24,10 @@ from flight_search.config import SearchSettings
 # Those rows are still usable by us, so keep the log clean.
 logging.getLogger("fli").setLevel(logging.ERROR)
 
-# Google's search page rejects a request carrying more than 14 airports
-# (verified against the 2026-11 page transport: 4 origins + 10 destinations
-# works, 4 + 11 returns an empty ds:1 payload). We always send all home
-# airports, so this caps the destination batch size at 10 by default.
+# The search page returned flight data for 4 + 10 airports but not 4 + 11.
+# A single home airport also worked with 10 targets and failed with 11–13.
 MAX_AIRPORTS_PER_REQUEST = 14
+MAX_DESTINATIONS_PER_BATCH = 10
 
 
 class BudgetExceeded(RuntimeError):
@@ -66,7 +65,14 @@ def resolve_airport(code: str) -> Airport:
 
 
 def max_destinations(home_count: int) -> int:
-    return max(1, MAX_AIRPORTS_PER_REQUEST - home_count)
+    return max(
+        1, min(MAX_DESTINATIONS_PER_BATCH, MAX_AIRPORTS_PER_REQUEST - home_count)
+    )
+
+
+def destination_batch_size(home_count: int, requested: int | None = None) -> int:
+    maximum = max_destinations(home_count)
+    return max(1, min(requested, maximum)) if requested else maximum
 
 
 def _detail_filters(

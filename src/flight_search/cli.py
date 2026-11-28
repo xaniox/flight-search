@@ -447,7 +447,7 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
         "--batch-size",
         type=int,
         default=None,
-        help="Destination airports per phase-1 request (auto; max 14 minus home airports).",
+        help="Destination airports per discovery batch (max 10, and 14 airports total).",
     )
     weekend.add_argument(
         "--dry-run",
@@ -686,7 +686,7 @@ def _run_weekend(args) -> int:
     cities = build_city_groups(destinations)
     depart_dates, return_dates = unique_dates(pairs)
     settings = _build_settings(args)
-    batch_size = max(1, args.batch_size) if args.batch_size else max(1, 14 - len(home))
+    batch_size = fli_api.destination_batch_size(len(home), args.batch_size)
     estimated = request_estimate(
         len(destinations),
         len(depart_dates),

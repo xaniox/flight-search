@@ -20,7 +20,7 @@ from flight_search.config import SearchSettings
 from flight_search.dates import DatePair, unique_dates
 from flight_search.detail import OptionKey, confirm_options, rank_itineraries
 from flight_search.discover import run_discovery
-from flight_search.fli_api import RequestBudget
+from flight_search.fli_api import RequestBudget, destination_batch_size
 from flight_search.windows import DepartureWindow, ReturnWindow
 
 __all__ = [
@@ -108,7 +108,8 @@ def run_search(
     cities = build_city_groups(destinations)
     pairs = list(request.pairs)
     depart_dates, return_dates = unique_dates(pairs)
-    batch_count = max(1, -(-len(destinations) // request.batch_size))
+    batch_size = destination_batch_size(len(request.home), request.batch_size)
+    batch_count = max(1, -(-len(destinations) // batch_size))
 
     update = (
         progress.start(
@@ -129,7 +130,7 @@ def run_search(
             settings=request.settings,
             cache=cache,
             budget=budget,
-            batch_size=request.batch_size,
+            batch_size=batch_size,
             concurrency=request.concurrency,
             progress=update,
             airlines=request.airlines,
@@ -176,7 +177,7 @@ def run_search(
         date_pairs=len(pairs),
         distinct_departure_dates=len(depart_dates),
         distinct_return_dates=len(return_dates),
-        batch_size=request.batch_size,
+        batch_size=batch_size,
         candidates=len(candidates),
         shortlisted=len(shortlist),
         discovery_requests=discovery.requests,

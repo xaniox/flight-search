@@ -1,10 +1,9 @@
 """Phase 1: discover cheap prices for every destination airport and date.
 
 The upstream calendar endpoint (``GetCalendarGraph``) is gated, so the current
-transport costs one page fetch per date. The page accepts at most 14 airports
-per request; with all home airports batched in, that means 10 destinations per
-request. Each request still covers all home airports and returns the cheapest
-rows for the batch, which is enough to rank cities by price.
+transport fetches a page per date and batch. A batch includes all home airports
+and up to 10 destinations, with a limit of 14 airports in total. The cheapest
+rows returned from each batch are used to rank cities by price.
 """
 
 from __future__ import annotations
@@ -109,8 +108,7 @@ def run_discovery(
     Only options that pass the airline check give a price; the cache keeps the
     unchecked options, so every airline list shares the same entries.
     """
-    per_request = batch_size or fli_api.max_destinations(len(home))
-    per_request = max(1, min(per_request, fli_api.max_destinations(len(home))))
+    per_request = fli_api.destination_batch_size(len(home), batch_size)
     batches = batch_codes(sorted(destinations), per_request)
 
     out_restrictions = depart_window.restrictions()

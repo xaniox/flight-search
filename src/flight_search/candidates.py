@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from flight_search.airports import CityGroup
 from flight_search.dates import DatePair
 from flight_search.discover import AirportScreen
+from flight_search.fli_api import destination_batch_size
 
 
 @dataclass(slots=True)
@@ -83,7 +84,7 @@ def request_estimate(
     """Approximate total page fetches for a run."""
     if destination_airports == 0:
         return 0
-    per_request = batch_size or max(1, 14 - home_airports)
+    per_request = destination_batch_size(home_airports, batch_size)
     batches = (destination_airports + per_request - 1) // per_request
     discovery = (depart_dates + return_dates) * batches
     return discovery + max_candidates * 2
