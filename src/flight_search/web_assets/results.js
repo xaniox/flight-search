@@ -130,6 +130,7 @@ let selectedKey = null;
 let currency = 'EUR';
 let generation = 0;
 const loadingCities = new Set();
+let cheapestByCity = new Map();
 
 const travelTime = (out, back) => out.duration + back.duration;
 const segmentCount = (out, back) => `${out.segments + back.segments} Segmente`;
@@ -254,14 +255,23 @@ function resultOrder(a, b) {
   return a.price - b.price;
 }
 
-function returnCard(outbound, inbound, date, total, travel, combinedUrl) {
+function priceBox(surcharge, total, totalPrefix = '') {
+  const box = element('span', undefined, 'pricebox');
+  box.append(
+    element('span', `+${money(Math.max(0, surcharge), currency)}`, 'delta'),
+    element('small', `${totalPrefix}${money(total, currency)} gesamt`),
+  );
+  return box;
+}
+
+function returnCard(outbound, inbound, date, total, surcharge, travel, combinedUrl) {
   const card = element('details', undefined, 'trip');
   const summary = element('summary');
   const heading = element('div', undefined, 'trip-heading');
   heading.append(
     element('strong', dateLabel(date)),
     element('small', segmentCount(outbound, inbound)),
-    element('span', `${money(total, outbound.currency)} gesamt`, 'price'),
+    priceBox(surcharge, total),
   );
   const chevron = element('span', '⌄', 'chevron');
   chevron.setAttribute('aria-hidden', 'true');
@@ -300,11 +310,13 @@ function showReturns(row) {
     price: outbound.price + option.price,
     travel: travelTime(outbound, option),
   }))).sort(resultOrder);
-  selectedContext.textContent = `${route(outbound)} · ${money(outbound.price, outbound.currency)} Hinflug · ${entries.length === 1 ? '1 Rückflug' : entries.length + ' Rückflüge'}`;
+  const cheapest = Math.min(...entries.map(entry => entry.option.price));
+  selectedContext.textContent = `${route(outbound)} · ${money(outbound.price, outbound.currency)} Hinflug · ${entries.length === 1 ? '1 Rückflug' : entries.length + ' Rückflüge'} · Preise als Summe zweier Einzeltickets`;
   returnPanel.replaceChildren(...entries.map(entry => {
     const query = new URLSearchParams({ outbound: id, return: entry.id });
     return returnCard(
-      outbound, entry.option, entry.date, entry.price, entry.travel, `${searchUrl}/booking?${query}`,
+      outbound, entry.option, entry.date, entry.price, entry.option.price - cheapest, entry.travel,
+      `${searchUrl}/booking?${query}`,
     );
   }));
 }
@@ -316,7 +328,7 @@ function outboundButton(row) {
   const heading = element('span', undefined, 'top');
   heading.append(
     element('strong', `${dateLabel(row.date)} · ${clocks(row.outbound)}`),
-    element('span', `ab ${money(row.price, row.outbound.currency)} gesamt`, 'price'),
+    priceBox(row.price - cheapestByCity.get(row.cityKey), row.price, 'ab '),
   );
   button.append(
     heading,
@@ -347,6 +359,7 @@ function renderOutbound() {
     return;
   }
   const groups = cityGroups(outboundRows);
+  cheapestByCity = new Map(groups.map(rows => [rows[0].cityKey, Math.min(...rows.map(row => row.price))]));
   if (!outboundRows.some(row => row.id === selectedId)) selectedId = groups[0]?.[0].id ?? null;
   outboundPanel.replaceChildren(...withPendingGroups(groups.map(rows => cityGroup(rows, outboundButton, {
     city: rows[0].city,
@@ -461,8 +474,10 @@ export function showResults(result, url, view = {}) {
       }];
     });
   });
-  if (openCity && !outboundRows.some(row => row.id === selectedId)) {
-    selectedId = outboundRows.filter(row => row.cityKey === openCity).sort(resultOrder)[0]?.id ?? null;
+  if (openCity) {
+    selectedId = outboundRows.find(row => rowKey(row) === selectedKey)?.id
+      ?? outboundRows.filter(row => row.cityKey === openCity).sort(resultOrder)[0]?.id
+      ?? null;
   }
   renderPairs();
   renderOutbound();
