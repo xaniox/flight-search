@@ -79,6 +79,10 @@ export function setupPicker(id,name,groups,defaults,placeholder) {
     for (const optionGroup of optionGroups) optionGroup.limit = pageSize;
     filterOptions();
   });
+  summary.addEventListener('click', event => {
+    // A second click in a double click would undo the disclosure toggle.
+    if (event.detail > 1) event.preventDefault();
+  });
   picker.addEventListener('toggle',() => { if (picker.open) input.focus(); });
   picker.addEventListener('keydown',event => {
     if (event.key !== 'Escape' || !picker.open) return;
