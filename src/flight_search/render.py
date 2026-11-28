@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable
+from datetime import datetime
 from typing import Any
 
-from rich.console import Console
+from rich.cells import cell_len
+from rich.console import Console, ConsoleOptions, RenderResult
+from rich.measure import Measurement
 from rich.table import Table
 from rich.text import Text
 
@@ -34,17 +37,87 @@ def fmt_duration(minutes: int) -> str:
 
 
 def _stamp(value: str, fmt: str = "%a %d %b") -> str:
-    from datetime import datetime
-
     return datetime.fromisoformat(value).strftime(fmt)
 
 
 def _route(option: FlightOption) -> str:
-    return f"{option.origin}→{option.destination}"
+    """Show flight legs and mark any ground transfer between airports."""
+    if not option.legs:
+        return "→"
+    route = [option.origin]
+    for leg in option.legs:
+        if route[-1] != leg.origin:
+            route.extend((" ⇢ ", leg.origin))
+        route.extend(("→", leg.destination))
+    return "".join(route)
+
+
+def _airlines(option: FlightOption) -> str:
+    return "/".join(leg.airline for leg in option.legs)
 
 
 def _timing(option: FlightOption) -> str:
-    return f"{_stamp(option.departure, '%H:%M')}–{_stamp(option.arrival, '%H:%M')}"
+    timing = f"{_stamp(option.departure, '%H:%M')}–{_stamp(option.arrival, '%H:%M')}"
+    days = (
+        datetime.fromisoformat(option.arrival).date()
+        - datetime.fromisoformat(option.departure).date()
+    ).days
+    return f"{timing} +{days}" if days > 0 else timing
+
+
+def _flight_tokens(label: str, option: FlightOption) -> list[str]:
+    """The words of one direction's line; none of them may be split."""
+    tokens = [
+        label,
+        _stamp(option.departure, "%a %d %b"),
+        _route(option),
+        _airlines(option),
+        _timing(option),
+    ]
+    if option.self_transfer:
+        tokens.append("self-transfer")
+    return tokens
+
+
+class _FlightsCell:
+    """One line per direction, wrapped only between its tokens.
+
+    Rich would break a narrow cell at any space, also inside ``Fri 12 Jun`` or
+    ``18:40–10:20 +1``, so this renderable packs whole tokens per line itself.
+    A wrapped line continues indented under the date, as far as it fits.
+    A token wider than the column ends with an ellipsis.
+    """
+
+    SEP = "  "
+    INDENT = len("out  ")
+
+    def __init__(self, *lines: list[str]) -> None:
+        self.lines = lines
+
+    def __rich_measure__(
+        self, console: Console, options: ConsoleOptions
+    ) -> Measurement:
+        tokens = [token for line in self.lines for token in line]
+        widest = max(cell_len(self.SEP.join(line)) for line in self.lines)
+        return Measurement(max(cell_len(token) for token in tokens), widest)
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        width = options.max_width
+        rows: list[str] = []
+        for tokens in self.lines:
+            current = tokens[0]
+            for token in tokens[1:]:
+                joined = current + self.SEP + token
+                if cell_len(joined) <= width:
+                    current = joined
+                    continue
+                rows.append(current)
+                indent = min(self.INDENT, max(0, width - cell_len(token)))
+                current = " " * indent + token
+            rows.append(current)
+        yield Text("\n".join(rows), no_wrap=True, overflow="ellipsis")
 
 
 def _leg_detail(option: FlightOption) -> str:
@@ -116,10 +189,9 @@ def render_results(
     table.add_column("#", justify="right", style="dim")
     table.add_column("Total", justify="right", style="bold green")
     table.add_column("City", style="cyan")
-    table.add_column("Outbound")
-    table.add_column("Return")
+    table.add_column("Flights")
     table.add_column("Nights", justify="right")
-    table.add_column("Stops", justify="right")
+    table.add_column("Seg", justify="right")
     table.add_column("Open jaw", justify="center")
     if show_roundtrip:
         table.add_column("vs RT", justify="right")
@@ -128,20 +200,13 @@ def render_results(
     for rank, itinerary in enumerate(itineraries, 1):
         out = itinerary.out
         ret = itinerary.ret
-        outbound = (
-            f"{_stamp(out.departure, '%a %d %b')} · {_route(out)} · {_timing(out)}"
-        )
-        inbound = (
-            f"{_stamp(ret.departure, '%a %d %b')} · {_route(ret)} · {_timing(ret)}"
-        )
         row: list[Any] = [
             str(rank),
             fmt_money(itinerary.total, out.currency),
             f"{itinerary.city} ({itinerary.country})",
-            outbound,
-            inbound,
+            _FlightsCell(_flight_tokens("out", out), _flight_tokens("ret", ret)),
             str(itinerary.nights),
-            f"{out.stops}/{ret.stops}",
+            str(len(out.legs) + len(ret.legs)),
             itinerary.open_jaw_label or "—",
         ]
         if show_roundtrip:

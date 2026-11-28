@@ -6,14 +6,21 @@ Karlsruhe area by default.
 
 Given a date range, a set of departure weekdays, a set of return weekdays and
 an airport region, it prices every matching weekend and returns the cheapest
-**two separate one-way tickets** — including open-jaw combinations such as
-outbound `SXB → MXP` and return `LIN → FRA`.
+**two separate one-way tickets**, including open-jaw combinations such as
+outbound `FRA → FCO` and return `CIA → FRA`.
 
 ```text
-Total  City             Outbound                          Return                            Nights  Stops  Open jaw  Link
-€49    Milan (IT)       Fri 20 Nov · SXB→MXP · 12:45–14:15  Sun 22 Nov · LIN→FRA · 17:50–19:55  2       0/0    both      open
-€76    Barcelona (ES)   Fri 13 Nov · SXB→BCN · 14:45–16:25  Mon 16 Nov · BCN→SXB · 05:50–07:45  3       0/0    —         open
+#  Total  City        Flights                                    Nights  Seg  Open jaw  Link
+1   €101  Rome (IT)   out  Fri 19 Mar  FRA→FCO  FR  18:40–20:28       2    2    dest    open
+                      ret  Sun 21 Mar  CIA→FRA  VY  20:05–21:42
+2   €104  Rome (IT)   out  Fri 05 Mar  FRA→CIA  VY  18:40–20:17       2    2     —      open
+                      ret  Sun 07 Mar  CIA→FRA  VY  20:05–21:42
 ```
+
+`Flights` shows the outbound and return separately. `Seg` counts the flight
+segments in both directions combined. A route such as `MUC→LGW ⇢ STN→ATH`
+uses `⇢` for the transfer between airports. `--best-per-city` uses the same
+route format.
 
 `open` is a clickable Google Flights deep link for that exact itinerary. In
 terminals without OSC-8 hyperlink support (or when the output is piped), the

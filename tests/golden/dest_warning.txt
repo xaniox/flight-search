@@ -7,19 +7,19 @@ depart 15:00–23:59 (local times)
 
 1 airports · 1 cities · 12 requests · cache 0 hits
 
-#  Total  City        Outbound                          Return                             Nights  Stops  Open jaw  Link
-1   €106  Palma (ES)  Fri 05 Mar · FRA→PMI ·            Sun 07 Mar · PMI→FRA ·                  2    0/0     —      open
-                      18:40–20:42                       20:05–22:07                                                     
-2   €112  Palma (ES)  Fri 05 Mar · FRA→PMI ·            Sun 07 Mar · PMI→STR ·                  2    0/0    home    open
-                      18:40–20:42                       20:05–22:39                                                     
-3   €112  Palma (ES)  Fri 05 Mar · STR→PMI ·            Sun 07 Mar · PMI→FRA ·                  2    0/0    home    open
-                      18:40–21:14                       20:05–22:07                                                     
-4   €118  Palma (ES)  Fri 05 Mar · STR→PMI ·            Sun 07 Mar · PMI→STR ·                  2    0/0     —      open
-                      18:40–21:14                       20:05–22:39                                                     
-5   €133  Palma (ES)  Fri 19 Mar · FRA→PMI ·            Sun 21 Mar · PMI→FRA ·                  2    0/0     —      open
-                      18:40–20:42                       20:05–22:07                                                     
-6   €139  Palma (ES)  Fri 19 Mar · FRA→PMI ·            Sun 21 Mar · PMI→STR ·                  2    0/0    home    open
-                      18:40–20:42                       20:05–22:39                                                     
+#  Total  City        Flights                                    Nights  Seg  Open jaw  Link
+1   €106  Palma (ES)  out  Fri 05 Mar  FRA→PMI  LH  18:40–20:42       2    2     —      open
+                      ret  Sun 07 Mar  PMI→FRA  LH  20:05–22:07                             
+2   €112  Palma (ES)  out  Fri 05 Mar  FRA→PMI  LH  18:40–20:42       2    2    home    open
+                      ret  Sun 07 Mar  PMI→STR  VY  20:05–22:39                             
+3   €112  Palma (ES)  out  Fri 05 Mar  STR→PMI  VY  18:40–21:14       2    2    home    open
+                      ret  Sun 07 Mar  PMI→FRA  LH  20:05–22:07                             
+4   €118  Palma (ES)  out  Fri 05 Mar  STR→PMI  VY  18:40–21:14       2    2     —      open
+                      ret  Sun 07 Mar  PMI→STR  VY  20:05–22:39                             
+5   €133  Palma (ES)  out  Fri 19 Mar  FRA→PMI  LH  18:40–20:42       2    2     —      open
+                      ret  Sun 21 Mar  PMI→FRA  LH  20:05–22:07                             
+6   €139  Palma (ES)  out  Fri 19 Mar  FRA→PMI  LH  18:40–20:42       2    2    home    open
+                      ret  Sun 21 Mar  PMI→STR  VY  20:05–22:39                             
 
 Google Flights links:
 1. https://www.google.com/travel/flights/booking?tfs=CBwQAho_EgoyMDI3LTAzLTA1Ih8KA0ZSQRIKMjAyNy0wMy0wNRoDUE1JKgJMSDIDNTQ4agcIARIDRlJBcgcIARIDUE1JGj8SCjIwMjctMDMtMDciHwoDUE1JEgoyMDI3LTAzLTA3GgNGUkEqAkxIMgM1NDhqBwgBEgNQTUlyBwgBEgNGUkFAAUgBcAGCAQsI____________AZgBAQ&curr=EUR&hl=de-DE&gl=DE
