@@ -26,7 +26,6 @@ from flight_search.airports import (
     build_city_groups,
     display_city,
     distance_km,
-    filter_airports,
     load_airports,
 )
 from flight_search.cache import Cache, default_cache_dir, parse_duration
@@ -46,11 +45,7 @@ from flight_search.dates import (
     parse_weekdays,
     unique_dates,
 )
-from flight_search.destinations import (
-    DestinationChoice,
-    destination_pool,
-    select_destinations,
-)
+from flight_search.destinations import DestinationChoice, select_destinations
 from flight_search.detail import add_roundtrip_comparison
 from flight_search.discover import DiscoveryAborted
 from flight_search.fli_api import RequestBudget
@@ -64,6 +59,13 @@ from flight_search.render import (
     results_payload,
 )
 from flight_search.search import SearchRequest, run_search
+from flight_search.settings_file import (
+    BUILT_IN_REGIONS,
+    ConfigError,
+    Settings,
+    apply_defaults,
+    load,
+)
 from flight_search.windows import (
     DepartureWindow,
     ReturnWindow,
@@ -139,9 +141,56 @@ REGION_HELP = (
     "europe = Europe including Cyprus, the Greek islands and the Canaries, plus "
     "North Africa, Turkey and the Caucasus; weekend = the same within --max-distance-km."
 )
+EXCLUDE_COUNTRIES_HELP = (
+    "Leave out whole countries by ISO code (comma-separated), e.g. RU,BY; "
+    "explicit --dest codes are kept."
+)
+INCLUDE_SMALL_HELP = (
+    "Include small scheduled airports (more requests); airports named by "
+    "{named} are always used, even when small."
+)
+MAX_DISTANCE_HELP = "Radius used by --region weekend (default: %(default)g)."
+
+# The options that choose the destinations; their file values give way to any
+# of them on the command line (see _drop_file_selection).
+SELECTION_OPTIONS = frozenset({"dest", "countries", "region"})
 
 
-def _build_parser() -> argparse.ArgumentParser:
+class _DefaultsHelpFormatter(argparse.HelpFormatter):
+    """Append the default in effect, also one the config file set, to each help.
+
+    Defaults of ``None`` or an empty string mean "not set" and stay unprinted.
+    """
+
+    def _get_help_string(self, action):
+        help_text = action.help or ""
+        if "%(default)" in help_text or action.default in (
+            None,
+            "",
+            argparse.SUPPRESS,
+        ):
+            return help_text
+        return f"{help_text} (default: %(default)s)".lstrip()
+
+
+class _StoreGiven(argparse.Action):
+    """Store the value and note in ``given`` that the command line set it."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, values)
+        namespace.given = namespace.given | {self.dest}
+
+
+def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
+    """The parser; ``settings`` from the config file add regions and defaults."""
+    settings = settings or Settings()
+    region_choices = (*BUILT_IN_REGIONS, *settings.regions)
+    region_help = REGION_HELP
+    if settings.regions:
+        region_help += (
+            f" From the config file: {', '.join(settings.regions)}"
+            " (their countries, no radius)."
+        )
     parser = argparse.ArgumentParser(
         prog="flight-search",
         description="Find cheap weekend getaways and open-jaw itineraries via Google Flights.",
@@ -152,32 +201,36 @@ def _build_parser() -> argparse.ArgumentParser:
     weekend = subparsers.add_parser(
         "weekend",
         help="Search weekend getaways across a date range.",
+        formatter_class=_DefaultsHelpFormatter,
     )
     weekend.add_argument(
         "--from",
         dest="home_airports",
         default=",".join(DEFAULT_HOME_AIRPORTS),
-        help="Comma-separated home airports (default: FKB,STR,SXB,FRA).",
+        help="Comma-separated home airports (default: %(default)s).",
     )
     weekend.add_argument(
         "--dest",
+        action=_StoreGiven,
         default=None,
         help="Explicit destination airport codes (comma-separated); overrides --region.",
     )
     weekend.add_argument(
         "--region",
-        choices=("europe", "weekend"),
+        action=_StoreGiven,
+        choices=region_choices,
         default="europe",
-        help=REGION_HELP,
+        help=region_help,
     )
     weekend.add_argument(
         "--max-distance-km",
         type=float,
         default=1200.0,
-        help="Radius used by --region weekend (default: 1200).",
+        help=MAX_DISTANCE_HELP,
     )
     weekend.add_argument(
         "--countries",
+        action=_StoreGiven,
         default="",
         help=(
             "Choose destinations by ISO country code from the worldwide dataset "
@@ -189,28 +242,22 @@ def _build_parser() -> argparse.ArgumentParser:
         default="",
         help="Additional destination airport codes to exclude (comma-separated).",
     )
-    weekend.add_argument(
-        "--exclude-countries",
-        default="",
-        help=(
-            "Leave out whole countries by ISO code (comma-separated), e.g. RU,BY; "
-            "explicit --dest codes are kept."
-        ),
-    )
+    weekend.add_argument("--exclude-countries", default="", help=EXCLUDE_COUNTRIES_HELP)
     weekend.add_argument(
         "--include-small",
-        action="store_true",
-        help="Include small scheduled airports (more requests).",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=INCLUDE_SMALL_HELP.format(named="--dest or --from"),
     )
     weekend.add_argument(
         "--depart-days",
         default="fri",
-        help="Weekdays allowed for departure (default: fri).",
+        help="Weekdays allowed for departure (default: %(default)s).",
     )
     weekend.add_argument(
         "--return-days",
         default="sun",
-        help="Weekdays allowed for the return (default: sun).",
+        help="Weekdays allowed for the return (default: %(default)s).",
     )
     weekend.add_argument(
         "--start", required=True, help="Start of the date range (YYYY-MM-DD)."
@@ -218,8 +265,12 @@ def _build_parser() -> argparse.ArgumentParser:
     weekend.add_argument(
         "--end", required=True, help="End of the date range (YYYY-MM-DD)."
     )
-    weekend.add_argument("--min-nights", type=int, default=1)
-    weekend.add_argument("--max-nights", type=int, default=4)
+    weekend.add_argument(
+        "--min-nights", type=int, default=1, help="Fewest nights at the destination."
+    )
+    weekend.add_argument(
+        "--max-nights", type=int, default=4, help="Most nights at the destination."
+    )
     weekend.add_argument(
         "--depart-after",
         default=None,
@@ -243,38 +294,50 @@ def _build_parser() -> argparse.ArgumentParser:
     weekend.add_argument(
         "--max-stops",
         default="ANY",
-        help="ANY, 0/NON_STOP, 1/ONE_STOP or 2+ (default: ANY).",
+        help="ANY, 0/NON_STOP, 1/ONE_STOP or 2+ (default: %(default)s).",
     )
     weekend.add_argument(
         "--cabin",
         default="ECONOMY",
         help="ECONOMY, PREMIUM_ECONOMY, BUSINESS or FIRST.",
     )
-    weekend.add_argument("--adults", type=int, default=1)
-    weekend.add_argument("--currency", default=DEFAULT_CURRENCY)
-    weekend.add_argument("--country", default=DEFAULT_COUNTRY)
-    weekend.add_argument("--language", default=DEFAULT_LANGUAGE)
+    weekend.add_argument("--adults", type=int, default=1, help="Number of adults.")
+    weekend.add_argument(
+        "--currency", default=DEFAULT_CURRENCY, help="Currency of the prices."
+    )
+    weekend.add_argument(
+        "--country",
+        default=DEFAULT_COUNTRY,
+        help="Country (market) of the Google Flights request.",
+    )
+    weekend.add_argument(
+        "--language",
+        default=DEFAULT_LANGUAGE,
+        help="Language of the Google Flights request.",
+    )
     weekend.add_argument(
         "--top",
         type=int,
         default=20,
-        help="Number of results to display (default: 20).",
+        help="Number of results to display (default: %(default)s).",
     )
     weekend.add_argument(
         "--best-per-city",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=False,
         help="Also show the cheapest confirmed itinerary per destination city.",
     )
     weekend.add_argument(
         "--compare-roundtrip",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=False,
         help="Price conventional same-airport round-trips for comparison.",
     )
     weekend.add_argument(
         "--format",
         choices=("text", "json"),
         default="text",
-        help="Output format (default: text).",
+        help="Output format (default: %(default)s).",
     )
     weekend.add_argument(
         "--output",
@@ -286,37 +349,46 @@ def _build_parser() -> argparse.ArgumentParser:
         "--cache-dir",
         type=Path,
         default=None,
-        help="Cache directory (default: ~/.cache/flight-search).",
+        help=(
+            "Cache directory (default: %(default)s)."
+            if "cache_dir" in settings.options
+            else "Cache directory (default: ~/.cache/flight-search)."
+        ),
     )
     weekend.add_argument(
         "--cache-ttl",
         default="12h",
-        help="Cache lifetime, e.g. 30m, 12h, 2d or 0 to disable (default: 12h).",
+        help="Cache lifetime, e.g. 30m, 12h, 2d or 0 to disable (default: %(default)s).",
     )
-    weekend.add_argument("--no-cache", action="store_true")
+    weekend.add_argument(
+        "--cache",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Use the disk cache; --no-cache neither reads nor writes it.",
+    )
     weekend.add_argument(
         "--concurrency",
         type=int,
         default=6,
-        help="Parallel requests (Google is limited to 10/s globally; default: 6).",
+        help="Parallel requests (Google is limited to 10/s globally; default: %(default)s).",
     )
     weekend.add_argument(
         "--max-requests",
         type=int,
         default=6000,
-        help="Hard ceiling on HTTP requests for the run (default: 6000).",
+        help="Hard ceiling on HTTP requests for the run (default: %(default)s).",
     )
     weekend.add_argument(
         "--max-candidates",
         type=int,
         default=60,
-        help="City/date-pair candidates confirmed in phase 2 (default: 60).",
+        help="City/date-pair candidates confirmed in phase 2 (default: %(default)s).",
     )
     weekend.add_argument(
         "--per-city",
         type=int,
         default=3,
-        help="Maximum date pairs per city among the confirmed candidates (default: 3).",
+        help="Maximum date pairs per city among the confirmed candidates (default: %(default)s).",
     )
     weekend.add_argument(
         "--batch-size",
@@ -326,38 +398,64 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     weekend.add_argument(
         "--dry-run",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=False,
         help="Show the plan and request estimate without searching.",
     )
     weekend.add_argument(
-        "--verbose", action="store_true", help="Print full leg details."
+        "--verbose",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Print full leg details.",
     )
     weekend.add_argument(
-        "--quiet", action="store_true", help="Disable progress output."
+        "--quiet",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Disable progress output.",
     )
 
-    airports = subparsers.add_parser("airports", help="List the airport dataset.")
-    airports.add_argument("--countries", default="")
+    airports = subparsers.add_parser(
+        "airports",
+        help="List the airport dataset.",
+        formatter_class=_DefaultsHelpFormatter,
+    )
     airports.add_argument(
-        "--exclude-countries",
+        "--countries",
+        action=_StoreGiven,
         default="",
         help=(
-            "Leave out whole countries by ISO code (comma-separated), e.g. RU,BY; "
-            "explicit --dest codes are kept."
+            "Show the airports of these ISO country codes (comma-separated) "
+            "instead of the default region; --region weekend keeps its radius."
         ),
     )
-    airports.add_argument("--include-small", action="store_true")
+    airports.add_argument(
+        "--exclude-countries", default="", help=EXCLUDE_COUNTRIES_HELP
+    )
+    airports.add_argument(
+        "--include-small",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=INCLUDE_SMALL_HELP.format(named="--dest"),
+    )
     airports.add_argument(
         "--region",
-        choices=("europe", "weekend"),
+        action=_StoreGiven,
+        choices=region_choices,
         default="europe",
-        help=REGION_HELP,
+        help=region_help,
     )
-    airports.add_argument("--max-distance-km", type=float, default=1200.0)
+    airports.add_argument(
+        "--max-distance-km", type=float, default=1200.0, help=MAX_DISTANCE_HELP
+    )
     airports.add_argument(
         "--dest",
+        action=_StoreGiven,
         default=None,
-        help="Only show these codes (comma-separated).",
+        help=(
+            "Only show these codes (comma-separated); overrides --countries and "
+            "a named region, while --region weekend keeps its radius."
+        ),
     )
 
     refresh = subparsers.add_parser(
@@ -366,7 +464,49 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     refresh.add_argument("--url", default=None)
 
+    for subparser in (weekend, airports):
+        subparser.set_defaults(
+            center=settings.home or KARLSRUHE,
+            regions=settings.regions,
+            given=frozenset(),
+        )
+    apply_defaults(settings, {"weekend": weekend, "airports": airports})
     return parser
+
+
+def _drop_file_selection(args) -> None:
+    """Let a destination choice on the command line beat the file's.
+
+    ``--dest`` and ``--countries`` take precedence over ``--region`` whatever
+    their source, so a ``countries`` or ``dest`` from the config file would
+    beat a ``--region`` on the command line. Once the command line names any
+    of the three, the file's ``countries`` and ``dest`` are dropped.
+    """
+    if args.given & SELECTION_OPTIONS:
+        if "countries" not in args.given:
+            args.countries = ""
+        if "dest" not in args.given:
+            args.dest = None
+
+
+def _countries(args) -> frozenset[str]:
+    """``--countries``, else the countries of a named region from the config file."""
+    return frozenset(_csv_tuple(args.countries)) or args.regions.get(
+        args.region, frozenset()
+    )
+
+
+def _destination_choice(args, **extra) -> DestinationChoice:
+    """The destination options of ``weekend`` and ``airports`` as one choice."""
+    return DestinationChoice(
+        codes=_csv_tuple(args.dest) if args.dest else (),
+        countries=_countries(args),
+        region=args.region,
+        max_distance_km=args.max_distance_km,
+        include_small=args.include_small,
+        exclude_countries=frozenset(_csv_tuple(args.exclude_countries)),
+        **extra,
+    )
 
 
 def _select_airports(args) -> tuple[tuple[AirportInfo, ...], list[str]]:
@@ -381,17 +521,11 @@ def _select_airports(args) -> tuple[tuple[AirportInfo, ...], list[str]]:
     if not home:
         raise ValueError("At least one home airport is required")
 
-    choice = DestinationChoice(
-        codes=_csv_tuple(args.dest) if args.dest else (),
-        countries=frozenset(_csv_tuple(args.countries)),
-        region=args.region,
-        max_distance_km=args.max_distance_km,
-        exclude_codes=frozenset(home) | frozenset(_csv_tuple(args.exclude)),
-        include_small=args.include_small,
-        exclude_countries=frozenset(_csv_tuple(args.exclude_countries)),
+    choice = _destination_choice(
+        args, exclude_codes=frozenset(home) | frozenset(_csv_tuple(args.exclude))
     )
     destinations, destination_warnings = select_destinations(
-        choice, airports=all_airports, center=KARLSRUHE
+        choice, airports=all_airports, center=args.center
     )
     return destinations, warnings + destination_warnings
 
@@ -534,7 +668,7 @@ def _run_weekend(args) -> int:
     cache = Cache(
         directory=args.cache_dir or default_cache_dir(),
         ttl=ttl,
-        enabled=not args.no_cache,
+        enabled=args.cache,
     )
     budget = RequestBudget(args.max_requests)
 
@@ -671,20 +805,13 @@ def _run_airports(args) -> int:
     except AirportDataError as exc:
         console.print(f"[bold red]Error:[/bold red] {exc}")
         return 2
-    max_distance = args.max_distance_km if args.region == "weekend" else None
-    codes = _csv_tuple(args.dest) if args.dest else ()
-    countries = frozenset(_csv_tuple(args.countries)) if args.countries else frozenset()
-    selected = filter_airports(
-        destination_pool(
-            airports,
-            codes,
-            countries,
-            args.include_small,
-            frozenset(_csv_tuple(args.exclude_countries)),
-        ),
-        codes=codes,
-        countries=countries,
-        max_distance_km=max_distance,
+    # The listing keeps its own behaviour on explicit codes: --region weekend
+    # still applies its radius, and unknown codes are left out without a
+    # warning (LOG-DECISION-42).
+    selected, _ = select_destinations(
+        _destination_choice(args, radius_on_codes=True),
+        airports=airports,
+        center=args.center,
     )
     table = Table(box=None)
     table.add_column("IATA", style="cyan")
@@ -698,7 +825,7 @@ def _run_airports(args) -> int:
             display_city(airport),
             airport.country,
             airport.name,
-            f"{distance_km(airport):.0f}",
+            f"{distance_km(airport, args.center):.0f}",
         )
     console.print(f"{len(selected)} airports")
     console.print(table)
@@ -719,9 +846,23 @@ def _run_refresh(args) -> int:
     return 0
 
 
+CONFIGURED_COMMANDS = ("weekend", "airports")
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = _build_parser()
+    argv = sys.argv[1:] if argv is None else argv
+    # The subcommand is the first word that is not an option; the config file
+    # is read only for the commands it configures (LOG-DECISION-41), so
+    # --help, --version and refresh-airports work with a broken file.
+    command = next((arg for arg in argv if not arg.startswith("-")), None)
+    try:
+        settings = load() if command in CONFIGURED_COMMANDS else Settings()
+        parser = _build_parser(settings)
+    except ConfigError as exc:
+        _build_parser().error(str(exc))
     args = parser.parse_args(argv)
+    if args.command in CONFIGURED_COMMANDS:
+        _drop_file_selection(args)
     if args.command == "weekend":
         return _run_weekend(args)
     if args.command == "airports":

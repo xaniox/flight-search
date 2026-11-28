@@ -112,8 +112,8 @@ uv run flight-search weekend ... --format json > results.json
 | Option | Meaning |
 | --- | --- |
 | `--from` | Home airports, default `FKB,STR,SXB,FRA`. All are searched at once. |
-| `--region europe\|weekend` | `europe` = every scheduled airport in Europe including Cyprus, the Greek islands and the Canaries, plus North Africa, Turkey and the Caucasus (658); `weekend` = the same, within `--max-distance-km` of Karlsruhe. |
-| `--countries`, `--dest`, `--exclude`, `--include-small` | Override or narrow the destination set. `--countries` and `--dest` choose from the worldwide dataset, e.g. `--countries IL` or `--dest TLV`. |
+| `--region europe\|weekend\|<name>` | `europe` = every scheduled airport in Europe including Cyprus, the Greek islands and the Canaries, plus North Africa, Turkey and the Caucasus (658); `weekend` = the same, within `--max-distance-km` of Karlsruhe (or the `home` of the config file); `<name>` = a named region from the config file. |
+| `--countries`, `--dest`, `--exclude`, `--include-small` | Override or narrow the destination set. `--countries` and `--dest` choose from the worldwide dataset, e.g. `--countries IL` or `--dest TLV`. `--include-small` adds small scheduled airports (more requests); airports named by `--dest` or `--from` are always used, even when small. |
 | `--exclude-countries` | Leave out whole countries, e.g. `RU,BY`; explicit `--dest` codes are kept. |
 | `--depart-days`, `--return-days` | Weekday sets, e.g. `thu,fri` and `sun,mon`. |
 | `--start`, `--end` | Date range; both legs must fall inside it. |
@@ -125,9 +125,15 @@ uv run flight-search weekend ... --format json > results.json
 | `--top`, `--best-per-city`, `--per-city` | Display count and city diversity in the confirmed shortlist. |
 | `--compare-roundtrip` | Also price a conventional same-airport round-trip for comparison. |
 | `--max-candidates` | How many city/date-pair candidates are confirmed exactly (default 60). |
-| `--cache-ttl`, `--no-cache` | Disk cache lifetime (default 12h) in `~/.cache/flight-search`. |
+| `--cache-ttl`, `--cache`/`--no-cache` | Disk cache lifetime (default 12h) in `~/.cache/flight-search`; `--no-cache` bypasses it, `--cache` undoes `cache = false` from the config file. |
 | `--concurrency`, `--max-requests` | Parallelism and a hard request ceiling. |
 | `--dry-run` | Print the plan and request estimate without network calls. |
+
+Every on/off option has a negative form that switches it off again, for
+example when the config file switches it on: `--no-include-small`,
+`--no-best-per-city`, `--no-compare-roundtrip`, `--no-dry-run`, `--no-verbose`
+and `--no-quiet`. `airports --help` and `weekend --help` show the defaults in
+effect, including those from the config file.
 
 Time windows are optional; when omitted the whole day qualifies. That covers
 the outbound departure window (`--depart-after`/`--depart-before`), the return
@@ -140,6 +146,39 @@ therefore sends permissive hour bounds and enforces the exact minute (and the
 same-day rule, so a Monday 01:00 red-eye does not pass a Sunday 22:00 deadline)
 locally on the decoded itineraries. `--return-depart-after 15` and
 `--return-arrive-before 22:30` are both valid forms.
+
+## Configuration
+
+An optional file `~/.config/flight-search/config.toml` (or
+`$XDG_CONFIG_HOME/flight-search/config.toml`) sets your own defaults for
+`weekend` and `airports`:
+
+```toml
+home_airports = ["MUC"]          # like --from MUC
+currency = "EUR"
+exclude_countries = ["RU", "BY"]
+home = { lat = 48.354, lon = 11.786 }  # measure --region weekend and the km column from here
+
+[regions.levant]
+countries = ["IL", "LB", "JO"]
+```
+
+The keys are the option names with `_` instead of `-` (`--from` is
+`home_airports`); lists become comma-separated values, and `~` in `cache_dir`
+and `output` means your home directory. The command line wins over the file,
+the file over the built-in default. `--dest` and `--countries` override
+`--region europe` and a named region; with `--region weekend` the radius
+still applies to `--countries`, and in `airports` also to `--dest`. Once the
+command line names any of `--region`, `--countries` or `--dest`, the file's `countries` and `dest` no longer apply, so
+`countries = ["ES"]` in the file plus `--region levant` searches the Levant.
+A named region is used as `--region levant`: it selects the airports of its
+countries worldwide, like `--countries IL,LB,JO`, and has no radius;
+`--countries` and `--dest` override it. Without `home` distances are measured
+from Karlsruhe. The file is read only by `weekend` and `airports`. An unknown
+key (also inside `home` or a region, and `start`/`end`, which belong on the
+command line), a value of the wrong type, a `home` outside -90..90 / -180..180,
+a file that cannot be read or is not UTF-8, or a region named `europe` or
+`weekend` stops the run with exit code 2.
 
 ## How it works
 

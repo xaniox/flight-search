@@ -11,8 +11,6 @@ from flight_search.airports import (
 )
 from flight_search.config import Coordinate
 
-SMALL_AIRPORT = "small_airport"
-
 
 @dataclass(frozen=True, slots=True)
 class DestinationChoice:
@@ -20,6 +18,8 @@ class DestinationChoice:
 
     ``exclude_countries`` (upper-case ISO codes) leaves those countries out of
     region, country and radius selections, never out of explicit ``codes``.
+    ``radius_on_codes`` applies the ``weekend`` radius to explicit ``codes``
+    too, as the ``airports`` listing always did.
     """
 
     codes: tuple[str, ...] = ()
@@ -29,9 +29,10 @@ class DestinationChoice:
     exclude_codes: frozenset[str] = frozenset()
     include_small: bool = False
     exclude_countries: frozenset[str] = frozenset()
+    radius_on_codes: bool = False
 
 
-def destination_pool(
+def _destination_pool(
     airports: tuple[AirportInfo, ...],
     codes: tuple[str, ...],
     countries: frozenset[str],
@@ -47,9 +48,7 @@ def destination_pool(
     """
     if not include_small:
         named = {code.upper() for code in codes}
-        airports = tuple(
-            a for a in airports if a.type != SMALL_AIRPORT or a.iata in named
-        )
+        airports = tuple(a for a in airports if not a.is_small or a.iata in named)
     if codes:
         return airports
     if exclude_countries:
@@ -66,6 +65,7 @@ def select_destinations(
     center: Coordinate,
 ) -> tuple[tuple[AirportInfo, ...], list[str]]:
     """The selected airports and the warnings about unknown codes."""
+    weekend = choice.region == "weekend"
     if choice.codes:
         known = {a.iata for a in airports}
         warnings = [
@@ -76,16 +76,18 @@ def select_destinations(
         known_codes = tuple(code for code in choice.codes if code in known)
         if not known_codes:
             return (), warnings
+        radius = weekend and choice.radius_on_codes
         selected = filter_airports(
-            destination_pool(airports, choice.codes, (), choice.include_small),
+            _destination_pool(airports, choice.codes, (), choice.include_small),
             codes=known_codes,
+            max_distance_km=choice.max_distance_km if radius else None,
+            center=center,
             exclude=choice.exclude_codes,
         )
         return selected, warnings
 
-    weekend = choice.region == "weekend"
     selected = filter_airports(
-        destination_pool(
+        _destination_pool(
             airports,
             (),
             choice.countries,
