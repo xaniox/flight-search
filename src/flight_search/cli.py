@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import NamedTuple
 
 from rich.console import Console
 from rich.progress import (
@@ -26,20 +28,17 @@ from flight_search.airports import (
     display_city,
     distance_from_karlsruhe,
     filter_airports,
-    in_default_region,
     load_airports,
 )
 from flight_search.cache import Cache, default_cache_dir, parse_duration
-from flight_search.candidates import (
-    build_candidates,
-    request_estimate,
-    select_candidates,
-)
+from flight_search.candidates import request_estimate
 from flight_search.config import (
     DEFAULT_COUNTRY,
     DEFAULT_CURRENCY,
     DEFAULT_HOME_AIRPORTS,
     DEFAULT_LANGUAGE,
+    KARLSRUHE_LAT,
+    KARLSRUHE_LON,
     SearchSettings,
 )
 from flight_search.dates import (
@@ -49,8 +48,13 @@ from flight_search.dates import (
     parse_weekdays,
     unique_dates,
 )
-from flight_search.detail import add_roundtrip_comparison, evaluate_candidates
-from flight_search.discover import DiscoveryAborted, run_discovery
+from flight_search.destinations import (
+    DestinationChoice,
+    destination_pool,
+    select_destinations,
+)
+from flight_search.detail import add_roundtrip_comparison
+from flight_search.discover import DiscoveryAborted
 from flight_search.fli_api import RequestBudget
 from flight_search.links import attach_links
 from flight_search.refresh import refresh_airports
@@ -61,6 +65,7 @@ from flight_search.render import (
     render_results,
     results_payload,
 )
+from flight_search.search import SearchRequest, run_search
 from flight_search.windows import (
     DepartureWindow,
     ReturnWindow,
@@ -123,6 +128,22 @@ class Reporter:
         if self.progress is not None:
             self.progress.stop()
             self.progress = None
+
+    def discovered(self, failures: Sequence[str]) -> None:
+        if failures:
+            self.console.print(
+                f"[yellow]warning:[/yellow] {len(failures)} discovery requests failed; "
+                f"first: {failures[0]}"
+            )
+
+
+class _Center(NamedTuple):
+    lat: float
+    lon: float
+
+
+# The centre of the weekend radius.
+HOME_CENTER = _Center(KARLSRUHE_LAT, KARLSRUHE_LON)
 
 
 REGION_HELP = (
@@ -343,21 +364,6 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _destination_pool(
-    airports: tuple[AirportInfo, ...],
-    codes: tuple[str, ...],
-    countries: frozenset[str],
-) -> tuple[AirportInfo, ...]:
-    """The airports a destination choice draws from.
-
-    Explicit codes or countries choose from the whole snapshot; otherwise the
-    default region applies.
-    """
-    if codes or countries:
-        return airports
-    return tuple(a for a in airports if in_default_region(a))
-
-
 def _select_airports(args) -> tuple[tuple[AirportInfo, ...], list[str]]:
     all_airports = load_airports(include_small=args.include_small)
     home = _csv_tuple(args.home_airports)
@@ -370,29 +376,18 @@ def _select_airports(args) -> tuple[tuple[AirportInfo, ...], list[str]]:
     if not home:
         raise ValueError("At least one home airport is required")
 
-    excluded = set(home) | set(_csv_tuple(args.exclude))
-    wanted_codes = _csv_tuple(args.dest) if args.dest else ()
-
-    if wanted_codes:
-        missing = [code for code in wanted_codes if code not in known]
-        warnings.extend(
-            f"Unknown or unsupported destination code: {code}" for code in missing
-        )
-        destinations = filter_airports(
-            all_airports,
-            codes=tuple(code for code in wanted_codes if code in known),
-            exclude=frozenset(excluded),
-        )
-    else:
-        countries = frozenset(_csv_tuple(args.countries))
-        max_distance = args.max_distance_km if args.region == "weekend" else None
-        destinations = filter_airports(
-            _destination_pool(all_airports, (), countries),
-            countries=countries,
-            max_distance_km=max_distance,
-            exclude=frozenset(excluded),
-        )
-    return destinations, warnings
+    choice = DestinationChoice(
+        codes=_csv_tuple(args.dest) if args.dest else (),
+        countries=frozenset(_csv_tuple(args.countries)),
+        region=args.region,
+        max_distance_km=args.max_distance_km,
+        exclude_codes=frozenset(home) | frozenset(_csv_tuple(args.exclude)),
+        include_small=args.include_small,
+    )
+    destinations, destination_warnings = select_destinations(
+        choice, airports=all_airports, center=HOME_CENTER
+    )
+    return destinations, warnings + destination_warnings
 
 
 def _build_settings(args) -> SearchSettings:
@@ -537,72 +532,36 @@ def _run_weekend(args) -> int:
     )
     budget = RequestBudget(args.max_requests)
 
-    batch_count = max(1, (len(destinations) + batch_size - 1) // batch_size)
-    update = reporter.start(
-        "Pricing destinations",
-        (len(depart_dates) + len(return_dates)) * batch_count,
+    request = SearchRequest(
+        home=home,
+        destinations=destinations,
+        pairs=tuple(pairs),
+        depart_window=depart_window,
+        return_window=return_window,
+        settings=settings,
+        batch_size=batch_size,
+        concurrency=max(1, args.concurrency),
+        max_candidates=args.max_candidates,
+        per_city=max(1, args.per_city),
     )
     try:
-        discovery = run_discovery(
-            destinations=tuple(a.iata for a in destinations),
-            home=home,
-            depart_dates=depart_dates,
-            return_dates=return_dates,
-            depart_window=depart_window,
-            return_window=return_window,
-            settings=settings,
-            cache=cache,
-            budget=budget,
-            batch_size=batch_size,
-            concurrency=max(1, args.concurrency),
-            progress=update,
-        )
+        result = run_search(request, cache=cache, budget=budget, progress=reporter)
     except DiscoveryAborted as exc:
         error_console.print(f"[bold red]Error:[/bold red] {exc}")
         return 2
-    finally:
-        reporter.stop()
+    except Exception as exc:  # noqa: BLE001
+        error_console.print(f"[bold red]Error:[/bold red] {type(exc).__name__}: {exc}")
+        return 2
 
-    screens = discovery.screens
-    failures = discovery.failures
-    if failures:
-        error_console.print(
-            f"[yellow]warning:[/yellow] {len(failures)} discovery requests failed; "
-            f"first: {failures[0]}"
-        )
-
-    candidates = build_candidates(cities, screens, pairs)
-    if not candidates:
+    if not result.stats.candidates:
         error_console.print(
             "[bold red]No priced candidates.[/bold red] Google returned no rows for the "
             "selected airports/dates. Try a wider date range or region."
         )
         return 1
 
-    shortlist = select_candidates(
-        candidates, per_city=max(1, args.per_city), limit=args.max_candidates
-    )
     pool_size = max(args.top, 100) if args.best_per_city else args.top
-    update = reporter.start("Confirming candidates", len(shortlist))
-    try:
-        pool = evaluate_candidates(
-            shortlist,
-            home=home,
-            settings=settings,
-            cache=cache,
-            budget=budget,
-            depart_window=depart_window,
-            return_window=return_window,
-            pool_size=pool_size,
-            max_candidates=args.max_candidates,
-            progress=update,
-        )
-    except Exception as exc:  # noqa: BLE001
-        error_console.print(f"[bold red]Error:[/bold red] {type(exc).__name__}: {exc}")
-        return 2
-    finally:
-        reporter.stop()
-
+    pool = result.itineraries()[:pool_size]
     if not pool:
         error_console.print(
             "[bold red]No itineraries confirmed.[/bold red] Calendar prices did not "
@@ -626,17 +585,19 @@ def _run_weekend(args) -> int:
         finally:
             reporter.stop()
 
+    found = result.stats
+    failures = list(result.failures)
     stats = {
-        "destination_airports": len(destinations),
-        "cities": len(cities),
-        "date_pairs": len(pairs),
-        "distinct_departure_dates": len(depart_dates),
-        "distinct_return_dates": len(return_dates),
-        "batch_size": batch_size,
-        "candidates": len(candidates),
-        "shortlisted": len(shortlist),
+        "destination_airports": found.destination_airports,
+        "cities": found.cities,
+        "date_pairs": found.date_pairs,
+        "distinct_departure_dates": found.distinct_departure_dates,
+        "distinct_return_dates": found.distinct_return_dates,
+        "batch_size": found.batch_size,
+        "candidates": found.candidates,
+        "shortlisted": found.shortlisted,
         "confirmed_pool": len(pool),
-        "discovery_requests": discovery.requests,
+        "discovery_requests": found.discovery_requests,
         "requests": budget.used,
         "cache_hits": cache.stats.hits,
         "cache_misses": cache.stats.misses,
@@ -708,7 +669,7 @@ def _run_airports(args) -> int:
     codes = _csv_tuple(args.dest) if args.dest else ()
     countries = frozenset(_csv_tuple(args.countries)) if args.countries else frozenset()
     selected = filter_airports(
-        _destination_pool(airports, codes, countries),
+        destination_pool(airports, codes, countries),
         codes=codes,
         countries=countries,
         max_distance_km=max_distance,
