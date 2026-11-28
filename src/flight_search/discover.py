@@ -17,9 +17,9 @@ from datetime import date
 from flight_search import fli_api
 from flight_search.cache import Cache
 from flight_search.combine import (
-    FlightOption,
     filter_departures,
     filter_return_legs,
+    options_from_cache,
     options_from_results,
 )
 from flight_search.config import SearchSettings
@@ -59,18 +59,9 @@ def batch_codes(codes: Iterable[str], size: int) -> list[tuple[str, ...]]:
     return [tuple(ordered[i : i + size]) for i in range(0, len(ordered), size)]
 
 
-# Bump when the cached payload changes shape, so older entries become misses.
+# Version of the discovery batch cache key. Both phases also reject payloads
+# with missing required fields through options_from_cache.
 CACHE_FORMAT = 2
-
-
-def _decode_cached(cached) -> list[FlightOption] | None:
-    """The cached flights of a batch, or None when the entry is absent or unreadable."""
-    if not isinstance(cached, list):
-        return None
-    try:
-        return [FlightOption.from_dict(item) for item in cached]
-    except (KeyError, TypeError, ValueError, AttributeError):
-        return None
 
 
 def _batch_key(
@@ -135,7 +126,7 @@ def run_discovery(
         nonlocal request_count
         restrictions = out_restrictions if direction == "out" else ret_restrictions
         key = _batch_key(home, batch, day, direction, settings, restrictions)
-        options = _decode_cached(cache.get(key))
+        options = options_from_cache(cache.get(key))
         try:
             if options is None:
                 budget.acquire()

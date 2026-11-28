@@ -22,6 +22,12 @@ class LegInfo:
     duration: int
     aircraft: str | None = None
     overnight: bool = False
+    operating_airline: str = ""
+    """IATA code of the operating airline; the selling ``airline`` when empty."""
+
+    def __post_init__(self) -> None:
+        if not self.operating_airline:
+            object.__setattr__(self, "operating_airline", self.airline)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -34,11 +40,15 @@ class LegInfo:
             "arrival": self.arrival,
             "duration": self.duration,
             "aircraft": self.aircraft,
+            "operating_airline": self.operating_airline,
             "overnight": self.overnight,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> LegInfo:
+        """Raises KeyError for a leg written before it carried its operator."""
+        if "operating_airline" not in data:
+            raise KeyError("operating_airline")
         return cls(**data)
 
 
@@ -53,6 +63,7 @@ class FlightOption:
     stops: int
     duration: int
     legs: tuple[LegInfo, ...] = field(default_factory=tuple)
+    self_transfer: bool = False
 
     @property
     def origin(self) -> str:
@@ -76,11 +87,13 @@ class FlightOption:
             "arrival": self.arrival,
             "stops": self.stops,
             "duration": self.duration,
+            "self_transfer": self.self_transfer,
             "legs": [leg.to_dict() for leg in self.legs],
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> FlightOption:
+        """Raise KeyError for missing self-transfer or operating airline data."""
         return cls(
             price=float(data["price"]),
             currency=data["currency"],
@@ -89,11 +102,32 @@ class FlightOption:
             stops=int(data["stops"]),
             duration=int(data["duration"]),
             legs=tuple(LegInfo.from_dict(leg) for leg in data.get("legs", [])),
+            self_transfer=bool(data["self_transfer"]),
         )
+
+
+def options_from_cache(cached: Any) -> list[FlightOption] | None:
+    """The cached options, or None when the entry is absent or unreadable.
+
+    An entry written in an older shape is unreadable, so the caller fetches
+    afresh instead of using it.
+    """
+    if not isinstance(cached, list):
+        return None
+    try:
+        return [FlightOption.from_dict(item) for item in cached]
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return None
 
 
 def _clean_code(value: str) -> str:
     return value.removeprefix("_")
+
+
+def _operating_code(leg: Any) -> str:
+    """The operator's cleaned code, or "" when fli reports none."""
+    operator = getattr(leg, "operating_airline", None)
+    return _clean_code(operator.name) if operator is not None else ""
 
 
 def _option_from_result(result: Any) -> FlightOption | None:
@@ -118,6 +152,7 @@ def _option_from_result(result: Any) -> FlightOption | None:
                 duration=int(leg.duration),
                 aircraft=getattr(leg, "aircraft", None),
                 overnight=bool(getattr(leg, "overnight", False)),
+                operating_airline=_operating_code(leg),
             )
         )
     return FlightOption(
@@ -128,6 +163,7 @@ def _option_from_result(result: Any) -> FlightOption | None:
         stops=int(result.stops),
         duration=int(result.duration),
         legs=tuple(leg_infos),
+        self_transfer=bool(getattr(result, "self_transfer", False)),
     )
 
 

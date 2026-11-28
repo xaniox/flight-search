@@ -15,6 +15,7 @@ from flight_search.combine import (
     combine_itineraries,
     filter_departures,
     filter_return_legs,
+    options_from_cache,
     options_from_results,
 )
 from flight_search.config import SearchSettings
@@ -53,9 +54,9 @@ def fetch_options(
     budget: RequestBudget,
 ) -> list[FlightOption]:
     key = _detail_key(home, city_codes, day, direction, settings, restrictions)
-    cached = cache.get(key)
-    if isinstance(cached, list):
-        return [FlightOption.from_dict(item) for item in cached]
+    cached = options_from_cache(cache.get(key))
+    if cached is not None:
+        return cached
 
     budget.acquire()
     results = fli_api.fetch_leg(

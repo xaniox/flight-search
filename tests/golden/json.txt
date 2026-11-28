@@ -68,6 +68,7 @@
         "arrival": "2027-03-19T20:28:00",
         "stops": 0,
         "duration": 108,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "FR",
@@ -79,6 +80,7 @@
             "arrival": "2027-03-19T20:28:00",
             "duration": 108,
             "aircraft": null,
+            "operating_airline": "FR",
             "overnight": false
           }
         ]
@@ -90,6 +92,7 @@
         "arrival": "2027-03-21T21:42:00",
         "stops": 0,
         "duration": 97,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "VY",
@@ -101,6 +104,7 @@
             "arrival": "2027-03-21T21:42:00",
             "duration": 97,
             "aircraft": null,
+            "operating_airline": "VY",
             "overnight": false
           }
         ]
@@ -131,6 +135,7 @@
         "arrival": "2027-03-05T20:17:00",
         "stops": 0,
         "duration": 97,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "VY",
@@ -142,6 +147,7 @@
             "arrival": "2027-03-05T20:17:00",
             "duration": 97,
             "aircraft": null,
+            "operating_airline": "VY",
             "overnight": false
           }
         ]
@@ -153,6 +159,7 @@
         "arrival": "2027-03-07T21:42:00",
         "stops": 0,
         "duration": 97,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "VY",
@@ -164,6 +171,7 @@
             "arrival": "2027-03-07T21:42:00",
             "duration": 97,
             "aircraft": null,
+            "operating_airline": "VY",
             "overnight": false
           }
         ]
@@ -194,6 +202,7 @@
         "arrival": "2027-03-05T20:42:00",
         "stops": 0,
         "duration": 122,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "LH",
@@ -205,6 +214,7 @@
             "arrival": "2027-03-05T20:42:00",
             "duration": 122,
             "aircraft": null,
+            "operating_airline": "LH",
             "overnight": false
           }
         ]
@@ -216,6 +226,7 @@
         "arrival": "2027-03-07T22:07:00",
         "stops": 0,
         "duration": 122,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "LH",
@@ -227,6 +238,7 @@
             "arrival": "2027-03-07T22:07:00",
             "duration": 122,
             "aircraft": null,
+            "operating_airline": "LH",
             "overnight": false
           }
         ]
@@ -257,6 +269,7 @@
         "arrival": "2027-03-19T20:28:00",
         "stops": 0,
         "duration": 108,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "FR",
@@ -268,6 +281,7 @@
             "arrival": "2027-03-19T20:28:00",
             "duration": 108,
             "aircraft": null,
+            "operating_airline": "FR",
             "overnight": false
           }
         ]
@@ -279,6 +293,7 @@
         "arrival": "2027-03-21T22:14:00",
         "stops": 0,
         "duration": 129,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "FR",
@@ -290,6 +305,7 @@
             "arrival": "2027-03-21T22:14:00",
             "duration": 129,
             "aircraft": null,
+            "operating_airline": "FR",
             "overnight": false
           }
         ]
@@ -320,6 +336,7 @@
         "arrival": "2027-03-19T21:00:00",
         "stops": 0,
         "duration": 140,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "LH",
@@ -331,6 +348,7 @@
             "arrival": "2027-03-19T21:00:00",
             "duration": 140,
             "aircraft": null,
+            "operating_airline": "LH",
             "overnight": false
           }
         ]
@@ -342,6 +360,7 @@
         "arrival": "2027-03-21T21:42:00",
         "stops": 0,
         "duration": 97,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "VY",
@@ -353,6 +372,7 @@
             "arrival": "2027-03-21T21:42:00",
             "duration": 97,
             "aircraft": null,
+            "operating_airline": "VY",
             "overnight": false
           }
         ]
@@ -383,6 +403,7 @@
         "arrival": "2027-03-05T20:17:00",
         "stops": 0,
         "duration": 97,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "VY",
@@ -394,6 +415,7 @@
             "arrival": "2027-03-05T20:17:00",
             "duration": 97,
             "aircraft": null,
+            "operating_airline": "VY",
             "overnight": false
           }
         ]
@@ -405,6 +427,7 @@
         "arrival": "2027-03-07T22:14:00",
         "stops": 0,
         "duration": 129,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "FR",
@@ -416,6 +439,7 @@
             "arrival": "2027-03-07T22:14:00",
             "duration": 129,
             "aircraft": null,
+            "operating_airline": "FR",
             "overnight": false
           }
         ]
@@ -448,6 +472,7 @@
         "arrival": "2027-03-19T20:28:00",
         "stops": 0,
         "duration": 108,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "FR",
@@ -459,6 +484,7 @@
             "arrival": "2027-03-19T20:28:00",
             "duration": 108,
             "aircraft": null,
+            "operating_airline": "FR",
             "overnight": false
           }
         ]
@@ -470,6 +496,7 @@
         "arrival": "2027-03-21T21:42:00",
         "stops": 0,
         "duration": 97,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "VY",
@@ -481,6 +508,7 @@
             "arrival": "2027-03-21T21:42:00",
             "duration": 97,
             "aircraft": null,
+            "operating_airline": "VY",
             "overnight": false
           }
         ]
@@ -511,6 +539,7 @@
         "arrival": "2027-03-05T20:42:00",
         "stops": 0,
         "duration": 122,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "LH",
@@ -522,6 +551,7 @@
             "arrival": "2027-03-05T20:42:00",
             "duration": 122,
             "aircraft": null,
+            "operating_airline": "LH",
             "overnight": false
           }
         ]
@@ -533,6 +563,7 @@
         "arrival": "2027-03-07T22:07:00",
         "stops": 0,
         "duration": 122,
+        "self_transfer": false,
         "legs": [
           {
             "airline": "LH",
@@ -544,6 +575,7 @@
             "arrival": "2027-03-07T22:07:00",
             "duration": 122,
             "aircraft": null,
+            "operating_airline": "LH",
             "overnight": false
           }
         ]
