@@ -14,12 +14,15 @@ from flask import Flask, jsonify, redirect, request
 from werkzeug.exceptions import RequestEntityTooLarge, SecurityError
 
 from flight_search.airports import AirportDataError, load_airports
+from flight_search.cache import Cache
 from flight_search.destinations import BrowserDestinationChoice, DestinationChoice
-from flight_search.search import SearchResult, run_search
+from flight_search.fli_api import RequestBudget
+from flight_search.search import SearchResult, confirm_more, run_search
 from flight_search.settings_file import BUILT_IN_REGIONS
 from flight_search.web_results import (
     OutboundProjection,
     pair_results,
+    pending_by_city,
     project_outbound_choices,
 )
 from flight_search.weekend import WeekendQuery, prepare_weekend
@@ -36,8 +39,11 @@ _INT_FIELDS = frozenset({"min_nights", "max_nights", "max_requests"})
 class _SearchRun:
     """Thread-safe progress and terminal outcome for one search."""
 
-    def __init__(self) -> None:
+    def __init__(self, cache: Cache | None = None) -> None:
         self._lock = Lock()
+        self.loading = Lock()
+        self.cache = cache
+        self.result: SearchResult | None = None
         self._outbound: OutboundProjection | None = None
         self._state = {"status": "running", "phase": "Preparing", "done": 0, "total": 0}
 
@@ -59,10 +65,25 @@ class _SearchRun:
             with self._lock:
                 self._state["discovery_failures"] = len(failures)
 
-    def finish(self, *, outbound: OutboundProjection | None = None, **state) -> None:
+    def finish(
+        self,
+        *,
+        outbound: OutboundProjection | None = None,
+        result_source: SearchResult | None = None,
+        **state,
+    ) -> None:
         with self._lock:
             self._state = state
             self._outbound = outbound
+            self.result = result_source
+
+    def replace_result(
+        self, result: SearchResult, payload: dict, outbound: OutboundProjection
+    ) -> None:
+        with self._lock:
+            self._state = {**self._state, "result": payload}
+            self._outbound = outbound
+            self.result = result
 
     def booking_url(self, outbound_id: str, return_id: str) -> str | None:
         with self._lock:
@@ -74,6 +95,23 @@ class _SearchRun:
     def snapshot(self) -> dict:
         with self._lock:
             return self._state.copy()
+
+
+def _result_payload(result, settings, per_city: int):
+    """The browser payload of a search result and its booking projection."""
+    payload = pair_results(result, settings)
+    outbound = (
+        project_outbound_choices(result)
+        if isinstance(result, SearchResult)
+        else OutboundProjection(settings)
+    )
+    payload["outbound_choices"] = outbound.payload()
+    payload["per_city"] = per_city
+    payload["currency"] = settings.currency
+    payload["pending"] = (
+        pending_by_city(result, per_city) if isinstance(result, SearchResult) else {}
+    )
+    return payload, outbound
 
 
 def _json_defaults(
@@ -212,6 +250,10 @@ def create_app(
             end=(today + window).isoformat(),
         )
 
+    def same_origin() -> bool:
+        origin = request.headers.get("Origin")
+        return origin is None or origin == request.host_url.rstrip("/")
+
     @app.errorhandler(RequestEntityTooLarge)
     def oversized_request(_error):
         return jsonify(error="Search request is too large."), 413
@@ -257,8 +299,7 @@ def create_app(
 
     @app.post("/api/searches")
     def start_search():
-        origin = request.headers.get("Origin")
-        if origin is not None and origin != request.host_url.rstrip("/"):
+        if not same_origin():
             return jsonify(
                 error="Searches must start from the local flight-search page."
             ), 403
@@ -286,7 +327,7 @@ def create_app(
             return jsonify(error=str(exc)), 500
 
         search_id = uuid4().hex
-        run = _SearchRun()
+        run = _SearchRun(cache)
         with runs_lock:
             runs[search_id] = run
 
@@ -295,14 +336,9 @@ def create_app(
                 result = search_runner(
                     plan.request, cache=cache, budget=budget, progress=run
                 )
-                results = pair_results(result, plan.request.settings)
-                results["per_city"] = plan.request.per_city
-                outbound = (
-                    project_outbound_choices(result)
-                    if isinstance(result, SearchResult)
-                    else OutboundProjection(plan.request.settings)
+                results, outbound = _result_payload(
+                    result, plan.request.settings, plan.request.per_city
                 )
-                results["outbound_choices"] = outbound.payload()
                 warnings = plan.warnings
                 failures = run.snapshot().get("discovery_failures", 0)
                 if failures:
@@ -313,6 +349,7 @@ def create_app(
                     status="done",
                     result=results,
                     outbound=outbound,
+                    result_source=result if isinstance(result, SearchResult) else None,
                     warnings=warnings,
                 )
             except Exception as exc:
@@ -329,6 +366,40 @@ def create_app(
         if run is None:
             return jsonify(error="Search not found."), 404
         return jsonify(run.snapshot())
+
+    @app.post("/api/searches/<search_id>/cities/<path:city_key>/more")
+    def load_more(search_id: str, city_key: str):
+        if not same_origin():
+            return jsonify(
+                error="Load requests must come from the local flight-search page."
+            ), 403
+        with runs_lock:
+            run = runs.get(search_id)
+        if run is None:
+            return jsonify(error="Search not found."), 404
+        status = run.snapshot()["status"]
+        if status == "running":
+            return jsonify(error="The search has not finished yet."), 409
+        if status != "done" or run.result is None:
+            return jsonify(error="The search failed, so there is nothing to load."), 409
+        with run.loading:
+            current = run.result
+            try:
+                result = confirm_more(
+                    current,
+                    city_key,
+                    current.request.per_city,
+                    cache=run.cache,
+                    budget=RequestBudget(None),
+                )
+                payload, outbound = _result_payload(
+                    result, result.request.settings, result.request.per_city
+                )
+            except Exception as exc:
+                logger.exception("Loading more pairs failed")
+                return jsonify(error=str(exc) or type(exc).__name__), 500
+            run.replace_result(result, payload, outbound)
+        return jsonify(payload)
 
     @app.get("/api/searches/<search_id>/booking")
     def booking(search_id: str):

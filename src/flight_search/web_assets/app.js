@@ -172,7 +172,8 @@ form.addEventListener('submit', async event => {
     if (state.status === 'error') throw new Error(state.error);
     const pairs = state.result.pairs;
     const warnings = state.warnings.join(' ');
-    if (!pairs.length && !state.result.outbound_choices.outbound_groups.length) {
+    const pendingCities = Object.keys(state.result.pending || {}).length;
+    if (!pairs.length && !state.result.outbound_choices.outbound_groups.length && !pendingCities) {
       setStatus('Keine bestätigten Paare gefunden', warnings || 'Passe die Suchfilter oder den Zeitraum an.');
       return;
     }

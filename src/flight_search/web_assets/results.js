@@ -121,9 +121,15 @@ const tabs = [...document.querySelectorAll('[role=tab]')];
 const countryNames = new Intl.DisplayNames(['de'], { type: 'region' });
 let pairs = [];
 let perCity = 3;
+let pending = {};
+let openCity = null;
 let outboundRows = [];
 let searchUrl = '';
 let selectedId = null;
+let selectedKey = null;
+let currency = 'EUR';
+let generation = 0;
+const loadingCities = new Set();
 
 const travelTime = (out, back) => out.duration + back.duration;
 const segmentCount = (out, back) => `${out.segments + back.segments} Segmente`;
@@ -146,8 +152,78 @@ function priceRange(rows, currency) {
   return low === high ? money(low, currency) : `${money(low, currency)} – ${money(high, currency)}`;
 }
 
-function cityGroup(rows, render, { city, country, currency, priceLabel }) {
+function cityButtons(cityKey) {
+  return [...document.querySelectorAll('.more-btn')].filter(button => button.dataset.city === cityKey);
+}
+
+function moreButton(cityKey) {
+  const info = pending[cityKey];
+  if (!info) return null;
+  const button = element('button', undefined, 'more-btn');
+  button.type = 'button';
+  const idle = `${Math.min(perCity, info.remaining)} weitere laden`;
+  const label = element('span', loadingCities.has(cityKey) ? 'Wird bestätigt …' : idle);
+  const note = element('small', ` · ${info.remaining} offen · ${priceRange([{ price: info.low }, { price: info.high }], currency)} geschätzt · ≤ ${info.next_requests} Anfragen`, 'muted');
+  button.append(label, note);
+  button.disabled = loadingCities.has(cityKey);
+  button.addEventListener('click', async () => {
+    const started = generation;
+    const url = searchUrl;
+    loadingCities.add(cityKey);
+    for (const twin of cityButtons(cityKey)) {
+      twin.disabled = true;
+      twin.firstChild.textContent = 'Wird bestätigt …';
+    }
+    try {
+      const response = await fetch(`${url}/cities/${encodeURIComponent(cityKey)}/more`, {
+        method: 'POST',
+        cache: 'no-store',
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Weitere Paare konnten nicht geladen werden.');
+      if (started !== generation) return;
+      loadingCities.delete(cityKey);
+      showResults(data, url, { openCity: cityKey });
+    } catch (error) {
+      if (started !== generation) return;
+      loadingCities.delete(cityKey);
+      for (const twin of cityButtons(cityKey)) {
+        twin.disabled = false;
+        twin.firstChild.textContent = idle;
+        twin.lastChild.textContent = ` · ${error.message}`;
+      }
+    }
+  });
+  button.dataset.city = cityKey;
+  return button;
+}
+
+function pendingGroup(cityKey) {
+  const info = pending[cityKey];
   const group = element('div', undefined, 'city-group');
+  const head = element('div', undefined, 'city-head');
+  head.append(
+    element('strong', info.city),
+    element('small', countryNames.of(info.country), 'muted'),
+    element('span', `geschätzt ab ${money(info.low, currency)}`, 'price'),
+  );
+  group.append(head, moreButton(cityKey));
+  return group;
+}
+
+function withPendingGroups(groups) {
+  const shown = new Set(groups.map(group => group.dataset.city));
+  const extra = Object.keys(pending).filter(key => !shown.has(key))
+    .sort((a, b) => pending[a].low - pending[b].low)
+    .map(pendingGroup);
+  for (const group of extra) group.dataset.city = group.querySelector('.more-btn').dataset.city;
+  return [...groups, ...extra];
+}
+
+function cityGroup(rows, render, { city, country, priceLabel }) {
+  const group = element('div', undefined, 'city-group');
+  const cityKey = rows[0].cityKey;
+  group.dataset.city = cityKey;
   const head = element('div', undefined, 'city-head');
   const lowest = Math.min(...rows.map(row => row.price));
   head.append(
@@ -164,8 +240,11 @@ function cityGroup(rows, render, { city, country, currency, priceLabel }) {
     const restList = element('div', undefined, 'more-list');
     restList.append(...rest.map(render));
     more.append(element('summary', `${rest.length} weitere · ${priceRange(rest, currency)}`), restList);
+    more.open = cityKey === openCity;
     group.append(more);
   }
+  const button = moreButton(cityKey);
+  if (button) group.append(button);
   return group;
 }
 
@@ -246,6 +325,7 @@ function outboundButton(row) {
   );
   button.addEventListener('click', () => {
     selectedId = row.id;
+    selectedKey = rowKey(row);
     for (const other of outboundPanel.querySelectorAll('.option')) {
       other.setAttribute('aria-pressed', String(other === button));
     }
@@ -254,22 +334,33 @@ function outboundButton(row) {
   return button;
 }
 
+function rowKey(row) {
+  const { outbound } = row;
+  return [row.cityKey, row.date, outbound.departure, outbound.arrival, route(outbound), outbound.price].join('|');
+}
+
 function renderOutbound() {
-  if (!outboundRows.length) {
+  if (!outboundRows.length && !Object.keys(pending).length) {
     outboundPanel.replaceChildren(element('p', 'Keine passenden Hinflüge gefunden.', 'muted'));
     returnPanel.replaceChildren();
     selectedContext.textContent = '';
     return;
   }
   const groups = cityGroups(outboundRows);
-  if (!outboundRows.some(row => row.id === selectedId)) selectedId = groups[0][0].id;
-  outboundPanel.replaceChildren(...groups.map(rows => cityGroup(rows, outboundButton, {
+  if (!outboundRows.some(row => row.id === selectedId)) selectedId = groups[0]?.[0].id ?? null;
+  outboundPanel.replaceChildren(...withPendingGroups(groups.map(rows => cityGroup(rows, outboundButton, {
     city: rows[0].city,
     country: rows[0].country,
-    currency: rows[0].outbound.currency,
     priceLabel: 'ab',
-  })));
-  showReturns(outboundRows.find(row => row.id === selectedId));
+  }))));
+  const selected = outboundRows.find(row => row.id === selectedId);
+  if (selected) {
+    selectedKey = rowKey(selected);
+    showReturns(selected);
+  } else {
+    returnPanel.replaceChildren();
+    selectedContext.textContent = '';
+  }
 }
 
 function pairRows() {
@@ -283,13 +374,12 @@ function pairRows() {
 
 function renderPairs() {
   const groups = cityGroups(pairRows());
-  pairPanel.replaceChildren(...groups.map(rows => cityGroup(rows, row => pairCard(row.pair), {
+  pairPanel.replaceChildren(...withPendingGroups(groups.map(rows => cityGroup(rows, row => pairCard(row.pair), {
     city: rows[0].pair.city,
     country: rows[0].pair.country,
-    currency: rows[0].pair.currency,
     priceLabel: 'ab',
-  })));
-  if (!groups.length) {
+  }))));
+  if (!groups.length && !Object.keys(pending).length) {
     pairPanel.append(element('p', 'Keine fertigen Paare in der Suchrangfolge.', 'muted'));
   }
 }
@@ -327,12 +417,20 @@ sort.addEventListener('change', () => {
   renderOutbound();
 });
 
-export function showResults(result, url) {
+export function showResults(result, url, view = {}) {
   pairs = result.pairs;
   perCity = Math.max(1, result.per_city || 3);
   searchUrl = url;
-  selectedId = null;
-  sort.value = 'price-asc';
+  pending = result.pending || {};
+  currency = result.currency || pairs[0]?.currency || 'EUR';
+  openCity = view.openCity ?? null;
+  if (!openCity) {
+    generation += 1;
+    loadingCities.clear();
+    selectedId = null;
+    selectedKey = null;
+    sort.value = 'price-asc';
+  }
   const { options, outbound_groups, return_groups } = result.outbound_choices;
   const returns = new Map(Object.entries(return_groups).map(([id, group]) => {
     const entries = group.options.map(id => ({ id, option: options[id] }));
@@ -363,7 +461,10 @@ export function showResults(result, url) {
       }];
     });
   });
+  if (openCity && !outboundRows.some(row => row.id === selectedId)) {
+    selectedId = outboundRows.filter(row => row.cityKey === openCity).sort(resultOrder)[0]?.id ?? null;
+  }
   renderPairs();
   renderOutbound();
-  swapTab(tabs[0]);
+  swapTab(openCity ? tabs.find(tab => tab.getAttribute('aria-selected') === 'true') : tabs[0]);
 }

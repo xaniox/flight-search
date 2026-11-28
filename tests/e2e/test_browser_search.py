@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from urllib.parse import urljoin
 
 import pytest
 from playwright.sync_api import Page, expect
@@ -231,3 +232,97 @@ def test_empty_time_field_shows_any_time(page: Page, app_url: str):
 
     expect(field.get_by_text("beliebig")).to_be_hidden(timeout=2000)
     expect(clear).to_be_visible(timeout=2000)
+
+
+MORE_BUTTON = r"^\d+ weitere laden"
+
+
+def more_button(page: Page, panel: str, city: str):
+    return city_group(page, panel, city).locator("button.more-btn")
+
+
+@ONE_PER_CITY
+def test_more_button_summarises_the_unconfirmed_candidates(page: Page, app_url: str):
+    search(page, app_url)
+
+    groups = page.locator("#pairs .city-group")
+    expect(groups.first).to_be_visible(timeout=2000)
+    for index in range(groups.count()):
+        button = groups.nth(index).locator("button.more-btn")
+        expect(button).to_have_count(1, timeout=2000)
+        expect(button).to_have_text(re.compile(MORE_BUTTON))
+        expect(button).to_contain_text("offen")
+        expect(button).to_contain_text("geschätzt")
+        expect(button).to_contain_text("Anfragen")
+        expect(button).to_contain_text("€")
+
+
+@ONE_PER_CITY
+def test_more_button_confirms_more_pairs_of_that_city(page: Page, app_url: str):
+    search(page, app_url)
+    rome = city_group(page, "#pairs", "Rome")
+    expect(rome).to_have_count(1, timeout=2000)
+    button = rome.locator("button.more-btn")
+    expect(button).to_have_count(1, timeout=2000)
+    trips = rome.locator(".trip")
+    before = trips.count()
+    group_count = page.locator("#pairs .city-group").count()
+
+    with page.expect_request(
+        lambda request: (
+            re.search(r"/api/searches/[^/]+/cities/[^/]+/more$", request.url)
+            is not None
+            and request.method == "POST"
+        )
+    ):
+        button.click()
+
+    expect(trips).not_to_have_count(before, timeout=15_000)
+    assert trips.count() > before
+    expect(rome.locator("details.more")).to_have_attribute("open", "", timeout=2000)
+    expect(rome.locator(".trip").last).to_be_visible(timeout=2000)
+    assert page.locator("#pairs .city-group").count() == group_count
+    if button.count():
+        expect(button).to_have_text(re.compile(MORE_BUTTON))
+
+
+@ONE_PER_CITY
+def test_more_button_in_outbound_first_loads_more_options(page: Page, app_url: str):
+    search(page, app_url)
+    page.get_by_role("tab", name="Hinflug zuerst").click()
+    rome = city_group(page, "#outbounds", "Rome")
+    button = rome.locator("button.more-btn")
+    expect(button).to_have_count(1, timeout=2000)
+    expect(button).to_have_text(re.compile(MORE_BUTTON))
+    before = rome.locator(".option").count()
+
+    button.click()
+
+    expect(rome.locator(".option")).not_to_have_count(before, timeout=15_000)
+    assert rome.locator(".option").count() > before
+    expect(page.get_by_role("tab", name="Hinflug zuerst")).to_have_attribute(
+        "aria-selected", "true"
+    )
+
+
+@ONE_PER_CITY
+def test_booking_link_of_a_newly_loaded_flight_resolves(page: Page, app_url: str):
+    search(page, app_url)
+    page.get_by_role("tab", name="Hinflug zuerst").click()
+    rome = city_group(page, "#outbounds", "Rome")
+    button = rome.locator("button.more-btn")
+    expect(button).to_have_count(1, timeout=2000)
+    before = rome.locator(".option").count()
+    button.click()
+    expect(rome.locator(".option")).not_to_have_count(before, timeout=15_000)
+
+    rome.locator(".option").last.click()
+
+    first_return = page.locator("#returns > .trip").first
+    first_return.locator(":scope > summary").click()
+    link = first_return.get_by_role("link", name="Reise bei Google Flights öffnen")
+    expect(link).to_be_visible(timeout=2000)
+    href = link.evaluate("node => node.getAttribute('href')")
+    assert "/booking?" in href
+    response = page.request.get(urljoin(page.url, href), max_redirects=0)
+    assert response.status == 302

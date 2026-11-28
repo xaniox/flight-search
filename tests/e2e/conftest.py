@@ -8,6 +8,7 @@ Run them with ``uv run --group e2e pytest -m e2e`` after a one-time
 from __future__ import annotations
 
 import sys
+import time
 from dataclasses import replace
 from datetime import date, timedelta
 from pathlib import Path
@@ -64,13 +65,31 @@ def _defaults(**changes) -> WeekendQuery:
 
 
 @pytest.fixture
-def app_url(monkeypatch, request):
+def delays() -> dict[str, list[float]]:
+    """Seconds the next one-way fetches to an airport sleep, by airport code.
+
+    A test fills it after the first search, e.g. ``delays["LIS"] = [3.0]`` slows
+    the next confirming fetch to Lisbon; each fetch takes the first entry.
+    """
+    return {}
+
+
+@pytest.fixture
+def app_url(monkeypatch, request, delays):
     """A local server whose searches run the real core against fake flights.
 
     Parametrise it indirectly with a dict to change WeekendQuery defaults, e.g.
     ``@pytest.mark.parametrize("app_url", [{"per_city": 1}], indirect=True)``.
     """
-    monkeypatch.setattr(fli_api, "detail_results", fake_detail_results)
+
+    def slow_detail_results(origins, destinations, *args, **kwargs):
+        if kwargs.get("return_date") is None:
+            for code in destinations:
+                if delays.get(code):
+                    time.sleep(delays[code].pop(0))
+        return fake_detail_results(origins, destinations, *args, **kwargs)
+
+    monkeypatch.setattr(fli_api, "detail_results", slow_detail_results)
     app = create_app(
         _defaults(**getattr(request, "param", {})),
         configured_regions={},

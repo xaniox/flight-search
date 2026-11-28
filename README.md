@@ -76,7 +76,10 @@ dates, follow search progress and open the confirmed pairs in Google Flights.
 Use `--port` to pick another local port. The browser uses the existing search
 defaults, configuration and disk cache. Results are grouped by city: each city shows
 `per_city` pairs (default 3, also settable in the configuration file) and
-folds away the rest; `--top` applies only to the command line.
+folds away the rest; `--top` applies only to the command line. A city with
+more phase-1 candidates offers "weitere laden": each click confirms the next
+`per_city` of them with Google Flights, outside `--max-requests`, and the
+button names the estimated price range and the most requests it can cost.
 
 ## Quick start
 

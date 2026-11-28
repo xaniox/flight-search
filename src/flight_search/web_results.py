@@ -12,7 +12,7 @@ from flight_search.combine import FlightOption, direction_dict
 from flight_search.config import SearchSettings
 from flight_search.detail import OptionKey, eligible_options
 from flight_search.links import attach_links, itinerary_url, leg_url
-from flight_search.search import SearchResult
+from flight_search.search import SearchResult, missing_fetches, next_candidates
 
 logger = logging.getLogger(__name__)
 
@@ -157,3 +157,28 @@ def project_outbound_choices(result: SearchResult) -> OutboundProjection:
 
 def outbound_choices(result: SearchResult) -> dict:
     return project_outbound_choices(result).payload()
+
+
+def pending_by_city(result: SearchResult, count: int) -> dict[str, dict]:
+    """Per city: what is left to confirm and what the next ``count`` would cost."""
+    confirmed = {(c.city.key, c.pair) for c in result.shortlist}
+    remaining: dict[str, list] = {}
+    for candidate in result.candidates:
+        key = candidate.city.key
+        if (key, candidate.pair) not in confirmed:
+            remaining.setdefault(key, []).append(candidate)
+    pending = {}
+    for key, candidates in remaining.items():
+        estimates = [candidate.estimate for candidate in candidates]
+        city = candidates[0].city
+        pending[key] = {
+            "city": city.display,
+            "country": city.country,
+            "remaining": len(candidates),
+            "low": min(estimates),
+            "high": max(estimates),
+            "next_requests": len(
+                missing_fetches(result, next_candidates(result, key, count))
+            ),
+        }
+    return pending
