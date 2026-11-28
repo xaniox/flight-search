@@ -333,3 +333,11 @@ git blame --ignore-revs-file .git-blame-ignore-revs <file>
 The tests cover date expansion, time-window rounding and date-aware arrival
 checks, metro grouping, batching, candidate selection and open-jaw
 combination — all offline.
+
+A small Playwright suite drives the local browser page against simulated
+flights. It is not part of `uv run pytest`; run it with:
+
+```sh
+uv run --group e2e playwright install --only-shell chromium  # once
+uv run --group e2e pytest -m e2e
+```

@@ -28,7 +28,11 @@ dev = [
     "pytest>=8",
     "ruff==0.17.6",
 ]
+e2e = [
+    "pytest-playwright>=0.10.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q -m 'not e2e'"
+markers = ["e2e: browser tests with Playwright (uv run --group e2e pytest -m e2e)"]
