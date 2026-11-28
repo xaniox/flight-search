@@ -21,7 +21,7 @@ def _compatible_instants(arrival: int | None, departure: int | None) -> bool:
     return arrival is None or departure is None or departure >= arrival
 
 
-def pair_results(result: SearchResult, settings: SearchSettings, top: int) -> dict:
+def pair_results(result: SearchResult, settings: SearchSettings) -> dict:
     outbound_arrival = cache(arrival_utc)
     inbound_departure = cache(departure_utc)
 
@@ -35,12 +35,15 @@ def pair_results(result: SearchResult, settings: SearchSettings, top: int) -> di
         if isinstance(result, SearchResult)
         else result.itineraries()
     )
-    pairs = itineraries[:top]
-    attach_links(pairs, settings)
+    attach_links(itineraries, settings)
     return {
         "pairs": [
-            {**pair.to_dict(), "stay_minutes": stay_minutes(pair.out, pair.ret)}
-            for pair in pairs
+            {
+                **pair.to_dict(),
+                "city_key": pair.city_key,
+                "stay_minutes": stay_minutes(pair.out, pair.ret),
+            }
+            for pair in itineraries
         ]
     }
 
@@ -136,6 +139,7 @@ def project_outbound_choices(result: SearchResult) -> OutboundProjection:
             }
         if out_key not in out_groups:
             group = {
+                "city_key": city.key,
                 "city": city.display,
                 "country": city.country,
                 "date": depart.isoformat(),

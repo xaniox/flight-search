@@ -189,7 +189,6 @@ def create_app(
     cache_dir: Path | None = None,
     cache_ttl: str = "12h",
     cache_enabled: bool = True,
-    top: int = 20,
     rolling_dates: bool = False,
 ) -> Flask:
     """Create the loopback application and its in-process search registry."""
@@ -296,7 +295,8 @@ def create_app(
                 result = search_runner(
                     plan.request, cache=cache, budget=budget, progress=run
                 )
-                results = pair_results(result, plan.request.settings, top)
+                results = pair_results(result, plan.request.settings)
+                results["per_city"] = plan.request.per_city
                 outbound = (
                     project_outbound_choices(result)
                     if isinstance(result, SearchResult)

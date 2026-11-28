@@ -82,8 +82,8 @@ function pairCard(pair) {
   const summary = element('summary');
   const heading = element('div', undefined, 'trip-heading');
   heading.append(
-    element('strong', `${pair.city} · ${countryNames.of(pair.country)}`),
-    element('small', `${dateLabel(pair.depart_date)} – ${dateLabel(pair.return_date)} · ${pair.nights} Nächte · ${segmentCount(pair.outbound, pair.return)}`),
+    element('strong', `${dateLabel(pair.depart_date)} – ${dateLabel(pair.return_date)}`),
+    element('small', `${pair.nights} Nächte · ${segmentCount(pair.outbound, pair.return)}`),
     element('strong', money(pair.total, pair.currency), 'price'),
   );
   const chevron = element('span', '⌄', 'chevron');
@@ -120,6 +120,7 @@ const sort = document.querySelector('#sort');
 const tabs = [...document.querySelectorAll('[role=tab]')];
 const countryNames = new Intl.DisplayNames(['de'], { type: 'region' });
 let pairs = [];
+let perCity = 3;
 let outboundRows = [];
 let searchUrl = '';
 let selectedId = null;
@@ -128,6 +129,45 @@ const travelTime = (out, back) => out.duration + back.duration;
 const segmentCount = (out, back) => `${out.segments + back.segments} Segmente`;
 const route = option => `${option.legs[0].origin} → ${option.legs.at(-1).destination}`;
 const clocks = option => `${localTime(option.departure)} – ${localTime(option.arrival)}`;
+
+function cityGroups(rows) {
+  const groups = new Map();
+  for (const row of [...rows].sort(resultOrder)) {
+    if (!groups.has(row.cityKey)) groups.set(row.cityKey, []);
+    groups.get(row.cityKey).push(row);
+  }
+  return [...groups.values()];
+}
+
+function priceRange(rows, currency) {
+  const prices = rows.map(row => row.price);
+  const low = Math.min(...prices);
+  const high = Math.max(...prices);
+  return low === high ? money(low, currency) : `${money(low, currency)} – ${money(high, currency)}`;
+}
+
+function cityGroup(rows, render, { city, country, currency, priceLabel }) {
+  const group = element('div', undefined, 'city-group');
+  const head = element('div', undefined, 'city-head');
+  const lowest = Math.min(...rows.map(row => row.price));
+  head.append(
+    element('strong', city),
+    element('small', countryNames.of(country), 'muted'),
+    element('span', `${priceLabel} ${money(lowest, currency)}`, 'price'),
+  );
+  const list = element('div', undefined, 'group-list');
+  list.append(...rows.slice(0, perCity).map(render));
+  group.append(head, list);
+  const rest = rows.slice(perCity);
+  if (rest.length) {
+    const more = element('details', undefined, 'more');
+    const restList = element('div', undefined, 'more-list');
+    restList.append(...rest.map(render));
+    more.append(element('summary', `${rest.length} weitere · ${priceRange(rest, currency)}`), restList);
+    group.append(more);
+  }
+  return group;
+}
 
 function resultOrder(a, b) {
   if (sort.value === 'travel') return a.travel - b.travel || a.price - b.price;
@@ -190,6 +230,30 @@ function showReturns(row) {
   }));
 }
 
+function outboundButton(row) {
+  const button = element('button', undefined, 'option');
+  button.type = 'button';
+  button.setAttribute('aria-pressed', String(row.id === selectedId));
+  const heading = element('span', undefined, 'top');
+  heading.append(
+    element('strong', `${dateLabel(row.date)} · ${clocks(row.outbound)}`),
+    element('span', `ab ${money(row.price, row.outbound.currency)} gesamt`, 'price'),
+  );
+  button.append(
+    heading,
+    element('span', route(row.outbound), 'route'),
+    element('small', `${money(row.outbound.price, row.outbound.currency)} Hinflug`),
+  );
+  button.addEventListener('click', () => {
+    selectedId = row.id;
+    for (const other of outboundPanel.querySelectorAll('.option')) {
+      other.setAttribute('aria-pressed', String(other === button));
+    }
+    showReturns(row);
+  });
+  return button;
+}
+
 function renderOutbound() {
   if (!outboundRows.length) {
     outboundPanel.replaceChildren(element('p', 'Keine passenden Hinflüge gefunden.', 'muted'));
@@ -197,40 +261,35 @@ function renderOutbound() {
     selectedContext.textContent = '';
     return;
   }
-  const ordered = [...outboundRows].sort(resultOrder);
-  if (!ordered.some(row => row.id === selectedId)) selectedId = ordered[0].id;
-  outboundPanel.replaceChildren(...ordered.map(row => {
-    const button = element('button', undefined, 'option');
-    button.type = 'button';
-    button.setAttribute('aria-pressed', String(row.id === selectedId));
-    const heading = element('span', undefined, 'top');
-    heading.append(
-      element('strong', row.city),
-      element('span', `ab ${money(row.price, row.outbound.currency)} gesamt`, 'price'),
-    );
-    button.append(
-      heading,
-      element('span', route(row.outbound), 'route'),
-      element('small', `${dateLabel(row.date)} · ${clocks(row.outbound)} · ${money(row.outbound.price, row.outbound.currency)} Hinflug`),
-    );
-    button.addEventListener('click', () => {
-      selectedId = row.id;
-      for (const other of outboundPanel.children) {
-        other.setAttribute('aria-pressed', String(other === button));
-      }
-      showReturns(row);
-    });
-    return button;
+  const groups = cityGroups(outboundRows);
+  if (!outboundRows.some(row => row.id === selectedId)) selectedId = groups[0][0].id;
+  outboundPanel.replaceChildren(...groups.map(rows => cityGroup(rows, outboundButton, {
+    city: rows[0].city,
+    country: rows[0].country,
+    currency: rows[0].outbound.currency,
+    priceLabel: 'ab',
+  })));
+  showReturns(outboundRows.find(row => row.id === selectedId));
+}
+
+function pairRows() {
+  return pairs.map(pair => ({
+    pair,
+    cityKey: pair.city_key,
+    price: pair.total,
+    travel: travelTime(pair.outbound, pair.return),
   }));
-  showReturns(ordered.find(row => row.id === selectedId));
 }
 
 function renderPairs() {
-  const ordered = pairs.map(pair => ({
-    pair, price: pair.total, travel: travelTime(pair.outbound, pair.return),
-  })).sort(resultOrder).map(row => row.pair);
-  pairPanel.replaceChildren(...ordered.map(pairCard));
-  if (!ordered.length) {
+  const groups = cityGroups(pairRows());
+  pairPanel.replaceChildren(...groups.map(rows => cityGroup(rows, row => pairCard(row.pair), {
+    city: rows[0].pair.city,
+    country: rows[0].pair.country,
+    currency: rows[0].pair.currency,
+    priceLabel: 'ab',
+  })));
+  if (!groups.length) {
     pairPanel.append(element('p', 'Keine fertigen Paare in der Suchrangfolge.', 'muted'));
   }
 }
@@ -246,9 +305,10 @@ function swapTab(tab) {
   }
   pairPanel.hidden = tab !== tabs[0];
   pickerPanel.hidden = tab !== tabs[1];
+  const cities = rows => countLabel(new Set(rows.map(row => row.cityKey)).size, 'Stadt', 'Städten');
   context.textContent = tab === tabs[0]
-    ? countLabel(pairs.length, 'Flugpaar', 'Flugpaare')
-    : countLabel(outboundRows.length, 'Hinflug', 'Hinflüge');
+    ? `${countLabel(pairs.length, 'Flugpaar', 'Flugpaare')} in ${cities(pairRows())}`
+    : `${countLabel(outboundRows.length, 'Hinflug', 'Hinflüge')} in ${cities(outboundRows)}`;
 }
 
 for (const tab of tabs) {
@@ -269,6 +329,7 @@ sort.addEventListener('change', () => {
 
 export function showResults(result, url) {
   pairs = result.pairs;
+  perCity = Math.max(1, result.per_city || 3);
   searchUrl = url;
   selectedId = null;
   sort.value = 'price-asc';
@@ -296,7 +357,7 @@ export function showResults(result, url) {
       }
       if (!Number.isFinite(lowestPrice)) return [];
       return [{
-        id, outbound, returnGroups, city: group.city, date: group.date,
+        id, outbound, returnGroups, city: group.city, country: group.country, cityKey: group.city_key, date: group.date,
         price: outbound.price + lowestPrice,
         travel: outbound.duration + shortestTime,
       }];

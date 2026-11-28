@@ -18,7 +18,7 @@ AIRPORTS = (
 )
 
 
-def app_for(runner, **options):
+def app_for(runner, *, per_city=None, **options):
     from flight_search.web import create_app
 
     start = date.today() + timedelta(days=7)
@@ -39,6 +39,7 @@ def app_for(runner, **options):
             max_requests=10,
             max_candidates=4,
             airline_codes=("LH",),
+            **({} if per_city is None else {"per_city": per_city}),
         ),
         configured_regions={"transatlantic": frozenset({"US"})},
         search_runner=runner,

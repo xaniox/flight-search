@@ -957,7 +957,6 @@ def _run_web(parser: argparse.ArgumentParser, port: int) -> int:
         cache_dir=defaults.cache_dir,
         cache_ttl=defaults.cache_ttl,
         cache_enabled=defaults.cache,
-        top=defaults.top,
         rolling_dates=True,
     )
     Console().print(f"Open http://127.0.0.1:{port} in your browser.")

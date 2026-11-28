@@ -74,7 +74,9 @@ uv run flight-search web
 Open `http://127.0.0.1:8765` to choose departure airports, destinations and
 dates, follow search progress and open the confirmed pairs in Google Flights.
 Use `--port` to pick another local port. The browser uses the existing search
-defaults, configuration and disk cache.
+defaults, configuration and disk cache. Results are grouped by city: each city shows
+`per_city` pairs (default 3, also settable in the configuration file) and
+folds away the rest; `--top` applies only to the command line.
 
 ## Quick start
 

@@ -8,6 +8,7 @@ Run them with ``uv run --group e2e pytest -m e2e`` after a one-time
 from __future__ import annotations
 
 import sys
+from dataclasses import replace
 from datetime import date, timedelta
 from pathlib import Path
 from threading import Thread
@@ -43,10 +44,10 @@ def pytest_collection_modifyitems(items):
             item.add_marker(pytest.mark.e2e)
 
 
-def _defaults() -> WeekendQuery:
+def _defaults(**changes) -> WeekendQuery:
     start = date.today() + timedelta(days=14)
     start += timedelta(days=(4 - start.weekday()) % 7)
-    return WeekendQuery(
+    query = WeekendQuery(
         start=start.isoformat(),
         end=(start + timedelta(days=16)).isoformat(),
         depart_days=("fri",),
@@ -59,14 +60,19 @@ def _defaults() -> WeekendQuery:
         settings=SearchSettings(currency="EUR"),
         max_requests=200,
     )
+    return replace(query, **changes)
 
 
 @pytest.fixture
-def app_url(monkeypatch):
-    """A local server whose searches run the real core against fake flights."""
+def app_url(monkeypatch, request):
+    """A local server whose searches run the real core against fake flights.
+
+    Parametrise it indirectly with a dict to change WeekendQuery defaults, e.g.
+    ``@pytest.mark.parametrize("app_url", [{"per_city": 1}], indirect=True)``.
+    """
     monkeypatch.setattr(fli_api, "detail_results", fake_detail_results)
     app = create_app(
-        _defaults(),
+        _defaults(**getattr(request, "param", {})),
         configured_regions={},
         airport_loader=lambda *, include_small: AIRPORTS,
         cache_enabled=False,

@@ -218,3 +218,82 @@ def test_search_status_and_booking_reuse_confirmed_options():
     )
     assert unknown.status_code == 404
     runner.assert_called_once()
+
+
+def test_pair_results_keep_every_confirmed_itinerary():
+    from flight_search.web_results import pair_results
+
+    days = [FRIDAY + timedelta(days=offset) for offset in range(25)]
+    shortlist = [candidate(LISBON, day, day + timedelta(days=2)) for day in days]
+    options = {}
+    for day in days:
+        back = day + timedelta(days=2)
+        options[("LIS", day, "out")] = (option("10", day, ("FRA", "LIS")),)
+        options[("LIS", back, "ret")] = (option("20", back, ("LIS", "FRA")),)
+    result = result_with(shortlist, options)
+    assert len(result.itineraries()) > 20
+
+    pairs = pair_results(result, result.request.settings)["pairs"]
+
+    assert len(pairs) == len(result.itineraries())
+
+
+def two_city_result():
+    return result_with(
+        [candidate(LISBON, FRIDAY, SUNDAY), candidate(ROME, FRIDAY, SUNDAY)],
+        {
+            ("LIS", FRIDAY, "out"): (option("10", FRIDAY, ("FRA", "LIS")),),
+            ("LIS", SUNDAY, "ret"): (option("20", SUNDAY, ("LIS", "FRA")),),
+            ("FCO", FRIDAY, "out"): (option("30", FRIDAY, ("FRA", "FCO")),),
+            ("FCO", SUNDAY, "ret"): (option("31", SUNDAY, ("FCO", "FRA")),),
+        },
+    )
+
+
+def test_pairs_carry_the_city_key():
+    from flight_search.web_results import pair_results
+
+    result = two_city_result()
+
+    pairs = pair_results(result, result.request.settings)["pairs"]
+
+    assert {pair["city"]: pair["city_key"] for pair in pairs} == {
+        "Lisbon": "LIS",
+        "Rome": "FCO",
+    }
+
+
+def test_outbound_groups_carry_the_city_key():
+    from flight_search.web_results import outbound_choices
+
+    result = two_city_result()
+
+    groups = outbound_choices(result)["outbound_groups"]
+
+    assert {group["city"]: group["city_key"] for group in groups} == {
+        "Lisbon": "LIS",
+        "Rome": "FCO",
+    }
+
+
+def test_search_state_carries_the_per_city_limit():
+    def run(request, **_):
+        assert request.per_city == 2
+        pair = request.pairs[0]
+        return result_with(
+            [candidate(LISBON, pair.depart, pair.ret)],
+            {
+                ("LIS", pair.depart, "out"): (
+                    option("10", pair.depart, ("FRA", "LIS")),
+                ),
+                ("LIS", pair.ret, "ret"): (option("20", pair.ret, ("LIS", "FRA")),),
+            },
+            request=request,
+        )
+
+    client = app_for(Mock(side_effect=run), per_city=2).test_client()
+    path = start_search(client, regions=["europe"])
+    state = wait_for_final_state(client, path)
+
+    assert state["status"] == "done", state
+    assert state["result"]["per_city"] == 2

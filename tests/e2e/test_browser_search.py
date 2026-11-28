@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 
+import pytest
 from playwright.sync_api import Page, expect
 
 
@@ -21,13 +22,31 @@ def prices(page: Page, selector: str) -> list[float]:
     return [float(re.sub(r"[^\d,]", "", text).replace(",", ".")) for text in texts]
 
 
+def group_prices(group) -> list[float]:
+    """Prices of every card of a city group, including those folded away."""
+    texts = group.locator(".trip .trip-heading .price").evaluate_all(
+        "nodes => nodes.map(node => node.textContent)"
+    )
+    return [float(re.sub(r"[^\d,]", "", text).replace(",", ".")) for text in texts]
+
+
+MORE_SUMMARY = r"^\d+ weitere · .+€$"
+ONE_PER_CITY = pytest.mark.parametrize("app_url", [{"per_city": 1}], indirect=True)
+
+
+def city_group(page: Page, panel: str, city: str):
+    return page.locator(f"{panel} .city-group").filter(
+        has=page.locator(".city-head strong", has_text=city)
+    )
+
+
 def test_search_shows_pairs_with_details(page: Page, app_url: str):
     search(page, app_url)
 
-    trips = page.locator("#pairs > .trip")
+    trips = page.locator("#pairs .trip")
     expect(trips.first).to_be_visible()
     expect(page.locator("#context")).to_contain_text("Flugpaar")
-    trips.first.locator("summary").click()
+    trips.first.locator(":scope > summary").click()
     expect(trips.first.get_by_role("link", name="Hinflug öffnen")).to_be_visible()
 
 
@@ -37,7 +56,7 @@ def test_outbound_first_offers_returns_for_the_chosen_outbound(
     search(page, app_url)
 
     page.get_by_role("tab", name="Hinflug zuerst").click()
-    outbounds = page.locator("#outbounds > .option")
+    outbounds = page.locator("#outbounds .option")
     expect(outbounds.nth(1)).to_be_visible()
     second = outbounds.nth(1)
     route = second.locator(".route").inner_text()
@@ -48,17 +67,92 @@ def test_outbound_first_offers_returns_for_the_chosen_outbound(
     expect(page.locator("#returns > .trip").first).to_be_visible()
 
 
-def test_sorting_orders_pairs_by_price(page: Page, app_url: str):
+def test_sorting_orders_cards_inside_groups_and_groups_by_first_card(
+    page: Page, app_url: str
+):
     search(page, app_url)
-    selector = "#pairs > .trip .trip-heading .price"
+    groups = page.locator("#pairs .city-group")
+    expect(groups.first).to_be_visible(timeout=2000)
 
-    ascending = prices(page, selector)
+    def snapshot():
+        return [group_prices(groups.nth(index)) for index in range(groups.count())]
+
+    ascending = snapshot()
     page.get_by_label("Sortierung").select_option("price-desc")
-    descending = prices(page, selector)
+    descending = snapshot()
 
     assert len(ascending) > 1
-    assert ascending == sorted(ascending)
-    assert descending == sorted(ascending, reverse=True)
+    for group in ascending:
+        assert group == sorted(group)
+    firsts = [group[0] for group in ascending]
+    assert firsts == sorted(firsts)
+    for group in descending:
+        assert group == sorted(group, reverse=True)
+    firsts = [group[0] for group in descending]
+    assert firsts == sorted(firsts, reverse=True)
+
+
+@ONE_PER_CITY
+def test_pairs_are_grouped_by_city_with_the_rest_folded_away(page: Page, app_url: str):
+    search(page, app_url)
+
+    groups = page.locator("#pairs .city-group")
+    expect(groups.first).to_be_visible(timeout=2000)
+    expect(page.locator("#context")).to_have_text("7 Flugpaare in 4 Städten")
+    names = groups.locator(".city-head strong").all_inner_texts()
+    assert sorted(name.split(" · ")[0] for name in names) == [
+        "Barcelona",
+        "Lisbon",
+        "Palma",
+        "Rome",
+    ]
+    for index in range(groups.count()):
+        expect(groups.nth(index).locator(".group-list > .trip")).to_have_count(
+            1, timeout=2000
+        )
+
+    rome = city_group(page, "#pairs", "Rome")
+    more = rome.locator("details.more")
+    expect(more).to_have_count(1, timeout=2000)
+    expect(more.locator(":scope > summary")).to_have_text(re.compile(MORE_SUMMARY))
+    expect(more.locator(":scope > summary")).to_contain_text("3 weitere")
+    expect(more.locator(".trip").first).to_be_hidden()
+    more.locator(":scope > summary").click()
+    expect(more.locator(".trip")).to_have_count(3)
+    expect(more.locator(".trip").first).to_be_visible()
+    expect(city_group(page, "#pairs", "Lisbon").locator("details.more")).to_have_count(
+        0
+    )
+
+
+@ONE_PER_CITY
+def test_outbound_groups_fold_extra_options_and_still_show_returns(
+    page: Page, app_url: str
+):
+    search(page, app_url)
+
+    page.get_by_role("tab", name="Hinflug zuerst").click()
+    groups = page.locator("#outbounds .city-group")
+    expect(groups.first).to_be_visible(timeout=2000)
+    for index in range(groups.count()):
+        expect(groups.nth(index).locator(".group-list > .option")).to_have_count(
+            1, timeout=2000
+        )
+
+    rome = city_group(page, "#outbounds", "Rome")
+    more = rome.locator("details.more")
+    expect(more.locator(":scope > summary")).to_have_text(
+        re.compile(MORE_SUMMARY), timeout=2000
+    )
+    expect(more.locator(":scope > summary")).to_contain_text("3 weitere")
+    more.locator(":scope > summary").click()
+    expect(more.locator(".option")).to_have_count(3)
+    folded = more.locator(".option").first
+    expect(folded).to_be_visible()
+    folded.click()
+
+    expect(folded).to_have_attribute("aria-pressed", "true")
+    expect(page.locator("#returns > .trip").first).to_be_visible()
 
 
 def test_empty_time_field_is_sent_as_no_bound(page: Page, app_url: str):

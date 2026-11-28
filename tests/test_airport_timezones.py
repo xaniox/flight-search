@@ -86,7 +86,7 @@ def test_both_browser_projections_include_stay_data_and_unknown_values():
                 ("LIS", sunday, "ret"): (inbound,),
             },
         )
-        [pair] = pair_results(result, result.request.settings, top=20)["pairs"]
+        [pair] = pair_results(result, result.request.settings)["pairs"]
         assert pair["stay_minutes"] == minutes
 
         projection = outbound_choices(result)
