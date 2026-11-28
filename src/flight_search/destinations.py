@@ -3,24 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
 
 from flight_search.airports import (
     AirportInfo,
     filter_airports,
-    haversine_km,
     in_default_region,
 )
-
-
-class Center(Protocol):
-    """The point the weekend radius is measured from."""
-
-    @property
-    def lat(self) -> float: ...
-
-    @property
-    def lon(self) -> float: ...
+from flight_search.config import Coordinate
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,7 +43,7 @@ def select_destinations(
     choice: DestinationChoice,
     *,
     airports: tuple[AirportInfo, ...],
-    center: Center,
+    center: Coordinate,
 ) -> tuple[tuple[AirportInfo, ...], list[str]]:
     """The selected airports and the warnings about unknown codes."""
     if choice.codes:
@@ -71,16 +60,12 @@ def select_destinations(
         )
         return selected, warnings
 
+    weekend = choice.region == "weekend"
     selected = filter_airports(
         destination_pool(airports, (), choice.countries),
         countries=choice.countries,
+        max_distance_km=choice.max_distance_km if weekend else None,
+        center=center,
         exclude=choice.exclude_codes,
     )
-    if choice.region == "weekend" and choice.max_distance_km is not None:
-        selected = tuple(
-            a
-            for a in selected
-            if haversine_km(center.lat, center.lon, a.lat, a.lon)
-            <= choice.max_distance_km
-        )
     return selected, []

@@ -4,9 +4,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-# Karlsruhe (city centre) — used for the "weekend" distance preset.
-KARLSRUHE_LAT = 49.013
-KARLSRUHE_LON = 8.404
+
+@dataclass(frozen=True, slots=True)
+class Coordinate:
+    """A point on the globe in decimal degrees."""
+
+    lat: float
+    lon: float
+
+
+# Karlsruhe (city centre) — the home coordinate distances are measured from.
+KARLSRUHE = Coordinate(49.013, 8.404)
 
 DEFAULT_HOME_AIRPORTS = ("FKB", "STR", "SXB", "FRA")
 

@@ -9,7 +9,6 @@ from __future__ import annotations
 import ast
 import importlib
 import inspect
-from dataclasses import dataclass
 
 from airport_factory import airport
 
@@ -26,19 +25,12 @@ AIRPORTS = (
 )
 
 
-@dataclass(frozen=True)
-class Center:
-    """Karlsruhe, the centre of today's weekend radius, as a plain lat/lon."""
-
-    lat: float = 49.013
-    lon: float = 8.404
-
-
 def _select(**choice):
+    from flight_search.config import KARLSRUHE
     from flight_search.destinations import DestinationChoice, select_destinations
 
     selected, warnings = select_destinations(
-        DestinationChoice(**choice), airports=AIRPORTS, center=Center()
+        DestinationChoice(**choice), airports=AIRPORTS, center=KARLSRUHE
     )
     return {a.iata for a in selected}, list(warnings)
 

@@ -8,7 +8,6 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import NamedTuple
 
 from rich.console import Console
 from rich.progress import (
@@ -26,7 +25,7 @@ from flight_search.airports import (
     AirportInfo,
     build_city_groups,
     display_city,
-    distance_from_karlsruhe,
+    distance_km,
     filter_airports,
     load_airports,
 )
@@ -37,8 +36,7 @@ from flight_search.config import (
     DEFAULT_CURRENCY,
     DEFAULT_HOME_AIRPORTS,
     DEFAULT_LANGUAGE,
-    KARLSRUHE_LAT,
-    KARLSRUHE_LON,
+    KARLSRUHE,
     SearchSettings,
 )
 from flight_search.dates import (
@@ -135,15 +133,6 @@ class Reporter:
                 f"[yellow]warning:[/yellow] {len(failures)} discovery requests failed; "
                 f"first: {failures[0]}"
             )
-
-
-class _Center(NamedTuple):
-    lat: float
-    lon: float
-
-
-# The centre of the weekend radius.
-HOME_CENTER = _Center(KARLSRUHE_LAT, KARLSRUHE_LON)
 
 
 REGION_HELP = (
@@ -385,7 +374,7 @@ def _select_airports(args) -> tuple[tuple[AirportInfo, ...], list[str]]:
         include_small=args.include_small,
     )
     destinations, destination_warnings = select_destinations(
-        choice, airports=all_airports, center=HOME_CENTER
+        choice, airports=all_airports, center=KARLSRUHE
     )
     return destinations, warnings + destination_warnings
 
@@ -686,7 +675,7 @@ def _run_airports(args) -> int:
             display_city(airport),
             airport.country,
             airport.name,
-            f"{distance_from_karlsruhe(airport):.0f}",
+            f"{distance_km(airport):.0f}",
         )
     console.print(f"{len(selected)} airports")
     console.print(table)
