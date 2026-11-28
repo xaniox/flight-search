@@ -5,7 +5,8 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from copy import copy
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -79,6 +80,7 @@ class _ConsoleLogHandler(logging.Handler):
     _labels: ClassVar[dict[str, str]] = {
         "flight_search.cli": "Search",
         "flight_search.search": "Search",
+        "flight_search.web": "Search",
         "flight_search.discover": "Discovery",
         "flight_search.detail": "Confirmation",
         "flight_search.detail.roundtrip": "Round-trip",
@@ -99,6 +101,38 @@ class _ConsoleLogHandler(logging.Handler):
             self.console.print(Text(self.format(record)), soft_wrap=True)
         except Exception:  # noqa: BLE001 - report handler failures via logging
             self.handleError(record)
+
+
+@contextmanager
+def _debug_logging(enabled: bool) -> Iterator[Console | None]:
+    if not enabled:
+        yield None
+        return
+
+    console = Console(stderr=True)
+    handler = _ConsoleLogHandler(console)
+    handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s.%(msecs)03d %(levelname)-7s %(name)-13s | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    )
+    loggers = (
+        logging.getLogger("flight_search"),
+        logging.getLogger("fli.search._tfs"),
+    )
+    states = [(target, target.level, target.propagate) for target in loggers]
+    for target in loggers:
+        target.addHandler(handler)
+        target.setLevel(logging.DEBUG)
+        target.propagate = False
+    try:
+        yield console
+    finally:
+        for target, level, propagate in states:
+            target.removeHandler(handler)
+            target.setLevel(level)
+            target.propagate = propagate
 
 
 def _csv_tuple(value: str) -> tuple[str, ...]:
@@ -526,6 +560,12 @@ def _build_parser(settings: Settings | None = None) -> argparse.ArgumentParser:
     web = subparsers.add_parser("web", help="Serve weekend search in a local browser.")
     web.add_argument(
         "--port", type=int, default=8765, help="Local port (default: %(default)s)."
+    )
+    web.add_argument(
+        "--debug",
+        action=argparse.BooleanOptionalAction,
+        default=settings.options.get("debug", True),
+        help="Log search phases and transport diagnostics to stderr (default: %(default)s).",
     )
 
     refresh = subparsers.add_parser(
@@ -977,36 +1017,15 @@ def main(argv: list[str] | None = None) -> int:
         _build_parser().error(str(exc))
     args = parser.parse_args(argv)
     if args.command == "web":
-        return _run_web(parser, args.port)
+        with _debug_logging(args.debug):
+            return _run_web(parser, args.port)
     if args.command in CONFIGURED_COMMANDS:
         _drop_file_selection(args)
     if args.command == "weekend":
         if not args.debug:
             return _run_weekend(args)
-        error_console = Console(stderr=True)
-        handler = _ConsoleLogHandler(error_console)
-        handler.setFormatter(
-            logging.Formatter(
-                "%(asctime)s.%(msecs)03d %(levelname)-7s %(name)-13s | %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-            )
-        )
-        loggers = (
-            logging.getLogger("flight_search"),
-            logging.getLogger("fli.search._tfs"),
-        )
-        states = [(target, target.level, target.propagate) for target in loggers]
-        for target in loggers:
-            target.addHandler(handler)
-            target.setLevel(logging.DEBUG)
-            target.propagate = False
-        try:
+        with _debug_logging(args.debug) as error_console:
             return _run_weekend(args, error_console=error_console)
-        finally:
-            for target, level, propagate in states:
-                target.removeHandler(handler)
-                target.setLevel(level)
-                target.propagate = propagate
     if args.command == "airports":
         return _run_airports(args)
     if args.command == "refresh-airports":

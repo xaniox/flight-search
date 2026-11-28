@@ -8,6 +8,7 @@ from dataclasses import replace
 from datetime import date
 from pathlib import Path
 from threading import Lock, Thread
+from time import monotonic
 from uuid import uuid4
 
 from flask import Flask, jsonify, redirect, request
@@ -332,12 +333,27 @@ def create_app(
             runs[search_id] = run
 
         def execute() -> None:
+            started = monotonic()
+            search_request = plan.request
+            logger.debug(
+                "Plan: %s · %s to %s · %d date pairs, %d destinations · "
+                "%d per batch · estimated requests: %d (budget: %d) · cache: %s",
+                ", ".join(search_request.home),
+                plan.start,
+                plan.end,
+                len(search_request.pairs),
+                len(search_request.destinations),
+                search_request.batch_size,
+                plan.estimated_requests,
+                plan.max_requests,
+                "enabled" if cache.active else "disabled",
+            )
             try:
                 result = search_runner(
-                    plan.request, cache=cache, budget=budget, progress=run
+                    search_request, cache=cache, budget=budget, progress=run
                 )
                 results, outbound = _result_payload(
-                    result, plan.request.settings, plan.request.per_city
+                    result, search_request.settings, search_request.per_city
                 )
                 warnings = plan.warnings
                 failures = run.snapshot().get("discovery_failures", 0)
@@ -345,6 +361,17 @@ def create_app(
                     warnings += (
                         f"{failures} discovery requests failed. Results may be incomplete.",
                     )
+                logger.debug(
+                    "Finished in %.0f ms · confirmed pairs: %d · requests: %d · "
+                    "cache: %d hits, %d misses, %d writes · discovery failures: %d",
+                    (monotonic() - started) * 1000,
+                    len(results["pairs"]),
+                    budget.used,
+                    cache.stats.hits,
+                    cache.stats.misses,
+                    cache.stats.writes,
+                    failures,
+                )
                 run.finish(
                     status="done",
                     result=results,
@@ -377,20 +404,22 @@ def create_app(
             run = runs.get(search_id)
         if run is None:
             return jsonify(error="Search not found."), 404
-        status = run.snapshot()["status"]
+        state = run.snapshot()
+        status = state["status"]
         if status == "running":
             return jsonify(error="The search has not finished yet."), 409
         if status != "done" or run.result is None:
             return jsonify(error="The search failed, so there is nothing to load."), 409
         with run.loading:
             current = run.result
+            budget = RequestBudget(None)
             try:
                 result = confirm_more(
                     current,
                     city_key,
                     current.request.per_city,
                     cache=run.cache,
-                    budget=RequestBudget(None),
+                    budget=budget,
                 )
                 payload, outbound = _result_payload(
                     result, result.request.settings, result.request.per_city
@@ -398,6 +427,10 @@ def create_app(
             except Exception as exc:
                 logger.exception("Loading more pairs failed")
                 return jsonify(error=str(exc) or type(exc).__name__), 500
+            finally:
+                pending_city = state["result"]["pending"].get(city_key, {})
+                city = pending_city.get("city", city_key)
+                logger.debug("Load more for %s · requests: %d", city, budget.used)
             run.replace_result(result, payload, outbound)
         return jsonify(payload)
 

@@ -81,6 +81,11 @@ more phase-1 candidates offers "weitere laden": each click confirms the next
 `per_city` of them with Google Flights, outside `--max-requests`, and the
 button names the estimated price range and the most requests it can cost.
 
+The server logs the search plan, discovery, confirmation and load-more activity
+to stderr by default. Set `debug = false` in `config.toml` or pass `--no-debug`
+to turn off these diagnostics. `--debug` overrides the config file. Use
+`uv run flight-search web 2>browser-search.log` to capture diagnostics in a file.
+
 ## Quick start
 
 Cheapest weekend across Europe including Cyprus, the Greek islands and the
