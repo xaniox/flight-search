@@ -337,8 +337,8 @@ class Itinerary:
                 "destination": self.open_jaw_destination,
                 "label": self.open_jaw_label,
             },
-            "outbound": _direction_dict(self.out),
-            "return": _direction_dict(self.ret),
+            "outbound": direction_dict(self.out),
+            "return": direction_dict(self.ret),
             "roundtrip_price": self.roundtrip_price,
             "roundtrip_delta": self.roundtrip_delta,
             "booking_url": self.booking_url,
@@ -347,7 +347,7 @@ class Itinerary:
         }
 
 
-def _direction_dict(option: FlightOption) -> dict[str, Any]:
+def direction_dict(option: FlightOption) -> dict[str, Any]:
     """The option's dict plus its segment count and connections, before its legs."""
     data = option.to_dict()
     legs = data.pop("legs")

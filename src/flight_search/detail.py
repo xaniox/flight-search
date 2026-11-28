@@ -196,6 +196,25 @@ def confirm_options(
     return options
 
 
+def eligible_options(
+    key: OptionKey,
+    options: Mapping[OptionKey, Sequence[FlightOption]],
+    *,
+    depart_window: DepartureWindow,
+    return_window: ReturnWindow,
+    airlines: frozenset[str],
+    allow_codeshare: bool,
+) -> list[FlightOption]:
+    """Apply the search filters for one city, date and direction."""
+    available = options.get(key, ())
+    _, day, direction = key
+    if direction == "out":
+        within_window = filter_departures(available, depart_window)
+    else:
+        within_window = filter_return_legs(available, return_window, day)
+    return filter_airlines(within_window, airlines, allow_codeshare)
+
+
 def rank_itineraries(
     candidates: Iterable[Candidate],
     options: Mapping[OptionKey, Sequence[FlightOption]],
@@ -216,19 +235,16 @@ def rank_itineraries(
     for candidate in candidates:
         city = candidate.city
         depart, ret = candidate.pair.depart, candidate.pair.ret
-        out_options = filter_airlines(
-            filter_departures(
-                options.get((city.key, depart, "out"), ()), depart_window
-            ),
-            airlines,
-            allow_codeshare,
-        )
-        ret_options = filter_airlines(
-            filter_return_legs(
-                options.get((city.key, ret, "ret"), ()), return_window, ret
-            ),
-            airlines,
-            allow_codeshare,
+        out_options, ret_options = (
+            eligible_options(
+                key,
+                options,
+                depart_window=depart_window,
+                return_window=return_window,
+                airlines=airlines,
+                allow_codeshare=allow_codeshare,
+            )
+            for key in ((city.key, depart, "out"), (city.key, ret, "ret"))
         )
         for itinerary in combine_itineraries(
             city_key=city.key,

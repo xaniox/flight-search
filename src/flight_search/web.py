@@ -10,14 +10,18 @@ from pathlib import Path
 from threading import Lock, Thread
 from uuid import uuid4
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, redirect, request
 from werkzeug.exceptions import RequestEntityTooLarge, SecurityError
 
 from flight_search.airports import AirportDataError, load_airports
 from flight_search.destinations import BrowserDestinationChoice, DestinationChoice
-from flight_search.search import run_search
+from flight_search.search import SearchResult, run_search
 from flight_search.settings_file import BUILT_IN_REGIONS
-from flight_search.web_results import pair_results
+from flight_search.web_results import (
+    OutboundProjection,
+    pair_results,
+    project_outbound_choices,
+)
 from flight_search.weekend import WeekendQuery, prepare_weekend
 
 logger = logging.getLogger(__name__)
@@ -34,6 +38,7 @@ class _SearchRun:
 
     def __init__(self) -> None:
         self._lock = Lock()
+        self._outbound: OutboundProjection | None = None
         self._state = {"status": "running", "phase": "Preparing", "done": 0, "total": 0}
 
     def start(self, description: str, total: int) -> Callable[[int], None]:
@@ -54,9 +59,17 @@ class _SearchRun:
             with self._lock:
                 self._state["discovery_failures"] = len(failures)
 
-    def finish(self, **state) -> None:
+    def finish(self, *, outbound: OutboundProjection | None = None, **state) -> None:
         with self._lock:
             self._state = state
+            self._outbound = outbound
+
+    def booking_url(self, outbound_id: str, return_id: str) -> str | None:
+        with self._lock:
+            projection = self._outbound
+        if projection is None:
+            return None
+        return projection.booking_url(outbound_id, return_id)
 
     def snapshot(self) -> dict:
         with self._lock:
@@ -283,6 +296,13 @@ def create_app(
                 result = search_runner(
                     plan.request, cache=cache, budget=budget, progress=run
                 )
+                results = pair_results(result, plan.request.settings, top)
+                outbound = (
+                    project_outbound_choices(result)
+                    if isinstance(result, SearchResult)
+                    else OutboundProjection(plan.request.settings)
+                )
+                results["outbound_choices"] = outbound.payload()
                 warnings = plan.warnings
                 failures = run.snapshot().get("discovery_failures", 0)
                 if failures:
@@ -291,7 +311,8 @@ def create_app(
                     )
                 run.finish(
                     status="done",
-                    result=pair_results(result, plan.request.settings, top),
+                    result=results,
+                    outbound=outbound,
                     warnings=warnings,
                 )
             except Exception as exc:
@@ -308,5 +329,20 @@ def create_app(
         if run is None:
             return jsonify(error="Search not found."), 404
         return jsonify(run.snapshot())
+
+    @app.get("/api/searches/<search_id>/booking")
+    def booking(search_id: str):
+        with runs_lock:
+            run = runs.get(search_id)
+        outbound_id = request.args.get("outbound", "")
+        return_id = request.args.get("return", "")
+        try:
+            url = run.booking_url(outbound_id, return_id) if run else None
+        except Exception:
+            logger.exception("Could not create combined booking link")
+            return jsonify(error="The booking link could not be generated."), 500
+        if url is None:
+            return jsonify(error="This flight combination was not found."), 404
+        return redirect(url)
 
     return app

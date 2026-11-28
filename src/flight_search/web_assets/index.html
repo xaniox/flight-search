@@ -72,9 +72,32 @@
     </div>
     <section id="results" aria-labelledby="results-title" hidden>
       <div class="results-header">
-        <div><h2 id="results-title">Fertige Paare</h2><p class="context muted" id="context"></p></div>
+        <div><h2 id="results-title">Suchergebnisse</h2><p class="context muted" id="context"></p></div>
+        <div class="results-controls">
+          <label>Sortierung
+            <select id="sort">
+              <option value="price-asc">Preis aufsteigend</option>
+              <option value="price-desc">Preis absteigend</option>
+              <option value="travel">Kürzeste Reisezeit</option>
+            </select>
+          </label>
+          <div class="tabs" role="tablist" aria-label="Ergebnisansicht">
+            <button id="pairs-tab" class="tab" type="button" role="tab" aria-selected="true" aria-controls="pairs">Fertige Paare</button>
+            <button id="outbound-tab" class="tab" type="button" role="tab" aria-selected="false" aria-controls="picker" tabindex="-1">Hinflug zuerst</button>
+          </div>
+        </div>
       </div>
-      <div id="pairs"></div>
+      <div id="pairs" role="tabpanel" aria-labelledby="pairs-tab" tabindex="0"></div>
+      <div id="picker" class="split" role="tabpanel" aria-labelledby="outbound-tab" tabindex="0" hidden>
+        <section class="list-panel" aria-labelledby="outbound-heading">
+          <h3 id="outbound-heading">Hinflüge</h3><div id="outbounds" class="options"></div>
+        </section>
+        <section class="list-panel" aria-labelledby="return-heading">
+          <h3 id="return-heading">Passende Rückflüge</h3>
+          <p class="muted selected-context" id="selected-context" aria-live="polite"></p>
+          <div id="returns" class="options"></div>
+        </section>
+      </div>
     </section>
   </main>
 </body>

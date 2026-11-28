@@ -1,4 +1,5 @@
 import { setupPicker } from './picker.js';
+import { element, showResults } from './results.js';
 
 const form = document.querySelector('#search');
 const submit = form.querySelector('[type=submit]');
@@ -7,8 +8,6 @@ const statusTitle = document.querySelector('#status-title');
 const statusNote = document.querySelector('#status-note');
 const progress = document.querySelector('#progress');
 const results = document.querySelector('#results');
-const context = document.querySelector('#context');
-const pairList = document.querySelector('#pairs');
 const dayNames = [
   ['mon', 'Mo'], ['tue', 'Di'], ['wed', 'Mi'], ['thu', 'Do'],
   ['fri', 'Fr'], ['sat', 'Sa'], ['sun', 'So'],
@@ -23,13 +22,6 @@ async function json(url, options) {
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Die lokale Suche konnte nicht geladen werden.');
   return data;
-}
-
-function element(tag, text, className) {
-  const node = document.createElement(tag);
-  if (text !== undefined) node.textContent = text;
-  if (className) node.className = className;
-  return node;
 }
 
 function setStatus(title, note = '', completed = null, error = false) {
@@ -58,93 +50,6 @@ function setupDays(id, name, defaults) {
     row.append(checkbox, element('span', label));
     container.append(row);
   }
-}
-
-function money(value, currency) {
-  return new Intl.NumberFormat('de', { style: 'currency', currency }).format(value);
-}
-
-function duration(minutes) {
-  return `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')} min`;
-}
-
-function localTime(timestamp) {
-  return timestamp.slice(11, 16);
-}
-
-function dateLabel(day) {
-  const [year, month, date] = day.split('-');
-  return `${date}.${month}.${year}`;
-}
-
-function direction(label, option) {
-  const row = element('div', undefined, 'direction');
-  const [first] = option.legs;
-  const last = option.legs.at(-1);
-  row.append(
-    element('span', label, 'muted'),
-    element('span', `${first.origin} → ${last.destination}`, 'route'),
-    element('span', `${localTime(option.departure)} – ${localTime(option.arrival)}`),
-    element('span', [...new Set(option.legs.map(leg => leg.airline))].join(', '), 'airline'),
-  );
-  return row;
-}
-
-function segments(label, option) {
-  const section = element('section');
-  section.append(element('h3', `${label} · ${duration(option.duration)}`));
-  const list = element('ul', undefined, 'segments');
-  for (const [index, leg] of option.legs.entries()) {
-    list.append(element(
-      'li',
-      `${leg.origin} ${localTime(leg.departure)} → ${leg.destination} ${localTime(leg.arrival)} · ${leg.airline_name} ${leg.airline}${leg.flight_number}`,
-    ));
-    const layover = option.layovers[index];
-    const next = option.legs[index + 1];
-    if (layover && next) {
-      const airport = layover.airport === next.origin ? layover.airport : `${layover.airport} ⇢ ${next.origin}`;
-      list.append(element('li', `Umstieg ${airport} · ${duration(layover.minutes)}`, 'connection'));
-    }
-  }
-  section.append(list);
-  return section;
-}
-
-function bookingLink(url, label) {
-  if (!url) return null;
-  const link = element('a', label);
-  link.href = url;
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
-  return link;
-}
-
-function pairCard(pair) {
-  const card = element('details', undefined, 'trip');
-  const summary = element('summary');
-  const heading = element('div', undefined, 'trip-heading');
-  heading.append(
-    element('strong', `${pair.city} · ${countryNames.of(pair.country)}`),
-    element('small', `${dateLabel(pair.depart_date)} – ${dateLabel(pair.return_date)} · ${pair.nights} Nächte`),
-    element('strong', money(pair.total, pair.currency), 'price'),
-  );
-  const chevron = element('span', '⌄', 'chevron');
-  chevron.setAttribute('aria-hidden', 'true');
-  heading.append(chevron);
-  summary.append(heading, direction('Hinflug', pair.outbound), direction('Rückflug', pair.return));
-
-  const details = element('div', undefined, 'detail-body');
-  const grid = element('div', undefined, 'details-grid');
-  grid.append(segments('Hinflug', pair.outbound), segments('Rückflug', pair.return));
-  const links = element('div', undefined, 'actions');
-  links.append(...[
-    bookingLink(pair.booking_url, 'Reise bei Google Flights öffnen'),
-    bookingLink(pair.outbound_url, 'Hinflug öffnen'),
-    bookingLink(pair.return_url, 'Rückflug öffnen'),
-  ].filter(Boolean));
-  details.append(grid, links);
-  card.append(summary, details);
-  return card;
 }
 
 function timeValue(raw) {
@@ -244,14 +149,13 @@ form.addEventListener('submit', async event => {
     if (state.status === 'error') throw new Error(state.error);
     const pairs = state.result.pairs;
     const warnings = state.warnings.join(' ');
-    if (!pairs.length) {
+    if (!pairs.length && !state.result.outbound_choices.outbound_groups.length) {
       setStatus('Keine bestätigten Paare gefunden', warnings || 'Passe die Suchfilter oder den Zeitraum an.');
       return;
     }
     if (warnings) setStatus('Suche abgeschlossen', warnings);
     else statusBox.hidden = true;
-    context.textContent = pairs.length === 1 ? '1 Flugpaar' : `${pairs.length} Flugpaare`;
-    pairList.replaceChildren(...pairs.map(pairCard));
+    showResults(state.result, url);
     results.hidden = false;
   } catch (error) {
     setStatus('Suche fehlgeschlagen', error.message, null, true);
